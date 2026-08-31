@@ -1,0 +1,109 @@
+# 需求追踪矩阵
+
+本文按当前工作树的真实类、命令、页面和迁移文件整理，不把旧原型或静态演示页当成功能证据。每行都给出可以继续核对的路径。
+
+状态含义：
+
+- **完整闭环**：Common 命令/DTO、服务端权限与业务服务、InMemory/MySQL 持久化、网络客户端和真实页面均已接通，并有对应测试或集成证据。
+- **服务/API完成等待UI**：服务端和网络边界已经存在，但当前没有覆盖该写操作的真实页面，或页面尚未接入完整用例。
+- **接口阶段/明确不实现**：只保留协议、接口、存储模型或降级提示；当前版本不宣称有真实业务能力。
+
+真实 MySQL 迁移、DAO 和组合根证据见 [DB_COMPATIBILITY_REPORT.md](DB_COMPATIBILITY_REPORT.md)。客户端真实页面只指通过 ClientBusinessServices 装配的 Real 页面；旧模块中的静态数据不作为闭环证据。
+
+登录只提交校园账号、学号或工号和密码。服务端统一查询 `users.username`、`student_profiles.student_no` 和 `teacher_profiles.employee_no`，匹配唯一用户后校验密码、加载姓名和有效角色、创建会话；客户端依据登录结果进入对应职责页面，多角色仅能在登录成功后切换已有职责。
+
+## 一、身份、账号与权限
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 注册、登录、登出、职责切换 | [Commands.java](../vcampus-common/src/main/java/edu/seu/vcampus/common/protocol/Commands.java)；[IdentityCommands.java](../vcampus-common/src/main/java/edu/seu/vcampus/common/protocol/command/IdentityCommands.java)；LoginRequest、LoginResult、SwitchRoleRequest、RegistrationRequest | [AuthService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/auth/AuthService.java)；[IdentityService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/service/IdentityService.java)；[MySqlUserRepository.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/repository/MySqlUserRepository.java) | users、roles、user_roles、user_sessions、login_audits | [LoginFrame.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/LoginFrame.java)、[RegistrationPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/RegistrationPanel.java)；[NetworkAuthClientService.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/auth/NetworkAuthClientService.java) | AuthServiceTest、IdentityServiceTest、MySqlIdentityIntegrationTest | 完整闭环 |
+| 本人资料、改密、账号注销申请 | PROFILE_SELF、PROFILE_UPDATE、ACCOUNT_CANCELLATION_*；ProfileDto、ProfileUpdateRequest、PasswordChangeRequest、AccountCancellation* DTO | [IdentityProfileService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/service/IdentityProfileService.java)；[IdentityCancellationService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/service/IdentityCancellationService.java)；[MySqlAccountCancellationRepository.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/repository/mysql/MySqlAccountCancellationRepository.java) | users、account_cancellation_requests、audit_logs | [IdentityProfilePanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/IdentityProfilePanel.java)；[IdentityCancellationPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/IdentityCancellationPanel.java) | AccountCancellationServiceTest、MySqlAccountCancellationIntegrationTest、DB_COMPATIBILITY_REPORT 3.7 | 完整闭环 |
+| 用户查询、状态、密码、角色分配/撤销 | USER_SEARCH、USER_STATUS_UPDATE、USER_PASSWORD_RESET、ROLE_LIST、ROLE_ASSIGN、ROLE_REVOKE；UserQuery、UserStatusUpdateRequest、PasswordResetRequest、RoleAssignmentRequest、RoleRevokeRequest | [IdentityUserAdminService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/service/IdentityUserAdminService.java)；[IdentityRoleService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/identity/service/IdentityRoleService.java)；MySqlIdentityUserQueryRepository、MySqlIdentityRoleRepository | users、roles、user_roles、audit_logs | [RealIdentityAdminPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealIdentityAdminPage.java)；IdentityUsersPanel、IdentitySessionsPanel | IdentityServiceTest、MySqlIdentityIntegrationTest | 完整闭环 |
+| 登录日志、业务审计、会话查询/撤销、系统快照 | LOGIN_AUDIT_PAGE、BUSINESS_AUDIT_PAGE、SESSION_LIST、SESSION_REVOKE、SYSTEM_MONITOR；AuditQuery、SessionQuery、SessionRevokeRequest、MonitorSnapshotDto | IdentityAuditService、IdentitySessionService；MySqlIdentityAuditRepository、MySqlIdentitySessionRepository、MySqlLoginAuditSink、MySqlIdentityMonitorRepository | login_audits、audit_logs、user_sessions | RealIdentityAdminPage；IdentityAuditPanel、IdentitySessionsPanel、IdentityMonitorPanel | MySqlIdentityIntegrationTest、SessionManagerTest | 完整闭环 |
+
+## 二、学籍与成绩
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 学生查看本人档案和成绩 | SELF_PROFILE、SELF_GRADES；StudentProfileDto、StudentGradePage、StudentGradeQuery | [StudentRecordService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/student/service/StudentRecordService.java)；StudentProfileService、StudentGradeService；MySqlStudentProfileRepository、MySqlStudentGradeRepository | users、student_profiles、course_grades、enrollments、courses | [RealStudentRecordPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealStudentRecordPage.java)；StudentOwnPanel | StudentProfileServiceTest、StudentGradeServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 学籍管理员查询、新建、修改和状态变更 | PROFILE_SEARCH、PROFILE_DETAIL、PROFILE_CREATE、PROFILE_UPDATE；StudentProfileQuery、StudentProfileWriteRequest、StudentDetailDto | StudentProfileService；MySqlStudentProfileRepository | users、student_profiles | RealStudentRecordPage；StudentRegistrarPanel、StudentProfileEditorPanel | StudentProfileServiceTest、StudentCommandHandlerTest | 完整闭环 |
+| 任课教师登记本人课程成绩、管理员核对成绩 | GRADE_RECORD、GRADE_REVIEW；StudentGradeRecordRequest、StudentGradeReviewQuery | StudentGradeService；MySqlStudentGradeRepository，并校验 course_instructors | course_grades、enrollments、courses、course_instructors、users | [TeacherGradePanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/TeacherGradePanel.java)；StudentRegistrarPanel | StudentGradeServiceTest、StudentCommandHandlerTest | 完整闭环 |
+
+## 三、教务与校园公共服务
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 课程分页查询、课程新增/修改 | COURSE_LIST、COURSE_CREATE、COURSE_UPDATE；CourseQuery、CoursePageDto、CourseSaveRequest、CourseDto | [AcademicCourseService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/academic/service/AcademicCourseService.java)；MySqlCourseQueryRepository、MySqlCourseWriteRepository | courses、course_instructors、classrooms | [RealAcademicPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealAcademicPage.java)；AcademicCoursesPanel、CourseEditorPanel | AcademicServiceTest、ClientRoleCompositionTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 排课新增、修改、删除 | SCHEDULE_CREATE、SCHEDULE_UPDATE、SCHEDULE_DELETE；ScheduleSaveRequest、ScheduleIdRequest、CourseScheduleDto | [AcademicScheduleService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/academic/service/AcademicScheduleService.java)；MySqlScheduleRuleRepository | course_schedules、courses、classrooms | [RealAcademicPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealAcademicPage.java) → AcademicCoursesPanel → CourseScheduleEditorPanel；AcademicClientService 的 createSchedule/updateSchedule/deleteSchedule | AcademicServiceTest、DatabaseCompatibilityTest、AcademicScheduleClientServiceTest、AcademicScheduleEditorPanelTest、ClientRoleCompositionTest；1100×720/1280×820 离屏预览 | 完整闭环 |
+| 学生选课、退课、个人课表；教师查看本人课程 | STUDENT_ENROLL、STUDENT_DROP、STUDENT_SCHEDULE、TEACHER_COURSES；EnrollmentRequest、EnrollmentDto、StudentScheduleDto | AcademicEnrollmentService、AcademicScheduleService；MySqlEnrollmentRepository、MySqlCourseQueryRepository | courses、course_schedules、enrollments、course_instructors | AcademicCoursesPanel、StudentSchedulePanel；教师仍由 AcademicCoursesPanel 展示本人课程 | AcademicServiceTest、CrossModuleCapacityIntegrationTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 按模块、角色和生效时间读取公告；教务发布/撤回 | ANNOUNCEMENT_LIST、ANNOUNCEMENT_SAVE、ANNOUNCEMENT_REVOKE；CampusAnnouncementQuery、CampusAnnouncementSaveRequest、CampusAnnouncementDto | [CampusAnnouncementService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/campus/service/CampusAnnouncementService.java)；MySqlCampusAnnouncementRepository | announcements、roles、users | [CampusAnnouncementsPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/CampusAnnouncementsPanel.java)、CampusAnnouncementEditorPanel，挂在 RealAcademicPage | CampusServiceTest、CampusLibraryAnnouncementsTest | 完整闭环 |
+| 比赛浏览、报名、取消；管理员维护和名单 | COMPETITION_LIST、COMPETITION_SAVE、COMPETITION_REGISTER、COMPETITION_CANCEL、COMPETITION_ROSTER；Competition* DTO | CampusCompetitionService；MySqlCampusCompetitionRepository | competitions、competition_registrations、users | CampusCompetitionsPanel、CompetitionEditorPanel，挂在 RealAcademicPage | CampusServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 学生本人 SRTP；教务维护、参与人和状态 | SRTP_MINE、SRTP_LIST、SRTP_SAVE、SRTP_REVIEW；SrtpRecordDto、SrtpSaveRequest、SrtpStatusRequest | CampusSrtpService；MySqlCampusSrtpRepository | srtp_records、users | CampusSrtpPanel、CampusSrtpEditorPanel，挂在 RealAcademicPage | CampusServiceTest、DatabaseCompatibilityTest | 完整闭环 |
+| 教室查询、申请、本人进度、审批/驳回/取消及冲突检查 | CLASSROOM_LIST、CLASSROOM_APPLY、CLASSROOM_MINE、CLASSROOM_REQUEST_LIST、CLASSROOM_REVIEW、CLASSROOM_CANCEL；ClassroomReservation* DTO | CampusClassroomService；MySqlCampusClassroomRepository | classrooms、classroom_reservations、users | CampusClassroomsPanel、CampusClassroomApplyPanel，挂在 RealAcademicPage | CampusServiceTest、CampusClassroomLockIntegrationTest、MySqlDaoIntegrationTest | 完整闭环 |
+
+## 四、图书馆
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 图书检索、详情、库存维护 | BOOK_SEARCH、BOOK_DETAIL、BOOK_SAVE；BookSearchRequest、BookDetail、BookUpsertRequest | [BookService.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/library/service/BookService.java)；MySqlBookRepository | books | [RealLibraryPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealLibraryPage.java)；LibraryBooksPanel、LibraryBookEditorPanel | LibraryServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 借书、还书、本人借阅历史 | BOOK_BORROW、BOOK_RETURN、BORROW_MINE；BorrowRequest、ReturnBorrowRequest、BorrowRecordView | BorrowService；MySqlBorrowRepository | books、borrow_records、users | LibraryBorrowingsPanel、LibraryBooksPanel | LibraryServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 图书管理员借阅台账、筛选与 CSV 导出 | BORROW_ADMIN_LIST；BorrowAdminSearchRequest、BorrowRecordView、PageResult | BorrowService；MySqlBorrowRepository | borrow_records、books、users | [LibraryBorrowingLedgerPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/LibraryBorrowingLedgerPanel.java)；LibraryClientService.adminBorrowings | LibraryBorrowLedgerCommandTest、NetworkLibraryBorrowLedgerTest、LibraryBorrowingLedgerPanelTest、CsvEncoderTest；导出分页上限 5000 条，已有文件覆盖前需确认，管理员权限由服务端校验 | 完整闭环 |
+| 自习室查询、预约、取消和冲突检查 | STUDY_ROOM_SEARCH、STUDY_ROOM_RESERVE、STUDY_ROOM_CANCEL、STUDY_ROOM_RESERVATIONS；StudyRoom* DTO | StudyRoomService；MySqlStudyRoomRepository、MySqlStudyRoomReservationRepository | study_rooms、study_room_reservations、users | LibraryRoomsPanel、LibraryRoomEditorPanel、ReservationFormPanel | LibraryServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 线上资源检索、启用/停用 | RESOURCE_SEARCH、RESOURCE_SAVE；OnlineResourceSearchRequest、OnlineResourceUpsertRequest、OnlineResourceView | OnlineResourceService；MySqlOnlineResourceRepository | online_resources | LibraryResourcesPanel、ResourceEditorPanel | LibraryServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 线上资源访问记录与管理员日志 | RESOURCE_ACCESS、RESOURCE_ACCESS_LOGS；OnlineResourceAccessRequest、OnlineResourceAccessLogQuery、OnlineResourceAccessLogDto、OnlineResourceAccessLogPage | OnlineResourceService；OnlineResourceAccessLogRepository、MySqlOnlineResourceAccessLogRepository | online_resource_access_logs、online_resources、users | LibraryResourcesPanel 的资源访问入口；[LibraryResourceAccessLogsPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/LibraryResourceAccessLogsPanel.java) 仅向图书管理员组合 | LibraryResourceCommandTest、NetworkLibraryResourceAccessTest、LibraryResourceAccessPanelTest、LibraryServiceTest；请求身份和客户端地址不由 payload 提供，日志页只展示非敏感摘要 | 完整闭环 |
+| 图书馆公告 | Campus ANNOUNCEMENT_*；CampusAnnouncement* DTO | CampusAnnouncementService；MySqlCampusAnnouncementRepository | announcements | RealLibraryPage 复用 CampusAnnouncementsPanel，模块筛选为 LIBRARY | CampusLibraryAnnouncementsTest、CampusServiceTest | 完整闭环 |
+
+## 五、校园商店与账户
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 / 视图 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 商品检索、上下架、价格库存维护 | PRODUCT_SEARCH、PRODUCT_DETAIL、PRODUCT_SAVE、PRODUCT_STOCK_ADJUST；Product* DTO、StockAdjustRequest | StoreProductService；MySqlStoreProductRepository | products | [RealStorePage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealStorePage.java)；StoreProductsPanel、StoreProductEditorPanel | StoreServiceTest、NetworkStoreClientServiceTest | 完整闭环 |
+| 购物车、下单、订单查询/取消和状态流转 | CART_*、ORDER_CREATE、ORDER_MINE、ORDER_DETAIL、ORDER_MANAGER_SEARCH、ORDER_STATUS_UPDATE；Cart*、Order* DTO | StoreCartService、StoreOrderService、StoreOrderStatusService；MySqlStoreCartRepository、MySqlStoreOrderRepository | shopping_carts、cart_items、store_orders、store_order_items、products | StoreCartPanel、StoreOrdersPanel | StoreServiceTest、StoreCommandHandlerTest、NetworkStoreClientServiceTest | 完整闭环 |
+| 账户充值、余额、流水和订单支付 | ACCOUNT_GET、ACCOUNT_LEDGER、ACCOUNT_RECHARGE、ORDER_PAY；Account*、PaymentRequest | StoreAccountService、StorePaymentService；MySqlStoreAccountRepository、MySqlStoreRecordRepository | accounts、account_transactions、store_orders、store_order_items、products | StoreAccountPanel、StoreOrdersPanel | StoreServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 已支付订单销售统计 | SALES_REPORT；StoreSalesQuery、StoreSalesPage、StoreSalesDto | StoreSalesService；MySqlStoreSalesRepository 直接聚合 store_orders 与 store_order_items | store_orders、store_order_items；V1 的 vw_store_sales 仅作兼容/查询辅助 | StoreSalesPanel，挂在 RealStorePage 的商店管理员工作台 | StoreSalesServiceTest、DatabaseCompatibilityTest | 完整闭环 |
+
+## 六、宿舍服务
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 楼栋、房间、床位查询与空间维护 | BUILDING_LIST、ROOM_LIST、BED_LIST、BUILDING_CREATE、BUILDING_UPDATE、ROOM_CREATE、ROOM_UPDATE、BED_CREATE、BED_UPDATE；DormBuilding*、DormRoom*、DormBed* DTO | DormFacilityService、DormSpaceService；MySqlDormSpaceRepository、MySqlDormRepository | dorm_buildings、dorm_rooms、dorm_beds | [RealDormPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/RealDormPage.java)；DormManagerSpacePanel、DormSpaceEditorPanel | DormSpaceServiceTest、DormServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 学生本人住宿；宿管直接分配、调宿、退宿 | ACCOMMODATION_MINE、ACCOMMODATION_ASSIGN、ACCOMMODATION_TRANSFER、ACCOMMODATION_CHECKOUT；AccommodationDto、DormAssignmentRequest | DormAccommodationService；MySqlDormAccommodationRepository、MySqlDormAccommodationOps | accommodation_records、dorm_beds、dorm_rooms、users | DormAccommodationPanel；DormManagerSpacePanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 入住/调宿/退宿申请及审批 | REQUEST_SUBMIT、REQUEST_LIST、REQUEST_APPROVE；AccommodationRequest、AccommodationRequestDto、DormApprovalRequest | DormAccommodationService；MySqlDormAccommodationRepository | accommodation_requests、accommodation_records、dorm_beds、users | DormAccommodationPanel、DormManagerRequestsPanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 请假申请、本人历史/撤回、宿管审批 | LEAVE_SUBMIT、LEAVE_MINE、LEAVE_CANCEL、LEAVE_LIST、LEAVE_REVIEW、LEAVE_APPROVE、LEAVE_REJECT；Leave* DTO | DormLeaveService；MySqlDormLeaveRepository、InMemoryDormLeaveRepository | leave_requests、users | DormStudentLeavePanel、DormManagerLeavePanel | DormLeaveServiceTest、DatabaseCompatibilityTest | 完整闭环 |
+| 门禁记录、未归预警与处理 | ACCESS_RECORD、ACCESS_LIST、ALERT_LIST、ALERT_HANDLE；AccessRecord*、LateReturn* DTO | DormGovernanceService；MySqlDormAccessRepository、MySqlDormAlertRepository | access_records、late_return_alerts、users | DormManagerGovernancePanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环（后台定时生成另列延期） |
+| 卫生检查、评分和整改状态 | HYGIENE_LIST、HYGIENE_SAVE；HygieneInspection* DTO | DormGovernanceService；MySqlDormHygieneRepository | hygiene_inspections、dorm_rooms、users | DormManagerGovernancePanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 报修受理、处理中、完成、取消和本人评价 | REPAIR_LIST、REPAIR_CREATE、REPAIR_UPDATE、REPAIR_EVALUATE；Repair* DTO | DormGovernanceService；MySqlDormRepairRepository | repair_orders、dorm_rooms、users | DormStudentRepairsPanel、DormStudentRepairEvaluationPanel、DormManagerRepairsPanel | DormServiceTest、DormRepairEvaluationTest、MySqlDaoIntegrationTest | 完整闭环 |
+| 水电账单、学生分摊与本人缴费 | UTILITY_MINE、UTILITY_MANAGER_LIST、UTILITY_PAY；UtilityBill* DTO、UtilityPaymentRequest | DormBillingService；MySqlDormBillingRepository、MySqlDormPaymentAdapter | utility_bills、utility_allocations、accounts、account_transactions | DormStudentBillsPanel、DormUtilityBillsTable、DormManagerBillingPanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环（后台账单生成另列延期） |
+| 宿舍公告 | ANNOUNCEMENT_LIST、ANNOUNCEMENT_SAVE；DormAnnouncementDto、AnnouncementSaveRequest | DormAnnouncementService；MySqlDormAnnouncementRepository | announcements（module_code = DORM） | DormAnnouncementsPanel | DormServiceTest、DatabaseCompatibilityTest | 完整闭环；与校园通用公告的兼容边界见下文 |
+| 门禁预警/账单自动调度 | 当前没有对应的 Common 调度命令、服务端 scheduler 或真实调度页面 | 代码中有查询/处理服务，但未发现后台定时任务实现 | 记录表可被业务服务写入 | 旧静态模块中的任务文字不是真实接线证据 | 无真实调度测试 | 接口阶段/明确不实现 |
+
+## 七、系统运营
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 系统管理员用户/角色/会话运营 | IdentityCommands；UserPage、RoleDto、SessionPage、SessionQuery、SessionRevokeRequest | IdentityCommandRegistry；IdentityUserAdminService、IdentityRoleService、IdentitySessionService；对应 MySQL identity repositories | users、roles、user_roles、user_sessions、audit_logs | RealIdentityAdminPage（用户与权限）；IdentityUsersPanel、IdentitySessionsPanel、IdentityCancellationPanel | IdentityServiceTest、MySqlIdentityIntegrationTest | 完整闭环 |
+| 系统监控、登录和业务审计 | IdentityCommands；MonitorSnapshotDto、LoginAuditPage、BusinessAuditPage、AuditQuery | IdentityAuditService、IdentityMonitorRepository、MySqlLoginAuditSink | login_audits、audit_logs、user_sessions | RealIdentityAdminPage（系统运行）；IdentityMonitorPanel、IdentityAuditPanel | MySqlIdentityIntegrationTest、ProductionRouterMySqlIntegrationTest | 完整闭环 |
+| 系统管理员不得获得教务/图书/商店/宿舍业务写权限 | Permission、RolePolicy；请求只携带命令和 payload | CommandRouter.requiredPermission + SessionContext.allows(activeRole)；各业务服务再次校验 | 角色权限表 role_permissions | WorkspaceController、WorkbenchPanel 只做导航过滤，服务端为最终边界 | RolePolicyTest、CrossModuleSecurityIntegrationTest | 完整闭环 |
+
+## 八、AI 助手
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 会话、消息、流式响应、取消和工具确认边界 | [AiAssistantGateway.java](../vcampus-common/src/main/java/edu/seu/vcampus/common/ai/AiAssistantGateway.java)、AiQuery、AiStreamListener；Commands.AI_QUERY / AI_CONFIRM | 当前没有真实模型服务或 RAG service；只保留数据迁移和接口边界 | ai_chat_sessions、ai_chat_messages、ai_tool_call_logs | 没有用户可见入口；ModuleId 仍作协议兼容预留 | RolePolicyTest、ModulePagesTest 确认未实现能力不向任何角色显示 | 接口阶段/明确不实现 |
+| 知识片段维护、真实 RAG、写操作工具 | 只保留协议与存储模型，没有对角色授予 AI_QUERY/AI_KNOWLEDGE_MANAGE | 当前不接入模型、检索、外部知识库或写操作工具 | ai_knowledge_chunks 仅为存储模型 | 不显示菜单、主页卡片或业务按钮 | RolePolicyTest、RoleAwareShellUiTest | 接口阶段/明确不实现 |
+
+## 九、网络与组合根
+
+| 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL / 运行时边界 | 客户端真实页面 | 测试 / 证据 | 状态 |
+|---|---|---|---|---|---|---|
+| 统一请求、结果码、会话令牌和 Socket 通信 | Message、MessageType、ResultCodes、Commands、SafeObjectInputStream | [CommandRouter.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/router/CommandRouter.java)、[TcpServer.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/network/TcpServer.java)、ClientConnectionHandler | token 在 SessionManager 运行时解析；网络断开不等于登出 | [SocketClientGateway.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/network/SocketClientGateway.java)、NetworkClientService、LoginFrame | TcpServerIntegrationTest、TcpServerLifecycleTest、TcpServerProtocolResilienceTest、SocketClientGatewayResilienceTest | 完整闭环 |
+| 安全反序列化和累计预算 | SafeObjectInputStream 只允许 common 协议/DTO、必要 JDK 值类型和集合 | TcpServer / ClientConnectionHandler 使用协议流 | 单条持久连接累计读取预算 8 MiB；违规连接关闭 | 网络客户端复用同一 gateway，不自行反序列化业务对象 | SafeObjectInputStreamTest、TcpProtocolSecurityIntegrationTest | 完整闭环 |
+| 生产组合根：真实登录→业务只读→登出→旧 token 拒绝 | AUTH_LOGIN、PROFILE_SELF、academic COURSE_LIST、AUTH_LOGOUT | [ServerMain.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/ServerMain.java) 的 createProductionRouter；各 Registry 注册到同一个 CommandRouter | 同一个 JdbcConnectionFactory、TransactionManager 和 SessionManager | [ClientBusinessServices.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/composition/ClientBusinessServices.java) 共享 NetworkClientService、ClientSession | ProductionRouterMySqlIntegrationTest、DB_COMPATIBILITY_REPORT 3.6 | 完整闭环 |
+| Java 7 编译、API 和代码质量约束 | Common/Client/Server 统一使用 ThreeTen Backport；协议对象保持 Serializable | 父 POM 固定 source/target 1.7，Animal Sniffer 阻止 Java 8+ API，CPD 检查重复代码 | Connector/J 5.1.49 由父 POM 统一管理 | 客户端与服务端不各自定义时间或协议类型 | `mvnw.cmd clean -Pquality verify`；648 个 Java 文件均不超过 200 行 | 完整闭环 |
+
+## 兼容边界与延期项
+
+1. 教务和图书馆已经复用校园通用公告服务与 CampusAnnouncementsPanel；宿舍目前保留 DormAnnouncementService、DormAnnouncementDto、DormAnnouncementsPanel，但落在同一个 announcements 表的 DORM 模块行上。这样兼容了宿舍专用筛选和权限，尚未把两套客户端 API 合并。后续可在不改表的前提下，让宿舍页面适配 CampusAnnouncementService，并保留 DORM 模块约束。
+2. leave_requests 已有迁移、DormLeaveService、DAO、命令和真实学生/宿管页面；它与 dorm.request 的入住/调宿/退宿申请是不同业务，不应合并为同一状态机。
+3. 未发现真实后台预警/账单调度器；当前页面查询和人工处理不等于定时任务。图书管理员借阅台账的 CSV 导出已接入，受单次 5000 条上限和覆盖确认约束。
+4. AI 目前只保留接口和存储预留，未接入真实模型、RAG 或写操作工具，因此不向任何角色显示入口。

@@ -1,0 +1,173 @@
+package edu.seu.vcampus.client.ui;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.border.Border;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+
+/** Swing 控件的集中构造与通用样式。 */
+public final class UiFactory {
+    private UiFactory() {
+    }
+
+    public static void configureLookAndFeel() {
+        try {
+            javax.swing.UIManager.setLookAndFeel(
+                    javax.swing.UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {
+            // 使用 Swing 默认外观即可继续运行。
+        }
+        javax.swing.UIManager.put("Label.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("Button.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("TextField.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("TextArea.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("ComboBox.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("Table.font", DesignTokens.regular(13));
+        javax.swing.UIManager.put("TableHeader.font", DesignTokens.medium(13));
+        javax.swing.UIManager.put("Table.rowHeight", 36);
+        javax.swing.UIManager.put("Table.showGrid", Boolean.FALSE);
+        javax.swing.UIManager.put("Table.intercellSpacing", new Dimension(0, 1));
+        javax.swing.UIManager.put("Table.selectionBackground", DesignTokens.PRIMARY_LIGHT);
+        javax.swing.UIManager.put("Table.selectionForeground", DesignTokens.TEXT_PRIMARY);
+        javax.swing.UIManager.put("TableHeader.background", new Color(0xEE, 0xF1, 0xEA));
+        javax.swing.UIManager.put("TableHeader.foreground", DesignTokens.TEXT_PRIMARY);
+        javax.swing.UIManager.put("TabbedPane.selected", Color.WHITE);
+        javax.swing.UIManager.put("TabbedPane.background", DesignTokens.PAGE_BACKGROUND);
+        javax.swing.UIManager.put("TabbedPane.focus", DesignTokens.PRIMARY_BORDER);
+    }
+
+    public static JPanel page() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(DesignTokens.PAGE_BACKGROUND);
+        return panel;
+    }
+
+    public static JPanel horizontal(int gap) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, gap, 0));
+        panel.setOpaque(false);
+        return panel;
+    }
+
+    public static JPanel vertical(int gap) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new javax.swing.BoxLayout(panel, javax.swing.BoxLayout.Y_AXIS));
+        panel.putClientProperty("vcampus.gap", Integer.valueOf(gap));
+        return panel;
+    }
+
+    public static JLabel title(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(DesignTokens.medium(24));
+        label.setForeground(DesignTokens.TEXT_PRIMARY);
+        return label;
+    }
+
+    public static JLabel sectionTitle(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(DesignTokens.medium(16));
+        label.setForeground(DesignTokens.TEXT_PRIMARY);
+        return label;
+    }
+
+    public static JLabel body(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(DesignTokens.regular(14));
+        label.setForeground(DesignTokens.TEXT_PRIMARY);
+        return label;
+    }
+
+    public static JLabel muted(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(DesignTokens.regular(12));
+        label.setForeground(DesignTokens.TEXT_SECONDARY);
+        return label;
+    }
+
+    public static JLabel requiredLabel(String text) {
+        JLabel label = body(text + " *");
+        label.setForeground(DesignTokens.TEXT_PRIMARY);
+        return label;
+    }
+
+    public static JTextField textField(int columns) {
+        JTextField field = new JTextField(columns);
+        styleField(field);
+        return field;
+    }
+
+    public static JTextArea textArea(int rows, int columns) {
+        JTextArea area = new JTextArea(rows, columns);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setFont(DesignTokens.regular(14));
+        area.setForeground(DesignTokens.TEXT_PRIMARY);
+        area.setBackground(Color.WHITE);
+        area.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DesignTokens.BORDER),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        return area;
+    }
+
+    public static void styleField(JTextField field) {
+        field.setFont(DesignTokens.regular(14));
+        field.setForeground(DesignTokens.TEXT_PRIMARY);
+        field.setBackground(Color.WHITE);
+        field.setCaretColor(DesignTokens.PRIMARY);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DesignTokens.BORDER),
+                BorderFactory.createEmptyBorder(7, 10, 7, 10)));
+        field.setPreferredSize(new Dimension(field.getPreferredSize().width, 36));
+    }
+
+    public static JButton linkButton(String text) {
+        JButton button = new JButton(text);
+        button.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+        button.setMargin(DesignTokens.NO_INSETS);
+        button.setFont(DesignTokens.regular(13));
+        button.setForeground(DesignTokens.PRIMARY);
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        return button;
+    }
+
+    public static GridBagConstraints gbc(int x, int y) {
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = x;
+        constraints.gridy = y;
+        constraints.insets = new Insets(0, 0, DesignTokens.SPACE_12, DesignTokens.SPACE_12);
+        constraints.anchor = GridBagConstraints.NORTHWEST;
+        return constraints;
+    }
+
+    public static Border cardBorder() {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DesignTokens.BORDER_LIGHT),
+                BorderFactory.createEmptyBorder(DesignTokens.SPACE_16, DesignTokens.SPACE_16,
+                        DesignTokens.SPACE_16, DesignTokens.SPACE_16));
+    }
+
+    public static JPanel twoColumnForm() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
+        return panel;
+    }
+
+    public static JPanel labelledField(String label, java.awt.Component field) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.setOpaque(false);
+        panel.add(body(label), BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
+        return panel;
+    }
+}
