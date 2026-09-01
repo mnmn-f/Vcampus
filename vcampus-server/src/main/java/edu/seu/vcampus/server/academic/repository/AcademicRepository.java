@@ -8,6 +8,7 @@ import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -69,4 +70,7 @@ public interface AcademicRepository {
 
     StudentScheduleDto findStudentSchedule(Connection connection, long studentUserId)
             throws SQLException;
+
+    StudentScheduleDto findStudentSchedule(Connection connection, long studentUserId,
+                                           StudentScheduleQuery query) throws SQLException;
 }

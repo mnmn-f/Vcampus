@@ -8,6 +8,7 @@ import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.server.academic.repository.AcademicRepository;
 import edu.seu.vcampus.server.db.JdbcConnectionFactory;
 
@@ -134,5 +135,12 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     public StudentScheduleDto findStudentSchedule(Connection c, long studentId)
             throws SQLException {
         return enrollmentRepository.findStudentSchedule(c, studentId);
+    }
+
+    @Override
+    public StudentScheduleDto findStudentSchedule(Connection c, long studentId,
+                                                  StudentScheduleQuery query)
+            throws SQLException {
+        return enrollmentRepository.findStudentSchedule(c, studentId, query);
     }
 }

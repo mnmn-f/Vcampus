@@ -40,6 +40,18 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
         }
     }
 
+    @Override public void updateOrderPricing(Connection c, long id, BigDecimal original,
+            BigDecimal discount, String promotion, String coupon, String mode) {
+        synchronized (state) {
+            InMemoryStoreState.MemoryOrder order = order(id);
+            order.originalAmount = original;
+            order.discountAmount = discount == null ? BigDecimal.ZERO : discount;
+            order.promotionCode = promotion;
+            order.couponCode = coupon;
+            order.paymentMode = mode == null ? "SELF" : mode;
+        }
+    }
+
     @Override
     public OrderDto findOrder(Connection c, long id, boolean forUpdate) {
         synchronized (state) {
@@ -112,6 +124,11 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
             InMemoryStoreState.MemoryOrder order = new InMemoryStoreState.MemoryOrder(value.getId(),
                     value.getOrderNo(), value.getBuyerId(), value.getTotalAmount(), created);
             order.status = value.getStatus();
+            order.originalAmount = value.getOriginalAmount();
+            order.discountAmount = value.getDiscountAmount();
+            order.promotionCode = value.getPromotionCode();
+            order.couponCode = value.getCouponCode();
+            order.paymentMode = value.getPaymentMode();
             order.paidAt = value.getPaidAt();
             order.cancelledAt = value.getCancelledAt();
             order.completedAt = value.getCompletedAt();
@@ -128,14 +145,13 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
     }
 
     private static OrderDto toDto(InMemoryStoreState.MemoryOrder o) {
-        return new OrderDto(o.id, o.orderNo, o.buyerId, o.totalAmount, o.status,
+        return new OrderDto(o.id, o.orderNo, o.buyerId, o.totalAmount, o.originalAmount,
+                o.discountAmount, o.promotionCode, o.couponCode, o.paymentMode, o.status,
                 o.createdAt, o.paidAt, o.cancelledAt, o.completedAt,
                 new ArrayList<OrderItemDto>(o.items));
     }
 
     private void replaceProduct(ProductDto old, int stock) {
-        state.products.put(old.getId(), new ProductDto(old.getId(), old.getSku(), old.getName(),
-                old.getCategory(), old.getDescription(), old.getPrice(), stock, old.getStatus(),
-                old.getCreatedBy(), old.getCreatedAt(), LocalDateTime.now()));
+        state.products.put(old.getId(), state.withStock(old, stock));
     }
 }

@@ -21,12 +21,13 @@ import java.util.List;
 public final class MySqlStoreOrderRepository implements StoreOrderRepository {
     @Override
     public long insertOrder(Connection c, long buyerId, String orderNo, BigDecimal total) {
-        String sql = "INSERT INTO store_orders (order_no, buyer_id, total_amount, status) "
-                + "VALUES (?, ?, ?, 'CREATED')";
+        String sql = "INSERT INTO store_orders (order_no, buyer_id, total_amount, original_amount, "
+                + "discount_amount, payment_mode, status) VALUES (?, ?, ?, ?, 0, 'SELF', 'CREATED')";
         try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, orderNo);
             ps.setLong(2, buyerId);
             ps.setBigDecimal(3, total);
+            ps.setBigDecimal(4, total);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) throw new StoreRepositoryException("订单编号生成失败");
@@ -35,6 +36,17 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
         } catch (SQLException ex) {
             throw fail("创建订单失败", ex);
         }
+    }
+
+    @Override public void updateOrderPricing(Connection c, long id, BigDecimal original,
+            BigDecimal discount, String promotion, String coupon, String mode) {
+        String sql = "UPDATE store_orders SET original_amount=?,discount_amount=?,promotion_code=?,coupon_code=?,payment_mode=? WHERE id=?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBigDecimal(1, original); ps.setBigDecimal(2, discount);
+            if (promotion == null) ps.setNull(3, java.sql.Types.VARCHAR); else ps.setString(3, promotion);
+            if (coupon == null) ps.setNull(4, java.sql.Types.VARCHAR); else ps.setString(4, coupon);
+            ps.setString(5, mode == null ? "SELF" : mode); ps.setLong(6, id); ps.executeUpdate();
+        } catch (SQLException ex) { throw fail("保存订单价格快照失败", ex); }
     }
 
     @Override
@@ -60,7 +72,7 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
 
     @Override
     public OrderDto findOrder(Connection c, long id, boolean forUpdate) {
-        String sql = "SELECT id, order_no, buyer_id, total_amount, status, created_at, "
+        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, created_at, "
                 + "paid_at, cancelled_at, completed_at FROM store_orders WHERE id = ?"
                 + (forUpdate ? " FOR UPDATE" : "");
         try (PreparedStatement ps = c.prepareStatement(sql)) {
@@ -83,7 +95,7 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
         if (q.getStatus() != null) { where.append(" AND status = ?"); args.add(q.getStatus()); }
         String base = " FROM store_orders" + where;
         List<OrderDto> items = new ArrayList<OrderDto>();
-        String sql = "SELECT id, order_no, buyer_id, total_amount, status, created_at, paid_at, "
+        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, created_at, paid_at, "
                 + "cancelled_at, completed_at" + base + " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             int i = bind(ps, args, 1);
@@ -157,7 +169,9 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
             }
         }
         return new OrderDto(rs.getLong("id"), rs.getString("order_no"), rs.getLong("buyer_id"),
-                rs.getBigDecimal("total_amount"), rs.getString("status"),
+                rs.getBigDecimal("total_amount"), rs.getBigDecimal("original_amount"),
+                rs.getBigDecimal("discount_amount"), rs.getString("promotion_code"),
+                rs.getString("coupon_code"), rs.getString("payment_mode"), rs.getString("status"),
                 MySqlStoreProductRepository.time(rs.getTimestamp("created_at")),
                 MySqlStoreProductRepository.time(rs.getTimestamp("paid_at")),
                 MySqlStoreProductRepository.time(rs.getTimestamp("cancelled_at")),

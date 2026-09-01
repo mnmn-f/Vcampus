@@ -52,6 +52,8 @@
 | 教室申请/审批 | classroom 行 FOR UPDATE → reservation 行 FOR UPDATE → overlap 检查 → 状态写入；申请和审批保持相同方向 |
 | 图书借还 | books 行 → borrow_records 行 → 库存和借阅状态一起写入 |
 | 商店支付 | order → account → product 库存 → 重算明细金额、写流水和订单状态 |
+| 商店结算 | cart/product FOR UPDATE → 服务端重算促销与优惠券 → 订单价格快照 → 优惠券占用 → 清空购物车 |
+| 好友代付 | friend-payment FOR UPDATE → order FOR UPDATE → payer account FOR UPDATE → product 库存 → 账户流水 → 订单/代付状态一起提交 |
 | 宿舍入住/调宿/缴费 | 当前住宿或分摊 → 目标 bed/account → 写记录和状态；活动学生/床位由生成列唯一键保护 |
 
 数据库唯一键、外键和 CHECK 负责单行边界，服务层事务负责跨行冲突和身份范围。遇到并发冲突返回稳定结果码，不通过降低隔离级别或吞掉死锁掩盖问题。教室锁序由 CampusClassroomLockIntegrationTest 覆盖。

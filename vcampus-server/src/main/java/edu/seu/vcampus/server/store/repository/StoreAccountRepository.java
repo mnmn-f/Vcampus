@@ -14,6 +14,8 @@ public interface StoreAccountRepository {
                                  AccountLedgerQuery query);
     LedgerRecord findTransactionByKey(Connection connection,
                                                 String idempotencyKey);
+    AccountDto findOrderPaymentAccount(Connection connection, long orderId,
+                                       boolean forUpdate);
     boolean updateAccountBalance(Connection connection, long accountId,
                                  BigDecimal expectedBalance, BigDecimal newBalance);
     long insertTransaction(Connection connection, long accountId, String type,

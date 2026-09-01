@@ -38,6 +38,11 @@ public final class CartLine {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
+    /** 结算折扣后的内部价格快照；原购物车不被修改。 */
+    public CartLine withUnitPrice(BigDecimal price) {
+        return new CartLine(productId, sku, productName, price, quantity, stockQty, productStatus);
+    }
+
     public CartItemDto toCartItem() {
         return new CartItemDto(productId, sku, productName, unitPrice, quantity,
                 lineAmount(), stockQty, productStatus);

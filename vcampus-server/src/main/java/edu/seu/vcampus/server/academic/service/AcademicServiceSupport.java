@@ -95,6 +95,8 @@ final class AcademicServiceSupport {
                 || request.getCapacity().intValue() <= 0
                 || request.getCredits().compareTo(new BigDecimal("99.99")) > 0
                 || request.getCredits().scale() > 2
+                || request.getSemesterCode() != null
+                && (blank(request.getSemesterCode()) || request.getSemesterCode().length() > 32)
                 || request.getTotalHours() != null && (request.getTotalHours() <= 0
                 || request.getTotalHours() > 65535)
                 || !enumValue(CourseType.class, request.getCourseType())

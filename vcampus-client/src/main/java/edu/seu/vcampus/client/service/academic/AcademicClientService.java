@@ -13,6 +13,7 @@ import edu.seu.vcampus.common.dto.academic.EnrollmentRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleIdRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
@@ -85,7 +86,12 @@ public final class AcademicClientService {
     }
 
     public StudentScheduleDto studentSchedule() throws NetworkClientException {
-        return payload(AcademicCommands.STUDENT_SCHEDULE, null, StudentScheduleDto.class);
+        return studentSchedule(StudentScheduleQuery.all());
+    }
+
+    public StudentScheduleDto studentSchedule(StudentScheduleQuery query)
+            throws NetworkClientException {
+        return payload(AcademicCommands.STUDENT_SCHEDULE, query, StudentScheduleDto.class);
     }
 
     public CoursePageDto teacherCourses(CourseQuery query) throws NetworkClientException {

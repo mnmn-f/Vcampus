@@ -8,6 +8,7 @@ import edu.seu.vcampus.common.dto.academic.EnrollmentRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleIdRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.protocol.Message;
@@ -76,7 +77,9 @@ public final class AcademicCommandHandler implements CommandHandler {
                 return Message.success(request, null);
             }
             if (AcademicCommands.STUDENT_SCHEDULE.equals(command)) {
-                StudentScheduleDto result = service.studentSchedule(session);
+                StudentScheduleDto result = service.studentSchedule(session,
+                        payload == null ? StudentScheduleQuery.all()
+                                : require(payload, StudentScheduleQuery.class));
                 return Message.success(request, result);
             }
             if (AcademicCommands.TEACHER_COURSES.equals(command)) {
