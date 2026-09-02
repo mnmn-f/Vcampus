@@ -91,7 +91,7 @@ ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
   ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'COURSE_READ', 'COURSE_TEACH',
-                  'SCORE_RECORD', 'ANNOUNCEMENT_READ', 'CLASSROOM_RESERVE', 'LIBRARY_READ', 'AI_QUERY')
+                  'SCORE_RECORD', 'ANNOUNCEMENT_READ', 'CLASSROOM_RESERVE', 'LIBRARY_READ')
 WHERE r.`code` = 'TEACHER'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
@@ -130,7 +130,7 @@ ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
-  ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'AI_QUERY', 'AI_KNOWLEDGE_MANAGE', 'SYSTEM_MONITOR')
+  ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'AI_KNOWLEDGE_MANAGE', 'SYSTEM_MONITOR')
 WHERE r.`code` = 'AI_KNOWLEDGE_ADMIN'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
@@ -139,6 +139,13 @@ SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
   ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'USER_MANAGE', 'ROLE_MANAGE', 'SYSTEM_MONITOR')
 WHERE r.`code` = 'SYSTEM_ADMIN'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
+
+-- Remove obsolete AI grants when this idempotent seed is rerun on an older demo DB.
+DELETE rp FROM `role_permissions` rp
+JOIN `roles` r ON r.`id` = rp.`role_id`
+JOIN `permissions` p ON p.`id` = rp.`permission_id`
+WHERE p.`code` = 'AI_QUERY'
+  AND r.`code` IN ('TEACHER', 'AI_KNOWLEDGE_ADMIN');
 
 -- ============================================================================
 -- Demo users. These deterministic login names have documented development-only
@@ -470,7 +477,7 @@ SET @ai_session_id = (SELECT `id` FROM `ai_chat_sessions` WHERE `user_id` = @stu
 INSERT INTO `ai_chat_messages` (`session_id`, `request_id`, `sequence_no`, `sender_type`, `content`, `status`)
 VALUES
     (@ai_session_id, 'demo-ai-request-0001', 1, 'USER', '我如何查看本学期课程？', 'COMPLETED'),
-    (@ai_session_id, 'demo-ai-request-0001', 2, 'ASSISTANT', '当前AI接口处于建设阶段，可由后续模块接入个人课表查询工具。', 'COMPLETED')
+    (@ai_session_id, 'demo-ai-request-0001', 2, 'ASSISTANT', '已通过教务服务查询本人课表；AI 助手会沿用当前登录会话和业务权限返回结果。', 'COMPLETED')
 AS new
 ON DUPLICATE KEY UPDATE `content` = new.content, `status` = new.status;
 
@@ -479,8 +486,71 @@ SELECT 'SYSTEM_GUIDE', NULL, '课程查询说明', '学生可以在虚拟教务�
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '课程查询说明');
 
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '学生选课并加入课表操作步骤',
+       '适用角色：学生。步骤：1. 登录后进入“教务管理”。2. 打开“选课中心”，在“课程与课表”区域按课程编号或名称搜索。3. 只选择状态为“已发布”的课程，并查看课程名称、学分、容量和已有上课时段。4. 选中目标课程后点击“选课”。5. 系统会校验课程状态、剩余容量、重复选课和课表时间冲突；校验失败时按页面提示更换课程或联系教务老师。6. 页面出现“选课成功”后，切换到“我的课表”查看课程、上课时间和教室。学生不能在课表中手工创建课程或时段；课表内容来自已成功选修的课程。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '学生选课并加入课表操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '教务老师添加课程上课时段操作步骤',
+       '适用角色：教务老师。步骤：1. 登录后进入“教务管理”，打开“课程与排课”。2. 在课程列表中选择已有课程；没有课程时先点击“新建课程”，填写课程资料并保存。3. 在下方“排课维护”区域点击“新建时段”。4. 依次填写星期、开始节次、结束节次、可选的起止日期和教室编号。5. 点击“保存时段”。6. 系统会校验节次范围、日期范围、教师课表冲突和教室占用冲突；失败时根据提示调整。7. 页面显示“课程时段已保存”且时段出现在列表中即完成。修改时先选中已有时段再保存；删除时必须再次确认。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '教务老师添加课程上课时段操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '图书借阅与归还操作步骤',
+       '适用角色：具有图书借阅权限的用户。借书步骤：1. 进入“虚拟图书馆”的图书列表。2. 按书名、作者或关键词搜索。3. 选择有可借库存的图书并提交借阅。4. 确认借阅操作后等待系统校验库存和重复借阅。5. 成功后在“我的借阅”查看记录。归还步骤：1. 打开“我的借阅”。2. 选中状态仍为借阅中的记录。3. 点击归还并确认。4. 页面显示归还成功且记录状态更新即完成。AI 代办借书或归还同样必须由当前用户确认，并继续使用图书馆模块的库存和权限校验。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '图书借阅与归还操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '校园商店购物操作步骤',
+       '适用角色：具有商店购买权限的用户。步骤：1. 进入“校园商店”并搜索商品。2. 查看商品状态、单价和库存。3. 将商品加入购物车并调整数量。4. 检查购物车后创建订单。5. 在订单页面确认金额并支付。6. 系统在支付时重新校验商品状态、库存、账户余额和订单状态，成功后生成账户流水。AI 可以查询商品、购物车、本人订单和余额；加入购物车或创建订单属于写操作，必须确认。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '校园商店购物操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '宿舍报修与水电查询操作步骤',
+       '住宿信息与水电查询：进入“宿舍管理”，学生可以查看本人当前住宿信息和水电分摊，不能查看其他学生的数据。报修步骤：1. 打开本人报修页面。2. 新建报修并填写地点、问题类型和描述。3. 提交后在报修列表查看处理状态。4. 维修完成后可按页面提供的入口评价。水电缴费会修改账户和账单状态，执行前必须确认，并由宿舍模块再次校验账单是否可支付、是否重复支付。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '宿舍报修与水电查询操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_GUIDE', NULL, '账号、学籍与成绩查询操作步骤',
+       '查看账号资料：登录后进入个人中心或身份信息页面，系统只返回当前登录人的公开资料，不返回密码、密码哈希或会话令牌。查看学籍：学生进入“学籍信息”查看本人学号、院系、专业和状态。查看成绩：学生在学籍模块打开“我的成绩”，可按课程分页查看；教师或管理员的成绩登记权限不能与学生本人查询权限混用。AI 查询这些信息时使用当前会话身份，不接受用户在问题中伪造的用户编号。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_GUIDE' AND `title` = '账号、学籍与成绩查询操作步骤');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_RULE', NULL, '选课业务规则',
+       '课程必须处于已发布且可选状态。系统拒绝重复选修同一课程、超过课程容量的选课以及与已选课程上课时段冲突的选课。退课会修改选课记录，必须由当前学生确认；已完成或不允许退选的记录不能强制修改。最终结果以教务模块返回的信息为准。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_RULE' AND `title` = '选课业务规则');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'KNOWLEDGE_SCOPE', NULL, '校纪校规知识回答范围',
+       'AI 助手只能依据知识库中由知识管理员录入、标注来源并启用的校纪校规条款回答正式规定。若检索结果没有对应条款，助手必须明确说明“当前知识库未收录该规定”，建议咨询学校主管部门或由知识管理员补充正式文件，不得依据常识编造处分标准、申请期限或管理办法。管理员录入时应在标题中写明制度名称和条款，在正文中保留适用对象、具体要求、生效范围和官方来源。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'KNOWLEDGE_SCOPE' AND `title` = '校纪校规知识回答范围');
+
+INSERT INTO `ai_knowledge_chunks` (`source_type`, `source_ref_id`, `title`, `content`, `status`, `updated_by`)
+SELECT 'SYSTEM_RULE', NULL, 'AI业务代办安全规则',
+       'AI 只通过系统已有命令路由调用业务模块，不直接修改课程、图书、商品、宿舍、账号或学籍数据。查询按当前登录角色鉴权。选课、退课、借书、归还、报名、取消报名、购物车修改和创建订单等写操作先生成待确认卡片，只有原用户在有效期内确认后才执行；确认时原业务模块仍会再次校验权限、状态、容量、库存、余额和并发冲突。',
+       'ACTIVE', @ai_admin_id
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `ai_knowledge_chunks` WHERE `source_type` = 'SYSTEM_RULE' AND `title` = 'AI业务代办安全规则');
+
 INSERT INTO `ai_tool_call_logs` (`session_id`, `request_id`, `tool_name`, `action_type`, `arguments_json`, `result_summary`, `status`, `requested_by`, `completed_at`)
-SELECT @ai_session_id, 'demo-ai-request-0001', 'academic.schedule.read', 'READ', JSON_OBJECT('studentId', @student_id), '仅记录接口预留，未调用真实工具。', 'SUCCEEDED', @student_id, '2026-08-29 10:20:00'
+SELECT @ai_session_id, 'demo-ai-request-0001', 'academic.schedule.read', 'READ', JSON_OBJECT(), '已通过教务服务接口查询本人课表。', 'SUCCEEDED', @student_id, '2026-08-29 10:20:00'
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `ai_tool_call_logs` WHERE `request_id` = 'demo-ai-request-0001' AND `tool_name` = 'academic.schedule.read');
 

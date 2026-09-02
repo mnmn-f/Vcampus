@@ -2,11 +2,47 @@
 -- 在 V1/V2 之后执行；所有金额继续由服务端事务计算。
 USE `vcampus`;
 
-ALTER TABLE `products`
-    ADD COLUMN IF NOT EXISTS `image_url` VARCHAR(1000) NULL AFTER `status`,
-    ADD COLUMN IF NOT EXISTS `rating_average` DECIMAL(4,2) NOT NULL DEFAULT 0.00 AFTER `image_url`,
-    ADD COLUMN IF NOT EXISTS `rating_count` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `rating_average`,
-    ADD COLUMN IF NOT EXISTS `category_code` VARCHAR(40) NULL AFTER `category`;
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'image_url'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE products ADD COLUMN image_url VARCHAR(1000) NULL AFTER status', 'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'rating_average'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE products ADD COLUMN rating_average DECIMAL(4,2) NOT NULL DEFAULT 0.00 AFTER image_url',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'rating_count'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE products ADD COLUMN rating_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER rating_average',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'category_code'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE products ADD COLUMN category_code VARCHAR(40) NULL AFTER category', 'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
 
 SET @vcampus_category_index_exists = (
     SELECT COUNT(*) FROM information_schema.statistics
@@ -162,12 +198,65 @@ INSERT INTO `store_coupons` (`code`,`name`,`threshold_amount`,`discount_amount`,
 VALUES ('WELCOME10','新生优惠券',50.00,10.00,CURRENT_TIMESTAMP(3)+INTERVAL 90 DAY,TRUE)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `active`=VALUES(`active`);
 
-ALTER TABLE `store_orders`
-    ADD COLUMN IF NOT EXISTS `original_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `total_amount`,
-    ADD COLUMN IF NOT EXISTS `discount_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `original_amount`,
-    ADD COLUMN IF NOT EXISTS `promotion_code` VARCHAR(64) NULL AFTER `discount_amount`,
-    ADD COLUMN IF NOT EXISTS `coupon_code` VARCHAR(64) NULL AFTER `promotion_code`,
-    ADD COLUMN IF NOT EXISTS `payment_mode` VARCHAR(16) NOT NULL DEFAULT 'SELF' AFTER `coupon_code`;
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'store_orders'
+      AND column_name = 'original_amount'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE store_orders ADD COLUMN original_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER total_amount',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'store_orders'
+      AND column_name = 'discount_amount'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE store_orders ADD COLUMN discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER original_amount',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'store_orders'
+      AND column_name = 'promotion_code'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE store_orders ADD COLUMN promotion_code VARCHAR(64) NULL AFTER discount_amount',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'store_orders'
+      AND column_name = 'coupon_code'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE store_orders ADD COLUMN coupon_code VARCHAR(64) NULL AFTER promotion_code',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
+
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'store_orders'
+      AND column_name = 'payment_mode'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE store_orders ADD COLUMN payment_mode VARCHAR(16) NOT NULL DEFAULT ''SELF'' AFTER coupon_code',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
 
 SET @vcampus_payment_check_exists = (
     SELECT COUNT(*) FROM information_schema.table_constraints

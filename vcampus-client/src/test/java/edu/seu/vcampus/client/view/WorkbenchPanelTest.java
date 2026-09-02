@@ -63,14 +63,20 @@ public final class WorkbenchPanelTest {
         }
     }
 
-    @Test public void disabledAiIsNotOfferedAsRoleActionOrNavigation() {
+    @Test public void aiIsOfferedOnlyToStudentAndKnowledgeAdmin() {
         for (Role role : new Role[] {Role.STUDENT, Role.TEACHER, Role.AI_KNOWLEDGE_ADMIN}) {
+            boolean expected = role == Role.STUDENT || role == Role.AI_KNOWLEDGE_ADMIN;
+            boolean actionVisible = false;
             for (RoleWorkspace.Action action : RoleWorkspace.actions(role)) {
-                assertFalse(role + " 不应显示校园助手", action.module() == ModuleId.AI_ASSISTANT);
+                if (action.module() == ModuleId.AI_ASSISTANT) {
+                    actionVisible = true;
+                }
             }
+            assertTrue(role + " 工作台 AI 入口不符合权限策略", actionVisible == expected);
             SidebarPanel sidebar = sidebar(session(role));
             sidebar.refresh(ModuleId.DASHBOARD);
-            assertFalse(role + " 不应显示校园助手导航", text(sidebar).contains("校园助手"));
+            assertTrue(role + " 侧边栏 AI 入口不符合权限策略",
+                    text(sidebar).contains("校园助手") == expected);
         }
     }
 

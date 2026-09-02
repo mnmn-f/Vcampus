@@ -3,34 +3,36 @@ package edu.seu.vcampus.client.view.modules;
 import edu.seu.vcampus.client.auth.AiAssistantClientService;
 import edu.seu.vcampus.client.auth.DisabledAiAssistantClientService;
 import edu.seu.vcampus.client.session.ClientSession;
-import edu.seu.vcampus.client.ui.components.SectionCard;
+import edu.seu.vcampus.client.ui.components.TaskTabs;
 import edu.seu.vcampus.client.view.BasePage;
+import edu.seu.vcampus.client.view.modules.ai.AiChatPanel;
+import edu.seu.vcampus.client.view.modules.ai.AiKnowledgePanel;
+import edu.seu.vcampus.client.view.modules.ai.AiMonitorPanel;
+import edu.seu.vcampus.common.security.Role;
 
-import javax.swing.JLabel;
-
-/** 校园助手页面。 */
+/** 学生对话与知识管理员工作台的统一模块入口。 */
 public final class AiAssistantPage extends BasePage {
     public interface Factory {
         AiAssistantClientService create();
     }
 
-    private final AiAssistantClientService service;
-
     private AiAssistantPage(ClientSession session, Factory factory) {
-        super(session, "校园助手", "");
+        super(session, "校园助手", "自然语言问答、校园业务代办与知识服务管理");
         setHeaderContext("身份：" + session.getActiveRole().getDisplayName());
         AiAssistantClientService built = factory == null ? null : factory.create();
-        service = built == null ? new DisabledAiAssistantClientService() : built;
-        addBlock(unavailableCard());
+        AiAssistantClientService service = built == null
+                ? new DisabledAiAssistantClientService() : built;
+        if (session.getActiveRole() == Role.AI_KNOWLEDGE_ADMIN) {
+            TaskTabs tabs = new TaskTabs();
+            tabs.addTask("知识库管理", new AiKnowledgePanel(service));
+            tabs.addTask("运行监控", new AiMonitorPanel(service));
+            addBlock(tabs);
+        } else {
+            addBlock(new AiChatPanel(service));
+        }
     }
 
     public static AiAssistantPage create(ClientSession session, Factory factory) {
         return new AiAssistantPage(session, factory);
-    }
-
-    private SectionCard unavailableCard() {
-        SectionCard card = new SectionCard("校园助手", "");
-        card.setContent(new JLabel("校园助手暂不可用。", JLabel.CENTER));
-        return card;
     }
 }

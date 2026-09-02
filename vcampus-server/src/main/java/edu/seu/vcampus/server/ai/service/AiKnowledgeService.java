@@ -1,0 +1,96 @@
+package edu.seu.vcampus.server.ai.service;
+
+import edu.seu.vcampus.common.ai.AiKnowledgeChunk;
+import edu.seu.vcampus.common.ai.AiKnowledgeQuery;
+import edu.seu.vcampus.common.ai.AiKnowledgeSaveRequest;
+import edu.seu.vcampus.common.ai.AiPage;
+import edu.seu.vcampus.common.protocol.ResultCodes;
+import edu.seu.vcampus.server.ai.repository.AiKnowledgeRepository;
+import edu.seu.vcampus.server.db.TransactionManager;
+import edu.seu.vcampus.server.db.TransactionWork;
+import edu.seu.vcampus.server.security.SessionContext;
+
+import java.sql.Connection;
+import java.util.List;
+
+/** 知识库查询、维护和混合检索。 */
+public final class AiKnowledgeService {
+    private final AiKnowledgeRepository repository;
+    private final TransactionManager transactions;
+
+    public AiKnowledgeService(AiKnowledgeRepository repository,
+                              TransactionManager transactions) {
+        this.repository = repository; this.transactions = transactions;
+    }
+
+    public AiPage<AiKnowledgeChunk> search(final AiKnowledgeQuery query) {
+        return tx(new Work<AiPage<AiKnowledgeChunk>>() {
+            public AiPage<AiKnowledgeChunk> run(Connection c) throws Exception {
+                return repository.search(c, query == null ? new AiKnowledgeQuery() : query);
+            }
+        });
+    }
+
+    public List<AiKnowledgeChunk> retrieve(final String query, final int topK) {
+        return tx(new Work<List<AiKnowledgeChunk>>() {
+            public List<AiKnowledgeChunk> run(Connection c) throws Exception {
+                return repository.retrieve(c, query, topK);
+            }
+        });
+    }
+
+    public AiKnowledgeChunk save(final SessionContext session,
+                                 final AiKnowledgeSaveRequest request) {
+        validate(request);
+        return tx(new Work<AiKnowledgeChunk>() {
+            public AiKnowledgeChunk run(Connection c) throws Exception {
+                return repository.save(c, request, session.getUserId());
+            }
+        });
+    }
+
+    public void delete(final SessionContext session, final long id) {
+        if (id <= 0) throw invalid("知识片段编号不正确");
+        tx(new Work<Void>() {
+            public Void run(Connection c) throws Exception {
+                repository.deactivate(c, id, session.getUserId()); return null;
+            }
+        });
+    }
+
+    public long activeCount() {
+        return tx(new Work<Long>() {
+            public Long run(Connection c) throws Exception {
+                return Long.valueOf(repository.activeCount(c));
+            }
+        }).longValue();
+    }
+
+    private void validate(AiKnowledgeSaveRequest r) {
+        if (r == null || blank(r.getSourceType()) || blank(r.getContent())) {
+            throw invalid("来源类型和知识正文不能为空");
+        }
+        if (r.getContent().length() > 20000) throw invalid("单个知识片段不能超过 20000 字");
+        if (!("ACTIVE".equals(r.getStatus()) || "INACTIVE".equals(r.getStatus()))) {
+            throw invalid("知识状态不正确");
+        }
+    }
+
+    private boolean blank(String value) { return value == null || value.trim().isEmpty(); }
+    private AiServiceException invalid(String text) {
+        return new AiServiceException(ResultCodes.INVALID_INPUT, text);
+    }
+
+    private <T> T tx(final Work<T> work) {
+        try {
+            return transactions.execute(new TransactionWork<T>() {
+                public T execute(Connection c) throws Exception { return work.run(c); }
+            });
+        } catch (AiServiceException ex) { throw ex; }
+        catch (Exception ex) {
+            throw new AiServiceException(ResultCodes.INTERNAL_ERROR, "知识库暂时不可用", ex);
+        }
+    }
+
+    private interface Work<T> { T run(Connection connection) throws Exception; }
+}

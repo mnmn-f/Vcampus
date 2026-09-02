@@ -42,6 +42,18 @@ $maxValue = Read-Setting $MaxConnections $env:VCAMPUS_SERVER_MAX_CONNECTIONS '32
 $timeoutValue = Read-Setting $ClientReadTimeoutMillis `
     $env:VCAMPUS_SERVER_CLIENT_READ_TIMEOUT '30000' 'ClientReadTimeoutMillis' 1 2147483647
 
+$aiModel = $env:VCAMPUS_AI_MODEL
+if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'gpt-4.1-mini' }
+$aiEndpoint = $env:VCAMPUS_AI_ENDPOINT
+if ([string]::IsNullOrWhiteSpace($aiEndpoint)) {
+    $aiEndpoint = 'https://api.openai.com/v1/responses'
+}
+if ([string]::IsNullOrWhiteSpace($env:VCAMPUS_AI_API_KEY)) {
+    Write-Warning 'VCAMPUS_AI_API_KEY is not set. VCampus will use knowledge-base fallback.'
+} else {
+    Write-Host "AI Responses API configured: $aiModel at $aiEndpoint" -ForegroundColor Green
+}
+
 & java "-Dvcampus.server.port=$portValue" `
     "-Dvcampus.server.max-connections=$maxValue" `
     "-Dvcampus.server.client-read-timeout=$timeoutValue" -jar $jar

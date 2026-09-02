@@ -5,6 +5,7 @@ import edu.seu.vcampus.common.protocol.io.SafeObjectInputStream;
 import edu.seu.vcampus.common.protocol.Commands;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
 import edu.seu.vcampus.server.router.CommandRouter;
+import edu.seu.vcampus.server.router.StreamWriter;
 import edu.seu.vcampus.server.security.SessionManager;
 
 import java.io.EOFException;
@@ -89,13 +90,18 @@ public final class ClientConnectionHandler implements Runnable {
                     break;
                 }
                 Message request = (Message) incoming;
+                if (commandRouter.isStreamingCommand(request.getCommand())) {
+                    final ObjectOutputStream streamOutput = output;
+                    commandRouter.routeStream(request, new StreamWriter() {
+                        @Override public void write(Message message) {
+                            writeMessage(streamOutput, message);
+                        }
+                    });
+                    continue;
+                }
                 Message response = commandRouter.route(request);
                 if (response != null) {
-                    synchronized (output) {
-                        output.writeObject(response);
-                        output.flush();
-                        output.reset();
-                    }
+                    writeMessage(output, response);
                     if (Commands.AUTH_LOGIN.equals(response.getCommand())
                             && response.getPayload() instanceof LoginResult) {
                         if (ownedSessionToken != null) {
@@ -109,6 +115,8 @@ public final class ClientConnectionHandler implements Runnable {
                     }
                 }
             }
+        } catch (StreamWriteException ex) {
+            LOGGER.log(Level.FINE, "client connection write failed", ex.getCause());
         } catch (SocketException ex) {
             LOGGER.log(Level.FINE, "client connection closed", ex);
         } catch (IOException ex) {
@@ -119,6 +127,24 @@ public final class ClientConnectionHandler implements Runnable {
             closeSocket();
             if (activeSockets != null) activeSockets.remove(socket);
         }
+    }
+
+    private static void writeMessage(ObjectOutputStream output, Message message) {
+        if (message == null) return;
+        synchronized (output) {
+            try {
+                output.writeObject(message);
+                output.flush();
+                output.reset();
+            } catch (IOException ex) {
+                throw new StreamWriteException(ex);
+            }
+        }
+    }
+
+    private static final class StreamWriteException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        private StreamWriteException(IOException cause) { super(cause); }
     }
 
     private void closeSocket() {

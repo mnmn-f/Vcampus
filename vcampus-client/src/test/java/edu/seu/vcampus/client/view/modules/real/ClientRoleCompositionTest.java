@@ -5,6 +5,7 @@ import edu.seu.vcampus.client.network.ClientGateway;
 import edu.seu.vcampus.client.network.NetworkClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.client.view.BasePage;
+import edu.seu.vcampus.client.view.PersonalCenterPage;
 import edu.seu.vcampus.client.view.modules.ModulePages;
 import edu.seu.vcampus.common.module.ModuleId;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
@@ -16,6 +17,7 @@ import javax.swing.JButton;
 import java.awt.Component;
 import java.awt.Container;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -68,6 +70,16 @@ public final class ClientRoleCompositionTest {
         assertFalse(hasType(teacher, LibraryRoomEditorPanel.class));
     }
 
+    @Test public void personalCenterComposesCancellationOnlyOnceForOrdinaryUsers() {
+        PersonalCenterPage student = new PersonalCenterPage(session(Role.STUDENT),
+                services(Role.STUDENT), null);
+        assertEquals(1, countType(student, IdentityCancellationPanel.class));
+
+        PersonalCenterPage admin = new PersonalCenterPage(session(Role.SYSTEM_ADMIN),
+                services(Role.SYSTEM_ADMIN), null);
+        assertEquals(0, countType(admin, IdentityCancellationPanel.class));
+    }
+
     private static ClientBusinessServices services(Role role) {
         return new ClientBusinessServices(new NetworkClientService(new EmptyGateway()), session(role));
     }
@@ -85,6 +97,15 @@ public final class ClientRoleCompositionTest {
         if (!(root instanceof Container)) return false;
         for (Component child : ((Container) root).getComponents()) if (hasType(child, type)) return true;
         return false;
+    }
+    private static int countType(Component root, Class<?> type) {
+        int count = type.isInstance(root) ? 1 : 0;
+        if (root instanceof Container) {
+            for (Component child : ((Container) root).getComponents()) {
+                count += countType(child, type);
+            }
+        }
+        return count;
     }
     private static final class EmptyGateway implements ClientGateway {
         @Override public Message send(Message request) { return Message.success(request, null); }

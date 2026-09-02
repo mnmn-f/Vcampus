@@ -69,12 +69,47 @@ public final class CommandRouter {
         }
     }
 
+    public boolean isStreamingCommand(String command) {
+        if (command == null) return false;
+        return handlers.get(command.trim()) instanceof StreamingCommandHandler;
+    }
+
+    public void routeStream(Message request, StreamWriter writer) {
+        if (writer == null) throw new IllegalArgumentException("writer is required");
+        if (request == null || request.getType() != MessageType.REQUEST
+                || request.getCommand() == null
+                || request.getCommand().trim().isEmpty()) {
+            if (request != null) writer.write(Message.failure(request,
+                    ServerResultCodes.MALFORMED_REQUEST, "请求格式不正确"));
+            return;
+        }
+        CommandHandler handler = handlers.get(request.getCommand().trim());
+        if (!(handler instanceof StreamingCommandHandler)) {
+            writer.write(Message.failure(request, ServerResultCodes.UNKNOWN_COMMAND,
+                    "不支持的流式操作"));
+            return;
+        }
+        try {
+            SessionContext session = authorize(request, handler);
+            ((StreamingCommandHandler) handler).handleStream(request, session, writer);
+        } catch (RouteException ex) {
+            writer.write(Message.failure(request, ex.getResultCode(), ex.getUserMessage()));
+        } catch (RuntimeException ex) {
+            writer.write(Message.failure(request, ResultCodes.INTERNAL_ERROR,
+                    "服务器暂时无法处理请求"));
+        }
+    }
+
     public SessionManager getSessionManager() {
         return sessionManager;
     }
 
     public int registeredCommandCount() {
         return handlers.size();
+    }
+
+    public boolean isRegistered(String command) {
+        return command != null && handlers.containsKey(command.trim());
     }
 
     private SessionContext authorize(Message request, CommandHandler handler)
