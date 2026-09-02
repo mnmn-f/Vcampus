@@ -2,9 +2,7 @@ package edu.seu.vcampus.server.academic.repository.mysql;
 
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
-import edu.seu.vcampus.common.dto.academic.CourseRosterEntryDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
-import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.server.db.JdbcTemporal;
@@ -80,35 +78,7 @@ final class MySqlEnrollmentRepository {
     CourseRosterDto findCourseRoster(Connection c, long teacherId, long courseId)
             throws SQLException {
         requireConnection(c);
-        String sql = "SELECT e.id AS enrollment_id,e.student_user_id,e.status AS enrollment_status,"
-                + "e.enrolled_at,u.display_name,sp.student_no,sp.college,sp.major,sp.class_name "
-                + "FROM course_instructors ci "
-                + "JOIN enrollments e ON e.course_id=ci.course_id AND e.status=? "
-                + "JOIN users u ON u.id=e.student_user_id "
-                + "LEFT JOIN student_profiles sp ON sp.user_id=e.student_user_id "
-                + "WHERE ci.teacher_user_id=? AND ci.course_id=? "
-                + "ORDER BY sp.student_no ASC,u.display_name ASC,e.id ASC";
-        List<CourseRosterEntryDto> entries = new ArrayList<CourseRosterEntryDto>();
-        try (PreparedStatement statement = c.prepareStatement(sql)) {
-            statement.setString(1, EnrollmentStatus.ENROLLED.name());
-            statement.setLong(2, teacherId);
-            statement.setLong(3, courseId);
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    entries.add(new CourseRosterEntryDto(
-                            result.getLong("enrollment_id"),
-                            result.getLong("student_user_id"),
-                            result.getString("student_no"),
-                            result.getString("display_name"),
-                            result.getString("college"),
-                            result.getString("major"),
-                            result.getString("class_name"),
-                            result.getString("enrollment_status"),
-                            JdbcTemporal.localDateTime(result.getTimestamp("enrolled_at"))));
-                }
-            }
-        }
-        return new CourseRosterDto(courseId, entries);
+        return MySqlCourseRosterRepository.find(c, teacherId, courseId);
     }
 
     boolean hasStudentScheduleConflict(Connection c, long studentId, long courseId)

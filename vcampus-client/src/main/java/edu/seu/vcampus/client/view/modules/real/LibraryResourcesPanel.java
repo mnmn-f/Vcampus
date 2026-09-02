@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.library.LibraryClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.library.OnlineResourceSearchRequest;
@@ -44,7 +45,7 @@ public final class LibraryResourcesPanel extends JPanel {
 
     private AsyncPagedTable<OnlineResourceView> table() {
         AsyncPagedTable<OnlineResourceView> table = new AsyncPagedTable<OnlineResourceView>(
-                "线上资源", "普通用户只查询已启用资源，管理员可查看全部状态。",
+                isLibrarian() ? "线上资源管理" : "线上资源", "普通用户只查询已启用资源，管理员可查看全部状态。",
                 "搜索资源名称或类型", statusFilters(),
                 new String[]{"名称", "类型", "地址", "状态", "发布时间"},
                 new AsyncPagedTable.Loader<OnlineResourceView>() {
@@ -63,6 +64,10 @@ public final class LibraryResourcesPanel extends JPanel {
             create.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
             }); table.addAction(create);
+            JButton disable = new DangerButton("删除（停用）");
+            disable.addActionListener(new java.awt.event.ActionListener() {
+                @Override public void actionPerformed(java.awt.event.ActionEvent e) { disableSelected(); }
+            }); table.addAction(disable);
         }
         return table;
     }
@@ -148,6 +153,14 @@ public final class LibraryResourcesPanel extends JPanel {
             }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
+    }
+
+    private void disableSelected() {
+        OnlineResourceView value = resources.selectedItem();
+        if (value == null) { page.showWarning("请先选择要停用的资源。"); return; }
+        if (!RealUi.confirm(this, "确认停用“" + value.getTitle() + "”？停用后普通用户不可见。")) return;
+        save(new OnlineResourceUpsertRequest(value.getId(), value.getTitle(),
+                value.getResourceType(), value.getUrl(), value.getDescription(), "INACTIVE"));
     }
 
     private boolean isLibrarian() { return role == Role.LIBRARIAN; }

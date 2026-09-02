@@ -56,7 +56,6 @@ final class MySqlStudentGradeRepository
         return MySqlStudentGradeReadRepository.findAll(connection, studentUserId,
                 semesterCode, limit);
     }
-
     @Override
     public List<StudentGradeDto> findAll(Connection connection, long studentUserId,
                                          String semesterCode, Long courseId, int limit) {

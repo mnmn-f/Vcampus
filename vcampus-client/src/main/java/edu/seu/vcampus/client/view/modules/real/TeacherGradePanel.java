@@ -190,7 +190,6 @@ public final class TeacherGradePanel extends SectionCard {
             state.setText("成绩必须是数字");
         }
     }
-
     private static final class CourseOption {
         private final CourseDto course;
         private CourseOption(CourseDto course) { this.course = course; }

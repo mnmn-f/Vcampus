@@ -24,6 +24,11 @@ public final class ModulePages {
     public static BasePage forModule(ModuleId id, ClientSession session,
                                      AiAssistantPage.Factory aiFactory,
                                      ClientBusinessServices businessServices) {
+        if (id == ModuleId.LIBRARY && businessServices == null
+                && "demo".equalsIgnoreCase(System.getProperty(
+                "vcampus.client.mode", "network").trim())) {
+            return RealLibraryPage.demo(session);
+        }
         if (businessServices == null || id == null) {
             return new ServiceRequiredPage(session, id);
         }

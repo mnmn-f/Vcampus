@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/** 页面工厂只保留真实页面和一个无业务数据的 Demo 占位页。 */
+/** 页面工厂在 Demo 模式接入可操作图书馆，其他未连接模块仍显示占位页。 */
 public final class ModulePagesTest {
     @Test
     public void demoModulesShareOneShortPlaceholderWithoutActionsOrRecords() {
@@ -45,6 +45,22 @@ public final class ModulePagesTest {
             assertFalse(text.contains("student01"));
             assertFalse(text.contains("¥39.00"));
             assertFalse(hasActionButton(page));
+        }
+    }
+
+    @Test
+    public void demoModeCreatesOperableLibraryPage() {
+        String old = System.getProperty("vcampus.client.mode");
+        try {
+            System.setProperty("vcampus.client.mode", "demo");
+            BasePage page = ModulePages.forModule(ModuleId.LIBRARY,
+                    session(Role.STUDENT), null);
+            assertTrue(page instanceof RealLibraryPage);
+            assertTrue(visibleText(page).contains("借阅此书"));
+            assertTrue(visibleText(page).contains("提交预约"));
+        } finally {
+            if (old == null) System.clearProperty("vcampus.client.mode");
+            else System.setProperty("vcampus.client.mode", old);
         }
     }
 
