@@ -71,6 +71,7 @@ public final class AiConversationRepository {
     public long append(Connection c, String sessionId, String requestId,
                        String sender, String content, String status) throws Exception {
         long id = requireId(sessionId);
+        lockSession(c, id);
         PreparedStatement ps = c.prepareStatement(
                 "INSERT INTO ai_chat_messages(session_id,request_id,sequence_no,sender_type,content,status) "
                         + "SELECT ?,?,COALESCE(MAX(sequence_no),0)+1,?,?,? FROM ai_chat_messages WHERE session_id=?",
@@ -81,6 +82,17 @@ public final class AiConversationRepository {
             ps.executeUpdate(); ResultSet keys = ps.getGeneratedKeys();
             try { return keys.next() ? keys.getLong(1) : 0L; }
             finally { keys.close(); }
+        } finally { ps.close(); }
+    }
+
+    private void lockSession(Connection c, long id) throws Exception {
+        PreparedStatement ps = c.prepareStatement(
+                "SELECT id FROM ai_chat_sessions WHERE id=? FOR UPDATE");
+        try {
+            ps.setLong(1, id); ResultSet rs = ps.executeQuery();
+            try {
+                if (!rs.next()) throw new IllegalArgumentException("invalid AI session id");
+            } finally { rs.close(); }
         } finally { ps.close(); }
     }
 

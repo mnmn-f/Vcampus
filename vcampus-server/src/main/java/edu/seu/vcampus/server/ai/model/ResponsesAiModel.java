@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 /** 调用兼容 Responses API 的 HTTPS 接口并读取 SSE 文本增量。 */
 public final class ResponsesAiModel implements AiModel {
     private static final Charset UTF8 = Charset.forName("UTF-8");
+    private static final int MAX_OUTPUT_CHARS = 32000;
     private final AiModelConfig config;
 
     public ResponsesAiModel(AiModelConfig config) {
@@ -61,7 +62,7 @@ public final class ResponsesAiModel implements AiModel {
 
     private void readStream(InputStream input, AiTextSink sink) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(input, UTF8));
-        int chunks = 0; boolean done = false; String line;
+        int chunks = 0; int outputChars = 0; boolean done = false; String line;
         while ((line = reader.readLine()) != null) {
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("AI request cancelled");
@@ -72,7 +73,13 @@ public final class ResponsesAiModel implements AiModel {
             String type = JsonText.string(data, "type");
             if ("response.output_text.delta".equals(type)) {
                 String delta = JsonText.string(data, "delta");
-                if (delta != null && !delta.isEmpty()) { sink.onText(delta); chunks++; }
+                if (delta != null && !delta.isEmpty()) {
+                    outputChars += delta.length();
+                    if (outputChars > MAX_OUTPUT_CHARS) {
+                        throw new IllegalStateException("AI API 输出超过安全上限");
+                    }
+                    sink.onText(delta); chunks++;
+                }
             } else if ("response.completed".equals(type)) {
                 done = true; break;
             } else if ("response.failed".equals(type) || "error".equals(type)) {

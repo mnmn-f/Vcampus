@@ -25,7 +25,7 @@ public final class AiChatPanel extends SectionCard {
     private boolean loading;
 
     public AiChatPanel(AiAssistantClientService service) {
-        super("校园助手对话", "写操作只生成待确认记录；确认后仍由原业务模块再次鉴权。");
+        super("校园助手对话", "");
         this.service = service; setContent(content()); bind(); loadSessions(null);
     }
 

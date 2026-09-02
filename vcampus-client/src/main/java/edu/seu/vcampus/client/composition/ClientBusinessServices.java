@@ -10,6 +10,8 @@ import edu.seu.vcampus.client.service.library.LibraryClientService;
 import edu.seu.vcampus.client.service.library.NetworkLibraryClientService;
 import edu.seu.vcampus.client.service.dorm.DormClientService;
 import edu.seu.vcampus.client.service.dorm.NetworkDormClientService;
+import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
+import edu.seu.vcampus.client.service.dorm.ext.NetworkDormExtClientService;
 import edu.seu.vcampus.client.service.store.NetworkStoreClientService;
 import edu.seu.vcampus.client.service.store.StoreClientService;
 import edu.seu.vcampus.client.service.student.NetworkStudentRecordClientService;
@@ -27,6 +29,7 @@ public final class ClientBusinessServices {
     private final LibraryClientService library;
     private final StoreClientService store;
     private final DormClientService dorm;
+    private final DormExtClientService dormExt;
 
     public ClientBusinessServices(NetworkClientService network, ClientSession session) {
         if (network == null || session == null) {
@@ -41,6 +44,7 @@ public final class ClientBusinessServices {
         library = new NetworkLibraryClientService(network, session);
         store = new NetworkStoreClientService(network, session);
         dorm = new NetworkDormClientService(network, session);
+        dormExt = new NetworkDormExtClientService(network, session);
     }
 
     public StudentRecordClientService student() { return student; }
@@ -50,6 +54,7 @@ public final class ClientBusinessServices {
     public LibraryClientService library() { return library; }
     public StoreClientService store() { return store; }
     public DormClientService dorm() { return dorm; }
+    public DormExtClientService dormExt() { return dormExt; }
 
     public void synchronizeSession() {
         network.setSessionToken(session.isAuthenticated() ? session.getSessionToken() : null);

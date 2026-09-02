@@ -134,6 +134,24 @@ public final class DatabaseCompatibilityTest {
         assertTrue(migration.contains("ADD COLUMN payment_mode"));
     }
 
+    @Test
+    public void dormExtensionMigrationIsAdditiveAndIdempotent() throws Exception {
+        String migration = resource("/db/migration/V5__dorm_extension.sql");
+        String[] tables = {"dorm_meter_readings", "dorm_warning_configs",
+                "dorm_absence_warnings", "dorm_visitor_registrations",
+                "dorm_hygiene_item_scores", "dorm_hygiene_tasks",
+                "dorm_access_policies", "dorm_repair_entry_permits",
+                "dorm_notice_extras"};
+        for (String table : tables) {
+            assertTrue(table, migration.contains("CREATE TABLE IF NOT EXISTS `" + table + "`"));
+        }
+        assertFalse(migration.contains("DROP TABLE"));
+        assertFalse(migration.contains("TRUNCATE TABLE"));
+        assertFalse(migration.contains("ALTER TABLE"));
+        assertTrue(migration.contains("INSERT IGNORE INTO `dorm_warning_configs`"));
+        assertTrue(migration.contains("INSERT IGNORE INTO `dorm_access_policies`"));
+    }
+
     private static String tableBlock(String schema, String table) {
         String marker = "CREATE TABLE IF NOT EXISTS `" + table + "` (";
         int start = schema.indexOf(marker);

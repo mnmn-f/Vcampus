@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** 用最小本地 HTTP 服务器验证 Responses API 鉴权、请求体和 SSE 增量。 */
 public final class ResponsesAiModelTest {
@@ -49,6 +50,24 @@ public final class ResponsesAiModelTest {
                 "https://api.example.com/v1/responses", "", "test-model", 1000, 1000));
         assertFalse(model.isConfigured());
         assertTrue(model.getModelName().contains("未配置"));
+    }
+
+    @Test public void rejectsOversizedStreamingOutput() throws Exception {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 33000; i++) text.append('x');
+        String events = "data: {\"type\":\"response.output_text.delta\",\"delta\":\""
+                + text + "\"}\n\n";
+        FakeResponsesApi fake = new FakeResponsesApi(events);
+        try {
+            try {
+                model(fake.port(), "test-secret").generate("request-large", "test",
+                        value -> { });
+                fail("oversized model output must be rejected");
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.getMessage().contains("安全上限"));
+            }
+            fake.await();
+        } finally { fake.close(); }
     }
 
     private ResponsesAiModel model(int port, String key) {

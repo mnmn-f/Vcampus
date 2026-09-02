@@ -80,8 +80,9 @@
 | 卫生检查、评分和整改状态 | HYGIENE_LIST、HYGIENE_SAVE；HygieneInspection* DTO | DormGovernanceService；MySqlDormHygieneRepository | hygiene_inspections、dorm_rooms、users | DormManagerGovernancePanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环 |
 | 报修受理、处理中、完成、取消和本人评价 | REPAIR_LIST、REPAIR_CREATE、REPAIR_UPDATE、REPAIR_EVALUATE；Repair* DTO | DormGovernanceService；MySqlDormRepairRepository | repair_orders、dorm_rooms、users | DormStudentRepairsPanel、DormStudentRepairEvaluationPanel、DormManagerRepairsPanel | DormServiceTest、DormRepairEvaluationTest、MySqlDaoIntegrationTest | 完整闭环 |
 | 水电账单、学生分摊与本人缴费 | UTILITY_MINE、UTILITY_MANAGER_LIST、UTILITY_PAY；UtilityBill* DTO、UtilityPaymentRequest | DormBillingService；MySqlDormBillingRepository、MySqlDormPaymentAdapter | utility_bills、utility_allocations、accounts、account_transactions | DormStudentBillsPanel、DormUtilityBillsTable、DormManagerBillingPanel | DormServiceTest、MySqlDaoIntegrationTest | 完整闭环（后台账单生成另列延期） |
-| 宿舍公告 | ANNOUNCEMENT_LIST、ANNOUNCEMENT_SAVE；DormAnnouncementDto、AnnouncementSaveRequest | DormAnnouncementService；MySqlDormAnnouncementRepository | announcements（module_code = DORM） | DormAnnouncementsPanel | DormServiceTest、DatabaseCompatibilityTest | 完整闭环；与校园通用公告的兼容边界见下文 |
-| 门禁预警/账单自动调度 | 当前没有对应的 Common 调度命令、服务端 scheduler 或真实调度页面 | 代码中有查询/处理服务，但未发现后台定时任务实现 | 记录表可被业务服务写入 | 旧静态模块中的任务文字不是真实接线证据 | 无真实调度测试 | 接口阶段/明确不实现 |
+| 宿舍公告、类型、范围与置顶 | ANNOUNCEMENT_LIST/SAVE、DormExtCommands.NOTICE_*；DormAnnouncementDto、NoticeExtra* | DormAnnouncementService、DormExtNoticeService；MySqlDormAnnouncementRepository、MySqlDormNoticeRepository | announcements（module_code = DORM）、dorm_notice_extras | DormExtNoticePanel（唯一真实入口） | DormServiceTest、DormNoticeValidationTest、DormNoticeVisibilityTest | 完整闭环 |
+| 连续未归、卫生任务和账单自动调度 | DormExtCommands.STATUS / SCHEDULER_RUN | DormScheduler、DormSchedulerJobs；标准 ServerMain 启动并在关闭时停止 | dorm_absence_warnings、dorm_hygiene_tasks、dorm_meter_readings、utility_bills | DormExtSettingsStatusPanel、DormExtWarningPanel、DormExtBillingPanel | DormSchedulerCalendarTest、DormSchedulerExecutionTest | 完整闭环 |
+| 访客登记、在宿状态和报修入内许可 | DormExtCommands；Visitor*、StayStatusDto、RepairEntryPermit* | DormExtVisitorService、DormExtAccessService | dorm_visitor_registrations、access_records、dorm_repair_entry_permits | DormExtVisitorPanel/AuditPanel、DormExtStayPanel/AdminPanel、DormExtPermitPanel | DormVisitorRegistrationTest、DormVisitorValidationTest、DormStayStatusTest、DormRepairRoomTest | 完整闭环 |
 
 ## 七、系统运营
 
@@ -95,8 +96,8 @@
 
 | 需求 | Common 命令 / DTO | 服务端 service / repository | MySQL 表 | 客户端真实页面 | 测试 / 证据 | 状态 |
 |---|---|---|---|---|---|---|
-| 会话、消息、流式响应、取消和工具确认边界 | [AiAssistantGateway.java](../vcampus-common/src/main/java/edu/seu/vcampus/common/ai/AiAssistantGateway.java)、AiQuery、AiStreamListener；Commands.AI_QUERY / AI_CONFIRM | 当前没有真实模型服务或 RAG service；只保留数据迁移和接口边界 | ai_chat_sessions、ai_chat_messages、ai_tool_call_logs | 没有用户可见入口；ModuleId 仍作协议兼容预留 | RolePolicyTest、ModulePagesTest 确认未实现能力不向任何角色显示 | 接口阶段/明确不实现 |
-| 知识片段维护、真实 RAG、写操作工具 | 只保留协议与存储模型，没有对角色授予 AI_QUERY/AI_KNOWLEDGE_MANAGE | 当前不接入模型、检索、外部知识库或写操作工具 | ai_knowledge_chunks 仅为存储模型 | 不显示菜单、主页卡片或业务按钮 | RolePolicyTest、RoleAwareShellUiTest | 接口阶段/明确不实现 |
+| 会话、消息、流式响应、取消与可选模型 | AiCommands；AiQuery、AiStreamChunk、AiCancelRequest | AiAssistantService、AiConversationService、ResponsesAiModel；无密钥时本地降级 | ai_chat_sessions、ai_chat_messages | AiAssistantPage、AiChatPanel | ResponsesAiModelTest、AI 专项测试 | 完整闭环 |
+| 知识检索、维护、工具确认与并发防重 | AiKnowledge*、AiActionConfirmation、AiPendingAction | AiKnowledgeService、KnowledgeRanker、AiToolRegistry、AiToolService；写操作原子领取后复用业务路由 | ai_knowledge_chunks、ai_tool_call_logs | AiKnowledgePanel、AiMonitorPanel；学生与 AI 知识管理员按职责显示 | KnowledgeRankerTest、CampusCommandToolTest、AiToolClaimMySqlIntegrationTest | 完整闭环 |
 
 ## 九、网络与组合根
 
@@ -109,7 +110,7 @@
 
 ## 兼容边界与延期项
 
-1. 教务和图书馆已经复用校园通用公告服务与 CampusAnnouncementsPanel；宿舍目前保留 DormAnnouncementService、DormAnnouncementDto、DormAnnouncementsPanel，但落在同一个 announcements 表的 DORM 模块行上。这样兼容了宿舍专用筛选和权限，尚未把两套客户端 API 合并。后续可在不改表的前提下，让宿舍页面适配 CampusAnnouncementService，并保留 DORM 模块约束。
+1. 教务和图书馆复用 CampusAnnouncementsPanel；宿舍公告落在 announcements 的 DORM 行，并由 dorm_notice_extras 补充类型、范围和置顶，真实宿舍页面只显示 DormExtNoticePanel 一个入口。
 2. leave_requests 已有迁移、DormLeaveService、DAO、命令和真实学生/宿管页面；它与 dorm.request 的入住/调宿/退宿申请是不同业务，不应合并为同一状态机。
-3. 未发现真实后台预警/账单调度器；当前页面查询和人工处理不等于定时任务。图书管理员借阅台账的 CSV 导出已接入，受单次 5000 条上限和覆盖确认约束。
-4. AI 目前只保留接口和存储预留，未接入真实模型、RAG 或写操作工具，因此不向任何角色显示入口。
+3. 宿舍扩展已接入 DormScheduler，负责未归扫描、通知、卫生任务和月度出账；图书管理员借阅台账的 CSV 导出受单次 5000 条上限和覆盖确认约束。
+4. AI 支持本地知识检索和可选 Responses API；外部知识库同步不在当前版本范围，写操作不会自动执行，必须由当前用户确认。
