@@ -20,6 +20,10 @@ public final class StudentCommandRegistry {
                 Permission.STUDENT_RECORD_SELF_READ, service);
         register(router, StudentCommands.SELF_GRADES,
                 Permission.SCORE_SELF_READ, service);
+        register(router, StudentCommands.SELF_GRADE_REPORT,
+                Permission.SCORE_SELF_READ, service);
+        register(router, StudentCommands.SELF_GRADE_EXPORT,
+                Permission.SCORE_SELF_READ, service);
         register(router, StudentCommands.PROFILE_SEARCH,
                 Permission.STUDENT_RECORD_MANAGE, service);
         register(router, StudentCommands.PROFILE_DETAIL,

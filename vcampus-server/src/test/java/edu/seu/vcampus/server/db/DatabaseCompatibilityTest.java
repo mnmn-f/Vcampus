@@ -96,6 +96,37 @@ public final class DatabaseCompatibilityTest {
         }
     }
 
+    @Test
+    public void academicInsightsMigrationAddsTrustedFieldsIdempotently() throws Exception {
+        String migration = resource("/db/migration/V3__academic_insights.sql");
+        assertTrue(migration.contains("ADD COLUMN IF NOT EXISTS `semester_code`"));
+        assertTrue(migration.contains("ADD COLUMN IF NOT EXISTS `gpa_included`"));
+        assertTrue(migration.contains("information_schema.statistics"));
+        assertTrue(migration.contains("IF(@vcampus_index_exists = 0"));
+        assertTrue(migration.contains("PREPARE vc_idx_stmt FROM"));
+        assertTrue(migration.contains("DEALLOCATE PREPARE vc_idx_stmt"));
+        for (String line : migration.split("\n")) {
+            assertFalse("semester index must be guarded", line.trim().equals(
+                    "CREATE INDEX idx_courses_semester ON courses (semester_code, status);"));
+        }
+    }
+
+    @Test
+    public void storeExperienceMigrationGuardsMoneyAndOnePendingFriendPayment() throws Exception {
+        String migration = resource("/db/migration/V4__store_experience.sql");
+        assertTrue(migration.contains("`store_categories`"));
+        assertTrue(migration.contains("`store_promotions`"));
+        assertTrue(migration.contains("`store_product_reviews`"));
+        assertTrue(migration.contains("`store_friend_payments`"));
+        assertTrue(migration.contains("CASE WHEN `status` = 'PENDING' THEN `order_id` ELSE NULL END"));
+        assertTrue(migration.contains("UNIQUE KEY `uk_store_friend_payment_order_pending`"));
+        assertTrue(migration.contains("`promotion_type` <> 'PERCENT' OR `discount_value` <= 100"));
+        assertTrue(migration.contains("payment_mode IN (''SELF'',''FRIEND'')"));
+        assertTrue(migration.contains("WHERE `category_code` IS NULL"));
+        assertTrue(migration.contains("CONSTRAINT fk_products_category_code FOREIGN KEY"));
+        assertTrue(migration.contains("CONSTRAINT ck_store_orders_price_snapshot CHECK"));
+    }
+
     private static String tableBlock(String schema, String table) {
         String marker = "CREATE TABLE IF NOT EXISTS `" + table + "` (";
         int start = schema.indexOf(marker);

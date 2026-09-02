@@ -1,8 +1,10 @@
 package edu.seu.vcampus.server.academic.repository.mysql;
 
 import edu.seu.vcampus.common.dto.academic.CourseDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.server.db.JdbcTemporal;
 
 import java.sql.Connection;
@@ -57,6 +59,26 @@ final class MySqlEnrollmentRepository {
                 return result.next() ? result.getLong(1) : 0L;
             }
         }
+    }
+
+    boolean teacherOwnsCourse(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        requireConnection(c);
+        String sql = "SELECT 1 FROM course_instructors WHERE teacher_user_id=? "
+                + "AND course_id=?";
+        try (PreparedStatement statement = c.prepareStatement(sql)) {
+            statement.setLong(1, teacherId);
+            statement.setLong(2, courseId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    CourseRosterDto findCourseRoster(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        requireConnection(c);
+        return MySqlCourseRosterRepository.find(c, teacherId, courseId);
     }
 
     boolean hasStudentScheduleConflict(Connection c, long studentId, long courseId)
@@ -124,12 +146,21 @@ final class MySqlEnrollmentRepository {
     }
 
     StudentScheduleDto findStudentSchedule(Connection c, long studentId) throws SQLException {
+        return findStudentSchedule(c, studentId, StudentScheduleQuery.all());
+    }
+
+    StudentScheduleDto findStudentSchedule(Connection c, long studentId,
+                                            StudentScheduleQuery query) throws SQLException {
         requireConnection(c);
+        String semesterCode = query == null ? null : query.getSemesterCode();
+        String sql = "SELECT e.course_id FROM enrollments e JOIN courses c "
+                + "ON c.id=e.course_id WHERE e.student_user_id=? AND e.status='ENROLLED'";
+        if (semesterCode != null) sql += " AND c.semester_code=?";
+        sql += " ORDER BY e.course_id";
         List<Long> ids = new ArrayList<Long>();
-        try (PreparedStatement statement = c.prepareStatement(
-                "SELECT course_id FROM enrollments WHERE student_user_id=? "
-                        + "AND status='ENROLLED' ORDER BY course_id")) {
+        try (PreparedStatement statement = c.prepareStatement(sql)) {
             statement.setLong(1, studentId);
+            if (semesterCode != null) statement.setString(2, semesterCode);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     ids.add(result.getLong(1));
@@ -143,7 +174,7 @@ final class MySqlEnrollmentRepository {
                 coursesList.add(course);
             }
         }
-        return new StudentScheduleDto(studentId, coursesList);
+        return new StudentScheduleDto(studentId, semesterCode, coursesList);
     }
 
     private EnrollmentDto readEnrollment(ResultSet result) throws SQLException {

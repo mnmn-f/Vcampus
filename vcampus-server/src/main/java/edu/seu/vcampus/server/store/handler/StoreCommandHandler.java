@@ -3,6 +3,12 @@ package edu.seu.vcampus.server.store.handler;
 import edu.seu.vcampus.common.dto.store.AccountLedgerQuery;
 import edu.seu.vcampus.common.dto.store.AccountRechargeRequest;
 import edu.seu.vcampus.common.dto.store.CartItemRequest;
+import edu.seu.vcampus.common.dto.store.CheckoutConfirmRequest;
+import edu.seu.vcampus.common.dto.store.CheckoutPreviewRequest;
+import edu.seu.vcampus.common.dto.store.CouponClaimRequest;
+import edu.seu.vcampus.common.dto.store.FriendPaymentDecisionRequest;
+import edu.seu.vcampus.common.dto.store.FriendPaymentQuery;
+import edu.seu.vcampus.common.dto.store.FriendPaymentRequest;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.OrderStatusUpdateRequest;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
@@ -11,6 +17,11 @@ import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
 import edu.seu.vcampus.common.dto.store.StockAdjustRequest;
 import edu.seu.vcampus.common.dto.store.StoreIdRequest;
 import edu.seu.vcampus.common.dto.store.StoreSalesQuery;
+import edu.seu.vcampus.common.dto.store.StoreCategoryWriteRequest;
+import edu.seu.vcampus.common.dto.store.PromotionWriteRequest;
+import edu.seu.vcampus.common.dto.store.ProductReviewQuery;
+import edu.seu.vcampus.common.dto.store.ProductReviewWriteRequest;
+import edu.seu.vcampus.common.dto.store.StoreSalesTrendQuery;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.StoreCommands;
@@ -60,6 +71,8 @@ public final class StoreCommandHandler implements CommandHandler {
                 return Message.success(request, service.adjustProductStock(session,
                         require(payload, StockAdjustRequest.class)));
             }
+            if (StoreCommands.CATEGORY_LIST.equals(command)) return Message.success(request, service.listCategories(session));
+            if (StoreCommands.CATEGORY_SAVE.equals(command)) return Message.success(request, service.saveCategory(session, require(payload, StoreCategoryWriteRequest.class)));
             if (StoreCommands.CART_GET.equals(command)) return Message.success(request, service.getCart(session));
             if (StoreCommands.CART_ADD_ITEM.equals(command)) {
                 return Message.success(request, service.addCartItem(session,
@@ -78,6 +91,13 @@ public final class StoreCommandHandler implements CommandHandler {
             if (StoreCommands.ORDER_PAY.equals(command)) {
                 return Message.success(request, service.payOrder(session,
                         require(payload, PaymentRequest.class)));
+            }
+            if (StoreCommands.CHECKOUT_PREVIEW.equals(command)) {
+                CheckoutPreviewRequest p = require(payload, CheckoutPreviewRequest.class);
+                return Message.success(request, service.checkoutPreview(session, p.getCouponCode()));
+            }
+            if (StoreCommands.CHECKOUT_CONFIRM.equals(command)) {
+                return Message.success(request, service.confirmCheckout(session, require(payload, CheckoutConfirmRequest.class)));
             }
             if (StoreCommands.ORDER_MINE.equals(command)) {
                 return Message.success(request, service.getOwnOrders(session,
@@ -107,6 +127,17 @@ public final class StoreCommandHandler implements CommandHandler {
                 return Message.success(request, service.salesReport(session,
                         payload == null ? null : require(payload, StoreSalesQuery.class)));
             }
+            if (StoreCommands.SALES_TREND.equals(command)) return Message.success(request, service.salesTrend(session, payload == null ? null : require(payload, StoreSalesTrendQuery.class)));
+            if (StoreCommands.PROMOTION_LIST.equals(command)) return Message.success(request, service.listPromotions(session));
+            if (StoreCommands.PROMOTION_SAVE.equals(command)) return Message.success(request, service.savePromotion(session, require(payload, PromotionWriteRequest.class)));
+            if (StoreCommands.COUPON_CLAIM.equals(command)) return Message.success(request, service.claimCoupon(session, require(payload, CouponClaimRequest.class)));
+            if (StoreCommands.COUPON_MINE.equals(command)) return Message.success(request, service.listCoupons(session));
+            if (StoreCommands.REVIEW_CREATE.equals(command)) return Message.success(request, service.addReview(session, require(payload, ProductReviewWriteRequest.class)));
+            if (StoreCommands.REVIEW_LIST.equals(command)) return Message.success(request, service.listReviews(session, require(payload, ProductReviewQuery.class)));
+            if (StoreCommands.FRIEND_PAY_CREATE.equals(command)) return Message.success(request, service.createFriendPayment(session, require(payload, FriendPaymentRequest.class)));
+            if (StoreCommands.FRIEND_PAY_MINE.equals(command)) return Message.success(request, service.listFriendPayments(session, require(payload, FriendPaymentQuery.class)));
+            if (StoreCommands.FRIEND_PAY_WITHDRAW.equals(command)) return Message.success(request, service.withdrawFriendPayment(session, new StoreIdRequest(id(payload))));
+            if (StoreCommands.FRIEND_PAY_DECIDE.equals(command)) return Message.success(request, service.decideFriendPayment(session, require(payload, FriendPaymentDecisionRequest.class)));
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的商店操作");
         } catch (StoreServiceException ex) {
             return Message.failure(request, ex.getResultCode(), ex.getUserMessage());
@@ -125,8 +156,13 @@ public final class StoreCommandHandler implements CommandHandler {
                 || StoreCommands.PRODUCT_CREATE.equals(command)
                 || StoreCommands.PRODUCT_UPDATE.equals(command)
                 || StoreCommands.PRODUCT_STOCK_ADJUST.equals(command)) return Permission.STORE_MANAGE;
+        if (StoreCommands.CATEGORY_LIST.equals(command)) return Permission.STORE_READ;
+        if (StoreCommands.CATEGORY_SAVE.equals(command) || StoreCommands.PROMOTION_LIST.equals(command)
+                || StoreCommands.PROMOTION_SAVE.equals(command)) return Permission.STORE_MANAGE;
         if (StoreCommands.ORDER_MANAGER_SEARCH.equals(command)) return Permission.STORE_SALES_READ;
         if (StoreCommands.SALES_REPORT.equals(command)) return Permission.STORE_SALES_READ;
+        if (StoreCommands.SALES_TREND.equals(command)) return Permission.STORE_SALES_READ;
+        if (StoreCommands.REVIEW_LIST.equals(command)) return Permission.STORE_READ;
         if (StoreCommands.ORDER_DETAIL.equals(command)
                 || StoreCommands.ORDER_STATUS_UPDATE.equals(command)) return null;
         return Permission.STORE_PURCHASE;

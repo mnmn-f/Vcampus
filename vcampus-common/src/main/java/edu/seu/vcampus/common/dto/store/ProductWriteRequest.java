@@ -10,7 +10,14 @@ public final class ProductWriteRequest extends ProductData {
     public ProductWriteRequest(long id, String sku, String name, String category,
                                String description, BigDecimal price, int stockQty,
                                String status) {
-        super(sku, name, category, description, price, stockQty, status);
+        this(id, sku, name, category, description, price, stockQty, status, null);
+    }
+
+    public ProductWriteRequest(long id, String sku, String name, String category,
+                               String description, BigDecimal price, int stockQty,
+                               String status, String imageUrl) {
+        super(sku, name, category, description, price, stockQty, status, imageUrl,
+                BigDecimal.ZERO, 0L);
         this.id = id;
     }
 
@@ -23,6 +30,12 @@ public final class ProductWriteRequest extends ProductData {
                                String description, BigDecimal price, int stockQty,
                                String status) {
         this(0L, sku, name, category, description, price, stockQty, status);
+    }
+
+    public ProductWriteRequest(String sku, String name, String category,
+                               String description, BigDecimal price, int stockQty,
+                               String status, String imageUrl) {
+        this(0L, sku, name, category, description, price, stockQty, status, imageUrl);
     }
 
     public ProductWriteRequest(String sku, String name, String category,

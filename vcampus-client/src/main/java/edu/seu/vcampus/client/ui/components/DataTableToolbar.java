@@ -4,6 +4,7 @@ import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -67,6 +68,13 @@ public class DataTableToolbar extends JPanel {
             actionRowAdded = true;
         }
         actionRow.revalidate();
+        revalidate();
+        repaint();
+    }
+
+    public void setAdditionalFilters(JComponent filters) {
+        if (filters == null) return;
+        add(filters, BorderLayout.CENTER);
         revalidate();
         repaint();
     }

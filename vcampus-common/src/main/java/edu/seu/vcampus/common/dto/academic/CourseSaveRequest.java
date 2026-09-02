@@ -15,6 +15,7 @@ public final class CourseSaveRequest implements Serializable {
     private final String courseCode;
     private final String courseName;
     private final String courseType;
+    private final String semesterCode;
     private final BigDecimal credits;
     private final Integer totalHours;
     private final Integer capacity;
@@ -26,10 +27,19 @@ public final class CourseSaveRequest implements Serializable {
                              String courseType, BigDecimal credits, Integer totalHours,
                              Integer capacity, String description, String status,
                              List<Long> instructorUserIds) {
+        this(courseId, courseCode, courseName, courseType, credits, totalHours, capacity,
+                description, status, instructorUserIds, null);
+    }
+
+    public CourseSaveRequest(Long courseId, String courseCode, String courseName,
+                             String courseType, BigDecimal credits, Integer totalHours,
+                             Integer capacity, String description, String status,
+                             List<Long> instructorUserIds, String semesterCode) {
         this.courseId = courseId;
         this.courseCode = courseCode;
         this.courseName = courseName;
         this.courseType = codeOrNull(courseType);
+        this.semesterCode = codeOrNull(semesterCode);
         this.credits = credits;
         this.totalHours = totalHours;
         this.capacity = capacity;
@@ -42,9 +52,18 @@ public final class CourseSaveRequest implements Serializable {
                                            BigDecimal credits, Integer totalHours,
                                            Integer capacity, String description,
                                            CourseStatus status, List<Long> teachers) {
+        return create(code, name, type, credits, totalHours, capacity, description,
+                status, teachers, null);
+    }
+
+    public static CourseSaveRequest create(String code, String name, CourseType type,
+                                           BigDecimal credits, Integer totalHours,
+                                           Integer capacity, String description,
+                                           CourseStatus status, List<Long> teachers,
+                                           String semesterCode) {
         return new CourseSaveRequest(null, code, name, type == null ? null : type.name(),
                 credits, totalHours, capacity, description,
-                status == null ? null : status.name(), teachers);
+                status == null ? null : status.name(), teachers, semesterCode);
     }
 
     public static CourseSaveRequest update(long id, String code, String name,
@@ -52,12 +71,21 @@ public final class CourseSaveRequest implements Serializable {
                                            Integer totalHours, Integer capacity,
                                            String description, CourseStatus status,
                                            List<Long> teachers) {
+        return update(id, code, name, type, credits, totalHours, capacity, description,
+                status, teachers, null);
+    }
+
+    public static CourseSaveRequest update(long id, String code, String name,
+                                           CourseType type, BigDecimal credits,
+                                           Integer totalHours, Integer capacity,
+                                           String description, CourseStatus status,
+                                           List<Long> teachers, String semesterCode) {
         if (id <= 0) {
             throw new IllegalArgumentException("course id must be positive");
         }
         return new CourseSaveRequest(Long.valueOf(id), code, name,
                 type == null ? null : type.name(), credits, totalHours, capacity,
-                description, status == null ? null : status.name(), teachers);
+                description, status == null ? null : status.name(), teachers, semesterCode);
     }
 
     public Long getCourseId() {
@@ -78,6 +106,10 @@ public final class CourseSaveRequest implements Serializable {
 
     public String getCourseType() {
         return courseType;
+    }
+
+    public String getSemesterCode() {
+        return semesterCode;
     }
 
     public BigDecimal getCredits() {
@@ -118,4 +150,5 @@ public final class CourseSaveRequest implements Serializable {
     private static String codeOrNull(String value) {
         return value == null ? null : value.trim().toUpperCase(Locale.ROOT);
     }
+
 }

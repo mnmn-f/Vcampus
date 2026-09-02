@@ -27,6 +27,7 @@ public final class CourseEditorPanel extends SectionCard {
 
     private final JTextField code = field();
     private final JTextField name = field();
+    private final JTextField semester = field();
     private final JComboBox<CourseType> type = new JComboBox<CourseType>(CourseType.values());
     private final JTextField credits = field();
     private final JTextField hours = field();
@@ -45,6 +46,7 @@ public final class CourseEditorPanel extends SectionCard {
         type.setFont(DesignTokens.regular(13)); status.setFont(DesignTokens.regular(13)); RealUi.codeRenderer(type); RealUi.codeRenderer(status);
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         addField(fields, "课程编号", code); addField(fields, "课程名称", name);
+        addField(fields, "学期编号", semester);
         addField(fields, "课程类型", type); addField(fields, "学分", credits);
         addField(fields, "总学时", hours); addField(fields, "容量", capacity);
         addField(fields, "状态", status); addField(fields, "教师编号（多个请用逗号分隔）", teachers);
@@ -64,6 +66,7 @@ public final class CourseEditorPanel extends SectionCard {
         if (value == null) { startNew(); return; }
         courseId = value.getId(); update = true; code.setEditable(false);
         code.setText(RealUi.input(value.getCourseCode())); name.setText(RealUi.input(value.getCourseName()));
+        semester.setText(RealUi.input(value.getSemesterCode()));
         type.setSelectedItem(parseType(value.getCourseType())); credits.setText(RealUi.input(value.getCredits()));
         hours.setText(RealUi.input(value.getTotalHours())); capacity.setText(String.valueOf(value.getCapacity()));
         status.setSelectedItem(parseStatus(value.getStatus())); description.setText(value.getDescription() == null ? "" : value.getDescription());
@@ -90,19 +93,21 @@ public final class CourseEditorPanel extends SectionCard {
             BigDecimal credit = new BigDecimal(required(credits.getText(), "学分"));
             Integer totalHours = Integer.valueOf(required(hours.getText(), "总学时"));
             Integer seats = Integer.valueOf(required(capacity.getText(), "容量"));
+            String semesterCode = semester.getText().trim();
+            if (semesterCode.length() == 0) semesterCode = "UNSPECIFIED";
             List<Long> ids = new ArrayList<Long>();
             for (String value : teachers.getText().split(",")) if (!value.trim().isEmpty()) ids.add(Long.valueOf(value.trim()));
             CourseSaveRequest request = update ? CourseSaveRequest.update(courseId, courseCode, courseName,
                     (CourseType) type.getSelectedItem(), credit, totalHours, seats, description.getText(),
-                    (CourseStatus) status.getSelectedItem(), ids) : CourseSaveRequest.create(courseCode, courseName,
+                    (CourseStatus) status.getSelectedItem(), ids, semesterCode) : CourseSaveRequest.create(courseCode, courseName,
                     (CourseType) type.getSelectedItem(), credit, totalHours, seats, description.getText(),
-                    (CourseStatus) status.getSelectedItem(), ids);
+                    (CourseStatus) status.getSelectedItem(), ids, semesterCode);
             if (listener != null) listener.onSave(request, update); error.setText(" ");
         } catch (NumberFormatException ex) { error.setText("学分、学时、容量和教师编号必须是数字"); }
         catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }
     }
 
-    private void clear() { code.setText(""); name.setText(""); credits.setText(""); hours.setText(""); capacity.setText(""); teachers.setText(""); description.setText(""); }
+    private void clear() { code.setText(""); name.setText(""); semester.setText(""); credits.setText(""); hours.setText(""); capacity.setText(""); teachers.setText(""); description.setText(""); }
     private static JTextField field() { return UiFactory.textField(12); }
     private static void addField(JPanel p, String label, java.awt.Component field) { p.add(UiFactory.labelledField(label, field)); }
     private static String required(String value, String label) { if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(label + "不能为空"); return value.trim(); }

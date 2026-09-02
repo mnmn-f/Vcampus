@@ -15,6 +15,7 @@ import edu.seu.vcampus.common.security.Role;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import java.awt.BorderLayout;
 
 /** 商品检索、详情、购物车入口和商店管理员库存维护。 */
@@ -23,15 +24,22 @@ public final class StoreProductsPanel extends JPanel {
     private final StoreClientService service;
     private final Role role;
     private final JLabel detail = UiFactory.muted("选择商品查看详情。");
+    private final ProductImageView image = new ProductImageView();
+    private final JTextField category = UiFactory.textField(12);
     private final AsyncPagedTable<ProductDto> products;
     private final StoreProductEditorPanel editor;
+    private long selectedProductId;
 
     public StoreProductsPanel(BasePage page, StoreClientService service, Role role) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.role = role;
         editor = role == Role.STORE_MANAGER ? new StoreProductEditorPanel(new EditorListener()) : null;
+        JPanel filter = UiFactory.horizontal(8); filter.add(UiFactory.body("分类编码")); filter.add(category);
+        JButton apply = new edu.seu.vcampus.client.ui.components.SecondaryButton("按分类筛选");
+        apply.addActionListener(new java.awt.event.ActionListener() { @Override public void actionPerformed(java.awt.event.ActionEvent e) { products.reload(); } });
+        filter.add(apply); add(filter);
         products = table(); add(products);
-        JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
+        JPanel info = new JPanel(new BorderLayout(12, 0)); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); info.add(image, BorderLayout.EAST); add(info);
         if (editor != null) add(editor);
     }
 
@@ -42,11 +50,11 @@ public final class StoreProductsPanel extends JPanel {
                 new String[]{"编码", "商品", "分类", "单价", "库存", "状态"},
                 new AsyncPagedTable.Loader<ProductDto>() {
                     @Override public PageSlice<ProductDto> load(int p, String keyword, String filter) throws Exception {
-                        return slice(service.searchProducts(new ProductQuery(keyword, null, status(filter), p, 20)));
+                        return slice(service.searchProducts(new ProductQuery(keyword, RealUi.optional(category.getText()), status(filter), p, 20)));
                     }
                 }, new AsyncPagedTable.RowMapper<ProductDto>() {
-                    @Override public Object[] values(ProductDto row) { return new Object[]{RealUi.text(row.getSku()), row.getName(), RealUi.text(row.getCategory()),
-                            "¥" + RealUi.text(row.getPrice()), row.getStockQty(), RealUi.status(row.getStatus())}; }
+                    @Override public Object[] values(ProductDto row) { return new Object[]{RealUi.text(row.getSku()), row.getName(), RealUi.status(row.getCategory()),
+                            "¥" + RealUi.text(row.getPrice()), lowStock(row.getStockQty()), RealUi.status(row.getStatus())}; }
                 }, new AsyncPagedTable.SelectionListener<ProductDto>() {
                     @Override public void onSelected(ProductDto row) { select(row); }
                 });
@@ -63,17 +71,19 @@ public final class StoreProductsPanel extends JPanel {
     }
 
     private void select(final ProductDto value) {
-        if (value == null) { detail.setText("选择商品查看详情。"); if (editor != null) editor.startNew(); return; }
+        if (value == null) { selectedProductId = 0L; detail.setText("选择商品查看详情。"); if (editor != null) editor.startNew(); return; }
+        selectedProductId = value.getId();
+        image.load(value.getImageUrl());
         detail.setText("商品详情：" + RealUi.text(value.getName()) + "　编码 " + RealUi.text(value.getSku())
                 + "　单价 ¥" + RealUi.text(value.getPrice()) + "　库存 " + value.getStockQty()
-                + "　说明：" + RealUi.text(value.getDescription()));
+                + "　评分 " + value.getRatingAverage() + "（" + value.getRatingCount() + " 条）　说明：" + RealUi.text(value.getDescription()));
         if (editor != null) editor.showProduct(value);
         AsyncTask.run(new AsyncTask.Work<ProductDto>() {
             @Override public ProductDto run() throws Exception { return service.getProductDetail(value.getId()); }
         }, new AsyncTask.Callback<ProductDto>() {
-            @Override public void onSuccess(ProductDto result) { detail.setText("商品详情：" + RealUi.text(result.getName())
+            @Override public void onSuccess(ProductDto result) { if (result.getId() != selectedProductId) return; image.load(result.getImageUrl()); detail.setText("商品详情：" + RealUi.text(result.getName())
                     + "　单价 ¥" + RealUi.text(result.getPrice()) + "　库存 " + result.getStockQty()
-                    + "　状态：" + RealUi.status(result.getStatus())); }
+                    + "　评分 " + result.getRatingAverage() + "（" + result.getRatingCount() + " 条）　状态：" + RealUi.status(result.getStatus())); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
@@ -115,6 +125,7 @@ public final class StoreProductsPanel extends JPanel {
         if ("在售".equals(filter)) return "ON_SALE"; if ("已下架".equals(filter)) return "OFF_SALE";
         if ("草稿".equals(filter)) return "DRAFT"; if ("已归档".equals(filter)) return "ARCHIVED"; return null;
     }
+    private static String lowStock(int value) { return value <= 5 ? value + "（低库存）" : String.valueOf(value); }
     private final class EditorListener implements StoreProductEditorPanel.Listener {
         @Override public void onSave(ProductWriteRequest request) { save(request); }
         @Override public void onAdjust(StockAdjustRequest request) { adjust(request); }

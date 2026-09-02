@@ -3,11 +3,13 @@ package edu.seu.vcampus.server.academic.repository.mysql;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.server.academic.repository.AcademicRepository;
 import edu.seu.vcampus.server.db.JdbcConnectionFactory;
 
@@ -41,6 +43,18 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     public CoursePageDto findCoursesByTeacher(Connection c, long teacherId,
                                               CourseQuery q) throws SQLException {
         return courseRepository.findCourses(c, q, Long.valueOf(teacherId));
+    }
+
+    @Override
+    public boolean teacherOwnsCourse(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        return enrollmentRepository.teacherOwnsCourse(c, teacherId, courseId);
+    }
+
+    @Override
+    public CourseRosterDto findCourseRoster(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        return enrollmentRepository.findCourseRoster(c, teacherId, courseId);
     }
 
     @Override
@@ -134,5 +148,12 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     public StudentScheduleDto findStudentSchedule(Connection c, long studentId)
             throws SQLException {
         return enrollmentRepository.findStudentSchedule(c, studentId);
+    }
+
+    @Override
+    public StudentScheduleDto findStudentSchedule(Connection c, long studentId,
+                                                  StudentScheduleQuery query)
+            throws SQLException {
+        return enrollmentRepository.findStudentSchedule(c, studentId, query);
     }
 }

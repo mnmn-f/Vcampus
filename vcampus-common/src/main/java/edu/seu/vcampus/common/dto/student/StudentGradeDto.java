@@ -20,12 +20,27 @@ public final class StudentGradeDto implements Serializable {
     private final LocalDateTime recordedAt;
     private final String remark;
     private final String enrollmentStatus;
+    private final String semesterCode;
+    private final BigDecimal credits;
+    private final boolean gpaIncluded;
 
     public StudentGradeDto(long gradeId, long enrollmentId, long studentUserId,
                            long courseId, String courseCode, String courseName,
                            BigDecimal score, BigDecimal gradePoint,
                            long recordedBy, LocalDateTime recordedAt,
                            String remark, String enrollmentStatus) {
+        this(gradeId, enrollmentId, studentUserId, courseId, courseCode, courseName,
+                score, gradePoint, recordedBy, recordedAt, remark, enrollmentStatus,
+                null, null, true);
+    }
+
+    public StudentGradeDto(long gradeId, long enrollmentId, long studentUserId,
+                           long courseId, String courseCode, String courseName,
+                           BigDecimal score, BigDecimal gradePoint,
+                           long recordedBy, LocalDateTime recordedAt,
+                           String remark, String enrollmentStatus,
+                           String semesterCode, BigDecimal credits,
+                           boolean gpaIncluded) {
         this.gradeId = gradeId;
         this.enrollmentId = enrollmentId;
         this.studentUserId = studentUserId;
@@ -38,6 +53,9 @@ public final class StudentGradeDto implements Serializable {
         this.recordedAt = recordedAt;
         this.remark = remark;
         this.enrollmentStatus = enrollmentStatus;
+        this.semesterCode = semesterCode;
+        this.credits = credits;
+        this.gpaIncluded = gpaIncluded;
     }
 
     public long getGradeId() { return gradeId; }
@@ -52,4 +70,7 @@ public final class StudentGradeDto implements Serializable {
     public LocalDateTime getRecordedAt() { return recordedAt; }
     public String getRemark() { return remark; }
     public String getEnrollmentStatus() { return enrollmentStatus; }
+    public String getSemesterCode() { return semesterCode; }
+    public BigDecimal getCredits() { return credits; }
+    public boolean isGpaIncluded() { return gpaIncluded; }
 }

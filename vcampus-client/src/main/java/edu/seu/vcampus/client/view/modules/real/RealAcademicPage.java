@@ -16,7 +16,8 @@ public final class RealAcademicPage extends BasePage {
         TaskTabs tabs = new TaskTabs();
         tabs.addTask(courseTab(role), new AcademicCoursesPanel(this, services.academic(), role));
         if (role == Role.STUDENT) tabs.addTask("我的课表", new StudentSchedulePanel(this, services.academic()));
-        if (role == Role.TEACHER) tabs.addTask("成绩登记", new TeacherGradePanel(this, services.student()));
+        if (role == Role.TEACHER) tabs.addTask("成绩登记",
+                new TeacherGradePanel(this, services.academic(), services.student()));
         tabs.addTask("教务公告", new CampusAnnouncementsPanel(this, services.campus(), role));
         if (role == Role.STUDENT || role == Role.ACADEMIC_ADMIN) {
             tabs.addTask("竞赛活动", new CampusCompetitionsPanel(this, services.campus(), role));

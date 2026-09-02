@@ -1,9 +1,12 @@
 package edu.seu.vcampus.server.academic.repository;
 
 import edu.seu.vcampus.common.dto.academic.CourseDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterEntryDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 
 import java.sql.SQLException;
 import org.threeten.bp.LocalDateTime;
@@ -75,12 +78,18 @@ final class InMemoryEnrollmentStore {
     }
 
     StudentScheduleDto schedule(long studentId) {
+        return schedule(studentId, StudentScheduleQuery.all());
+    }
+
+    StudentScheduleDto schedule(long studentId, StudentScheduleQuery query) {
+        String semesterCode = query == null ? null : query.getSemesterCode();
         List<CourseDto> result = new ArrayList<CourseDto>();
         for (InMemoryAcademicState.EnrollmentState enrollment : state.enrollments.values()) {
             if (enrollment.studentId == studentId
                     && EnrollmentStatus.ENROLLED.name().equals(enrollment.status)) {
                 CourseDto course = courses.findCourse(enrollment.courseId);
-                if (course != null) {
+                if (course != null && (semesterCode == null
+                        || semesterCode.equals(course.getSemesterCode()))) {
                     result.add(course);
                 }
             }
@@ -91,7 +100,35 @@ final class InMemoryEnrollmentStore {
                 return Long.compare(first.getId(), second.getId());
             }
         });
-        return new StudentScheduleDto(studentId, result);
+        return new StudentScheduleDto(studentId, semesterCode, result);
+    }
+
+    CourseRosterDto roster(long courseId) {
+        List<CourseRosterEntryDto> result = new ArrayList<CourseRosterEntryDto>();
+        for (InMemoryAcademicState.EnrollmentState enrollment : state.enrollments.values()) {
+            if (enrollment.courseId != courseId
+                    || !EnrollmentStatus.ENROLLED.name().equals(enrollment.status)) continue;
+            InMemoryAcademicState.StudentState student =
+                    state.studentProfiles.get(enrollment.studentId);
+            result.add(new CourseRosterEntryDto(enrollment.id, enrollment.studentId,
+                    student == null ? null : student.studentNo,
+                    student == null ? null : student.displayName,
+                    student == null ? null : student.college,
+                    student == null ? null : student.major,
+                    student == null ? null : student.className,
+                    enrollment.status, enrollment.enrolledAt));
+        }
+        Collections.sort(result, new Comparator<CourseRosterEntryDto>() {
+            @Override public int compare(CourseRosterEntryDto left,
+                                         CourseRosterEntryDto right) {
+                String first = left.getStudentNo() == null ? "" : left.getStudentNo();
+                String second = right.getStudentNo() == null ? "" : right.getStudentNo();
+                int compared = first.compareTo(second);
+                return compared != 0 ? compared
+                        : Long.compare(left.getEnrollmentId(), right.getEnrollmentId());
+            }
+        });
+        return new CourseRosterDto(courseId, result);
     }
 
     private boolean coursesConflict(long firstId, long secondId) {

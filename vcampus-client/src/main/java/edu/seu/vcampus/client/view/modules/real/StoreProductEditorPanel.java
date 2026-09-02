@@ -29,6 +29,7 @@ public final class StoreProductEditorPanel extends SectionCard {
     private final JTextField sku = field();
     private final JTextField name = field();
     private final JTextField category = field();
+    private final JTextField imageUrl = field();
     private final JTextField price = field();
     private final JTextField stock = field();
     private final JTextField delta = field();
@@ -47,7 +48,7 @@ public final class StoreProductEditorPanel extends SectionCard {
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
         fields.setOpaque(false);
         add(fields, "商品编码", sku); add(fields, "商品名称", name);
-        add(fields, "分类", category); add(fields, "单价", price);
+        add(fields, "分类编码", category); add(fields, "图片 URL", imageUrl); add(fields, "单价", price);
         add(fields, "库存", stock); add(fields, "状态", status);
         add(fields, "库存增量", delta); add(fields, "调整备注", remark);
         JPanel content = new JPanel(new BorderLayout(0, 10));
@@ -76,7 +77,7 @@ public final class StoreProductEditorPanel extends SectionCard {
     public void startNew() {
         productId = 0L;
         sku.setEditable(true);
-        sku.setText(""); name.setText(""); category.setText(""); price.setText("");
+        sku.setText(""); name.setText(""); category.setText(""); imageUrl.setText(""); price.setText("");
         stock.setText("0"); delta.setText(""); remark.setText(""); description.setText("");
         status.setSelectedItem(RealUi.option("DRAFT")); error.setText(" ");
     }
@@ -85,7 +86,7 @@ public final class StoreProductEditorPanel extends SectionCard {
         if (value == null) { startNew(); return; }
         productId = value.getId(); sku.setEditable(false);
         sku.setText(RealUi.input(value.getSku())); name.setText(RealUi.input(value.getName()));
-        category.setText(RealUi.input(value.getCategory())); price.setText(RealUi.input(value.getPrice()));
+        category.setText(RealUi.input(value.getCategory())); imageUrl.setText(RealUi.input(value.getImageUrl())); price.setText(RealUi.input(value.getPrice()));
         stock.setText(String.valueOf(value.getStockQty())); status.setSelectedItem(RealUi.option(value.getStatus()));
         description.setText(RealUi.input(value.getDescription())); delta.setText(""); remark.setText("");
         error.setText(" ");
@@ -100,7 +101,7 @@ public final class StoreProductEditorPanel extends SectionCard {
             if (listener != null) listener.onSave(new ProductWriteRequest(productId,
                     RealUi.optional(sku.getText()), title, RealUi.optional(category.getText()),
                     RealUi.optional(description.getText()), amount, quantity,
-                    RealUi.code(status.getSelectedItem())));
+                    RealUi.code(status.getSelectedItem()), RealUi.optional(imageUrl.getText())));
             error.setText(" ");
         } catch (NumberFormatException ex) { error.setText("单价和库存格式不正确"); }
         catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }

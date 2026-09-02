@@ -24,6 +24,7 @@ final class InMemoryAcademicState {
     final Map<String, EnrollmentState> enrollments = new HashMap<String, EnrollmentState>();
     final Map<Long, ClassroomDto> classrooms = new HashMap<Long, ClassroomDto>();
     final Set<Long> students = new HashSet<Long>();
+    final Map<Long, StudentState> studentProfiles = new HashMap<Long, StudentState>();
     final Map<Long, String> teachers = new HashMap<Long, String>();
 
     static final class CourseState {
@@ -31,6 +32,7 @@ final class InMemoryAcademicState {
         String code;
         String name;
         String type;
+        String semesterCode;
         BigDecimal credits;
         Integer totalHours;
         int capacity;
@@ -70,6 +72,25 @@ final class InMemoryAcademicState {
             this.id = id;
             this.studentId = studentId;
             this.courseId = courseId;
+        }
+    }
+
+    static final class StudentState {
+        final long userId;
+        final String studentNo;
+        final String displayName;
+        final String college;
+        final String major;
+        final String className;
+
+        StudentState(long userId, String studentNo, String displayName, String college,
+                     String major, String className) {
+            this.userId = userId;
+            this.studentNo = studentNo;
+            this.displayName = displayName;
+            this.college = college;
+            this.major = major;
+            this.className = className;
         }
     }
 }

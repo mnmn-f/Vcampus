@@ -37,7 +37,9 @@ public final class AcademicCommandRegistry {
                 .register(AcademicCommands.STUDENT_SCHEDULE,
                         new AcademicCommandHandler(AcademicCommands.STUDENT_SCHEDULE, service))
                 .register(AcademicCommands.TEACHER_COURSES,
-                        new AcademicCommandHandler(AcademicCommands.TEACHER_COURSES, service));
+                        new AcademicCommandHandler(AcademicCommands.TEACHER_COURSES, service))
+                .register(AcademicCommands.COURSE_ROSTER,
+                        new AcademicCommandHandler(AcademicCommands.COURSE_ROSTER, service));
     }
 
     public static CommandRouter registerAll(CommandRouter router, AcademicService service) {

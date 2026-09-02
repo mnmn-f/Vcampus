@@ -10,6 +10,17 @@ import edu.seu.vcampus.common.dto.store.AccountLedgerQuery;
 import edu.seu.vcampus.common.dto.store.AccountRechargeRequest;
 import edu.seu.vcampus.common.dto.store.CartDto;
 import edu.seu.vcampus.common.dto.store.CartItemRequest;
+import edu.seu.vcampus.common.dto.store.CheckoutConfirmRequest;
+import edu.seu.vcampus.common.dto.store.CheckoutPreviewRequest;
+import edu.seu.vcampus.common.dto.store.CheckoutPreviewDto;
+import edu.seu.vcampus.common.dto.store.CouponClaimRequest;
+import edu.seu.vcampus.common.dto.store.CouponDto;
+import edu.seu.vcampus.common.dto.store.CouponPage;
+import edu.seu.vcampus.common.dto.store.FriendPaymentDecisionRequest;
+import edu.seu.vcampus.common.dto.store.FriendPaymentDto;
+import edu.seu.vcampus.common.dto.store.FriendPaymentPage;
+import edu.seu.vcampus.common.dto.store.FriendPaymentQuery;
+import edu.seu.vcampus.common.dto.store.FriendPaymentRequest;
 import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderPage;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
@@ -19,10 +30,22 @@ import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.ProductPage;
 import edu.seu.vcampus.common.dto.store.ProductQuery;
 import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
+import edu.seu.vcampus.common.dto.store.ProductReviewDto;
+import edu.seu.vcampus.common.dto.store.ProductReviewPage;
+import edu.seu.vcampus.common.dto.store.ProductReviewQuery;
+import edu.seu.vcampus.common.dto.store.ProductReviewWriteRequest;
+import edu.seu.vcampus.common.dto.store.PromotionDto;
+import edu.seu.vcampus.common.dto.store.PromotionPage;
+import edu.seu.vcampus.common.dto.store.PromotionWriteRequest;
+import edu.seu.vcampus.common.dto.store.StoreCategoryDto;
+import edu.seu.vcampus.common.dto.store.StoreCategoryPage;
+import edu.seu.vcampus.common.dto.store.StoreCategoryWriteRequest;
 import edu.seu.vcampus.common.dto.store.StoreIdRequest;
 import edu.seu.vcampus.common.dto.store.StockAdjustRequest;
 import edu.seu.vcampus.common.dto.store.StoreSalesPage;
 import edu.seu.vcampus.common.dto.store.StoreSalesQuery;
+import edu.seu.vcampus.common.dto.store.StoreSalesTrendPage;
+import edu.seu.vcampus.common.dto.store.StoreSalesTrendQuery;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.StoreCommands;
@@ -62,6 +85,12 @@ public final class NetworkStoreClientService implements StoreClientService {
     @Override public ProductDto adjustProductStock(StockAdjustRequest r) throws NetworkClientException {
         return payload(StoreCommands.PRODUCT_STOCK_ADJUST, r, ProductDto.class);
     }
+    @Override public StoreCategoryPage listCategories() throws NetworkClientException {
+        return payload(StoreCommands.CATEGORY_LIST, null, StoreCategoryPage.class);
+    }
+    @Override public StoreCategoryDto saveCategory(StoreCategoryWriteRequest r) throws NetworkClientException {
+        return payload(StoreCommands.CATEGORY_SAVE, r, StoreCategoryDto.class);
+    }
 
     @Override public CartDto getCart() throws NetworkClientException {
         return payload(StoreCommands.CART_GET, null, CartDto.class);
@@ -83,6 +112,12 @@ public final class NetworkStoreClientService implements StoreClientService {
     @Override public OrderDto payOrder(PaymentRequest r) throws NetworkClientException {
         return payload(StoreCommands.ORDER_PAY, r, OrderDto.class);
     }
+    @Override public CheckoutPreviewDto checkoutPreview(String couponCode) throws NetworkClientException {
+        return payload(StoreCommands.CHECKOUT_PREVIEW, new CheckoutPreviewRequest(couponCode), CheckoutPreviewDto.class);
+    }
+    @Override public OrderDto confirmCheckout(CheckoutConfirmRequest r) throws NetworkClientException {
+        return payload(StoreCommands.CHECKOUT_CONFIRM, r, OrderDto.class);
+    }
     @Override public OrderPage getOwnOrders(OrderQuery q) throws NetworkClientException {
         return payload(StoreCommands.ORDER_MINE, q, OrderPage.class);
     }
@@ -98,6 +133,39 @@ public final class NetworkStoreClientService implements StoreClientService {
     }
     @Override public StoreSalesPage salesReport(StoreSalesQuery q) throws NetworkClientException {
         return payload(StoreCommands.SALES_REPORT, q, StoreSalesPage.class);
+    }
+    @Override public StoreSalesTrendPage salesTrend(StoreSalesTrendQuery q) throws NetworkClientException {
+        return payload(StoreCommands.SALES_TREND, q, StoreSalesTrendPage.class);
+    }
+    @Override public PromotionPage listPromotions() throws NetworkClientException {
+        return payload(StoreCommands.PROMOTION_LIST, null, PromotionPage.class);
+    }
+    @Override public PromotionDto savePromotion(PromotionWriteRequest r) throws NetworkClientException {
+        return payload(StoreCommands.PROMOTION_SAVE, r, PromotionDto.class);
+    }
+    @Override public CouponPage listCoupons() throws NetworkClientException {
+        return payload(StoreCommands.COUPON_MINE, null, CouponPage.class);
+    }
+    @Override public CouponDto claimCoupon(CouponClaimRequest r) throws NetworkClientException {
+        return payload(StoreCommands.COUPON_CLAIM, r, CouponDto.class);
+    }
+    @Override public ProductReviewPage listReviews(ProductReviewQuery q) throws NetworkClientException {
+        return payload(StoreCommands.REVIEW_LIST, q, ProductReviewPage.class);
+    }
+    @Override public ProductReviewDto addReview(ProductReviewWriteRequest r) throws NetworkClientException {
+        return payload(StoreCommands.REVIEW_CREATE, r, ProductReviewDto.class);
+    }
+    @Override public FriendPaymentDto createFriendPayment(FriendPaymentRequest r) throws NetworkClientException {
+        return payload(StoreCommands.FRIEND_PAY_CREATE, r, FriendPaymentDto.class);
+    }
+    @Override public FriendPaymentPage listFriendPayments(FriendPaymentQuery q) throws NetworkClientException {
+        return payload(StoreCommands.FRIEND_PAY_MINE, q, FriendPaymentPage.class);
+    }
+    @Override public FriendPaymentDto withdrawFriendPayment(long id) throws NetworkClientException {
+        return payload(StoreCommands.FRIEND_PAY_WITHDRAW, new StoreIdRequest(id), FriendPaymentDto.class);
+    }
+    @Override public FriendPaymentDto decideFriendPayment(FriendPaymentDecisionRequest r) throws NetworkClientException {
+        return payload(StoreCommands.FRIEND_PAY_DECIDE, r, FriendPaymentDto.class);
     }
 
     @Override public AccountDto getAccount() throws NetworkClientException {

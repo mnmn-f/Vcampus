@@ -15,9 +15,8 @@
 
 服务端使用现有 MySQL 配置边界。部署时通过 `VCAMPUS_DB_URL`、`VCAMPUS_DB_USER`、
 `VCAMPUS_DB_PASSWORD`（或对应 JVM 属性）提供连接信息；不要把密码写入脚本、命令历史或仓库。
-项目为满足 Java 7 编译要求使用 Connector/J 5.1.49，因此 MySQL 8.0 的应用数据库账号必须使用
-`mysql_native_password`，不能使用默认的 `caching_sha2_password`。数据库账号认证插件属于部署配置，
-不要通过降低业务用户密码哈希或把数据库密码写入代码来规避。
+项目按 Java 17 构建，并使用支持 MySQL 8.0 默认认证方式的 Connector/J 9.5.0。数据库账号认证插件
+属于部署配置；不要通过降低业务用户密码哈希或把数据库密码写入代码来规避连接问题。
 
 ## 2. 两台电脑启动
 

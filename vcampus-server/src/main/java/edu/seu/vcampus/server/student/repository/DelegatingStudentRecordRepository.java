@@ -28,6 +28,9 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
     public interface GradeStore {
         StudentGradePage find(Connection c, long id, StudentGradeQuery q);
         List<StudentGradeDto> findAll(Connection c, long id);
+        List<StudentGradeDto> findAll(Connection c, long id, String semesterCode, int limit);
+        List<StudentGradeDto> findAll(Connection c, long id, String semesterCode,
+                                      Long courseId, int limit);
         StudentGradePage review(Connection c, StudentGradeReviewQuery q);
         StudentGradeDto findByEnrollment(Connection c, long id);
         EnrollmentRecord findEnrollment(Connection c, long id);
@@ -64,6 +67,19 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
     @Override
     public final List<StudentGradeDto> findAllGrades(Connection c, long id) {
         return grades.findAll(c, id);
+    }
+
+    @Override
+    public final List<StudentGradeDto> findAllGrades(Connection c, long id,
+                                                       String semesterCode, int limit) {
+        return grades.findAll(c, id, semesterCode, limit);
+    }
+
+    @Override
+    public final List<StudentGradeDto> findAllGrades(Connection c, long id,
+                                                       String semesterCode, Long courseId,
+                                                       int limit) {
+        return grades.findAll(c, id, semesterCode, courseId, limit);
     }
 
     @Override

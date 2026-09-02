@@ -31,7 +31,9 @@
 ## 新增文件
 
 - `scripts/start-library-demo.ps1`：Windows 一键启动图书馆 Demo。
-- `vcampus-client/src/main/java/edu/seu/vcampus/client/service/library/DemoLibraryClientService.java`：可操作的进程内图书、借阅、自习室、预约、资源和访问日志服务。
+- `vcampus-client/src/main/java/edu/seu/vcampus/client/service/library/DemoLibraryClientService.java`：图书馆 Demo 服务门面。
+- `DemoBookService.java`、`DemoStudyRoomService.java`、`DemoOnlineResourceService.java`：分别承载借阅、预约和线上资源流程。
+- `DemoLibrarySupport.java`：分页、检索和错误处理的共享辅助逻辑。
 - `vcampus-client/src/main/java/edu/seu/vcampus/client/service/library/DemoLibraryCampusClientService.java`：可操作的图书馆 Demo 公告服务。
 - `vcampus-client/src/main/java/edu/seu/vcampus/client/service/library/DemoLibraryData.java`：图书馆 Demo 初始数据。
 - `vcampus-client/src/main/java/edu/seu/vcampus/client/view/modules/real/LibraryTaskTabs.java`：复用现有主题令牌的图书馆角色导航。
@@ -88,7 +90,5 @@ Network 模式的数据库账号、端口和脚本没有在本次修改中改变
 ## 验证记录
 
 - `git diff --check`：通过。
-- common、client、server 主代码以原项目 `-source 7 -target 7` 级别完成编译检查：通过。
-- 本次新增/修改的测试代码完成编译检查：通过。
-- 图书馆操作冒烟测试：`LIBRARY_SMOKE_OK`。
-- 当前执行环境无法访问 Maven Central，因此未在此环境生成 Maven JAR；在可访问 Maven Central 的 Windows 电脑上使用上面的原项目 Wrapper 命令构建即可。
+- 图书馆 Demo 服务、角色页面组合和 JDBC 时间转换定向测试：通过。
+- 完整 Maven 测试与质量门禁以合并提交的 CI/本地验收结果为准。

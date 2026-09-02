@@ -12,6 +12,7 @@ public final class AcademicCommands {
     public static final String STUDENT_DROP = "academic.enrollment.drop";
     public static final String STUDENT_SCHEDULE = "academic.student.schedule";
     public static final String TEACHER_COURSES = "academic.teacher.courses";
+    public static final String COURSE_ROSTER = "academic.course.roster";
 
     public static final String COURSE_NOT_FOUND = "ACADEMIC.COURSE_NOT_FOUND";
     public static final String SCHEDULE_NOT_FOUND = "ACADEMIC.SCHEDULE_NOT_FOUND";

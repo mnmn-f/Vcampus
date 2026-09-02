@@ -1,6 +1,7 @@
 package edu.seu.vcampus.server.student.handler;
 
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
+import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
@@ -44,6 +45,10 @@ public final class StudentCommandHandler implements CommandHandler {
                     service.getOwnProfile(session));
             if (is(StudentCommands.SELF_GRADES)) return Message.success(request,
                     service.getOwnGrades(session, gradeQuery(request)));
+            if (is(StudentCommands.SELF_GRADE_REPORT)) return Message.success(request,
+                    service.getOwnGradeReport(session, gradeQuery(request)));
+            if (is(StudentCommands.SELF_GRADE_EXPORT)) return Message.success(request,
+                    service.exportOwnGrades(session, exportQuery(request)));
             if (is(StudentCommands.PROFILE_SEARCH)) return Message.success(request,
                     service.searchProfiles(session, profileQuery(request)));
             if (is(StudentCommands.PROFILE_DETAIL)) return Message.success(request,
@@ -76,6 +81,12 @@ public final class StudentCommandHandler implements CommandHandler {
         if (request.getPayload() == null) return StudentGradeQuery.firstPage();
         if (!(request.getPayload() instanceof StudentGradeQuery)) throw bad();
         return (StudentGradeQuery) request.getPayload();
+    }
+
+    private static StudentGradeExportQuery exportQuery(Message request) {
+        if (request.getPayload() == null) return new StudentGradeExportQuery(null, null);
+        if (!(request.getPayload() instanceof StudentGradeExportQuery)) throw bad();
+        return (StudentGradeExportQuery) request.getPayload();
     }
 
     private static StudentGradeReviewQuery reviewQuery(Message request) {

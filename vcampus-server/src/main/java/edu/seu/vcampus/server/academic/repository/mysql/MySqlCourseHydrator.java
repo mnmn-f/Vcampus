@@ -25,7 +25,7 @@ final class MySqlCourseHydrator {
                 result.getBigDecimal("credits"), totalHours,
                 result.getInt("capacity"), result.getLong("enrolled_count"),
                 result.getString("description"), result.getString("status"),
-                schedules(c, id), instructors(c, id));
+                schedules(c, id), instructors(c, id), result.getString("semester_code"));
     }
 
     CourseScheduleDto schedule(ResultSet result) throws SQLException {
@@ -64,7 +64,7 @@ final class MySqlCourseHydrator {
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     rows.add(new CourseInstructorDto(result.getLong(1),
-                            result.getString(2), result.getString(3)));
+                            result.getString(2), result.getString(3), result.getString(4)));
                 }
             }
         }
