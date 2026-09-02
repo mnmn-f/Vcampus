@@ -7,7 +7,6 @@ import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
 
 import org.threeten.bp.LocalDateTime;
 import java.sql.Connection;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -63,8 +62,7 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
             LocalDateTime now = LocalDateTime.now();
             state.products.put(id, new ProductDto(id, request.getSku(), request.getName(),
                     request.getCategory(), request.getDescription(), request.getPrice(),
-                    request.getStockQty(), request.getStatus(), request.getImageUrl(),
-                    BigDecimal.ZERO, 0L, actorId, now, now));
+                    request.getStockQty(), request.getStatus(), actorId, now, now));
         }
     }
 
@@ -76,7 +74,6 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
             state.products.put(request.getId(), new ProductDto(request.getId(), request.getSku(),
                     request.getName(), request.getCategory(), request.getDescription(),
                     request.getPrice(), request.getStockQty(), request.getStatus(),
-                    request.getImageUrl(), old.getRatingAverage(), old.getRatingCount(),
                     old.getCreatedBy(), old.getCreatedAt(), LocalDateTime.now()));
         }
     }
@@ -88,15 +85,6 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
             if (old == null || (long) old.getStockQty() + delta < 0) return false;
             replaceStock(old, old.getStockQty() + delta);
             return true;
-        }
-    }
-
-    @Override
-    public void updateRating(Connection c, long productId, BigDecimal average, long count) {
-        synchronized (state) {
-            ProductDto old = state.products.get(productId);
-            if (old == null) throw new StoreRepositoryException("商品不存在");
-            state.products.put(productId, state.withRating(old, average, count));
         }
     }
 
@@ -117,7 +105,9 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
     }
 
     private void replaceStock(ProductDto old, int stock) {
-        state.products.put(old.getId(), state.withStock(old, stock));
+        state.products.put(old.getId(), new ProductDto(old.getId(), old.getSku(), old.getName(),
+                old.getCategory(), old.getDescription(), old.getPrice(), stock, old.getStatus(),
+                old.getCreatedBy(), old.getCreatedAt(), LocalDateTime.now()));
     }
 
     private static boolean contains(String value, String keyword) {

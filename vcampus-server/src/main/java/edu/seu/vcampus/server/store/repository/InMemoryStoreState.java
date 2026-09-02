@@ -26,20 +26,6 @@ final class InMemoryStoreState {
     long accountSequence = 1L;
     long transactionSequence = 1L;
 
-    static ProductDto withStock(ProductDto old, int stock) {
-        return new ProductDto(old.getId(), old.getSku(), old.getName(), old.getCategory(),
-                old.getDescription(), old.getPrice(), stock, old.getStatus(), old.getImageUrl(),
-                old.getRatingAverage(), old.getRatingCount(), old.getCreatedBy(),
-                old.getCreatedAt(), LocalDateTime.now());
-    }
-
-    static ProductDto withRating(ProductDto old, BigDecimal average, long count) {
-        return new ProductDto(old.getId(), old.getSku(), old.getName(), old.getCategory(),
-                old.getDescription(), old.getPrice(), old.getStockQty(), old.getStatus(),
-                old.getImageUrl(), average, count, old.getCreatedBy(), old.getCreatedAt(),
-                LocalDateTime.now());
-    }
-
     static final class MemoryCart {
         final long id;
         final long userId;
@@ -57,11 +43,6 @@ final class InMemoryStoreState {
         final String orderNo;
         final long buyerId;
         final BigDecimal totalAmount;
-        BigDecimal originalAmount;
-        BigDecimal discountAmount = BigDecimal.ZERO;
-        String promotionCode;
-        String couponCode;
-        String paymentMode = "SELF";
         final LocalDateTime createdAt;
         String status = "CREATED";
         LocalDateTime paidAt;
@@ -79,7 +60,6 @@ final class InMemoryStoreState {
             this.orderNo = orderNo;
             this.buyerId = buyerId;
             this.totalAmount = totalAmount;
-            this.originalAmount = totalAmount;
             this.createdAt = createdAt;
         }
     }
@@ -112,11 +92,6 @@ final class InMemoryStoreState {
             MemoryOrder copy = new MemoryOrder(value.id, value.orderNo, value.buyerId,
                     value.totalAmount, value.createdAt);
             copy.status = value.status;
-            copy.originalAmount = value.originalAmount;
-            copy.discountAmount = value.discountAmount;
-            copy.promotionCode = value.promotionCode;
-            copy.couponCode = value.couponCode;
-            copy.paymentMode = value.paymentMode;
             copy.paidAt = value.paidAt;
             copy.cancelledAt = value.cancelledAt;
             copy.completedAt = value.completedAt;

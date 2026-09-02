@@ -3,12 +3,9 @@ package edu.seu.vcampus.client.service.student;
 import edu.seu.vcampus.client.network.NetworkClientException;
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
-import edu.seu.vcampus.common.dto.student.StudentGradeReportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
@@ -19,10 +16,6 @@ import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
 public interface StudentRecordClientService {
     StudentProfileDto getOwnProfile() throws NetworkClientException;
     StudentGradePage getOwnGrades(StudentGradeQuery query) throws NetworkClientException;
-    StudentGradeReportDto getOwnGradeReport(StudentGradeQuery query)
-            throws NetworkClientException;
-    StudentGradeExportDto exportOwnGrades(StudentGradeExportQuery query)
-            throws NetworkClientException;
     StudentProfilePage searchProfiles(StudentProfileQuery query) throws NetworkClientException;
     StudentDetailDto getProfileDetail(long studentUserId) throws NetworkClientException;
     StudentProfileDto createProfile(StudentProfileWriteRequest request)

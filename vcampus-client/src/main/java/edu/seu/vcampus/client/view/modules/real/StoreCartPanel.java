@@ -10,8 +10,6 @@ import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.store.CartDto;
 import edu.seu.vcampus.common.dto.store.CartItemDto;
 import edu.seu.vcampus.common.dto.store.CartItemRequest;
-import edu.seu.vcampus.common.dto.store.CheckoutConfirmRequest;
-import edu.seu.vcampus.common.dto.store.CheckoutPreviewDto;
 import edu.seu.vcampus.common.dto.store.OrderDto;
 
 import javax.swing.BorderFactory;
@@ -45,9 +43,6 @@ public final class StoreCartPanel extends SectionCard {
     private final JButton update = new SecondaryButton("更新数量");
     private final JButton remove = new SecondaryButton("移除商品");
     private final JButton createOrder = new PrimaryButton("提交订单");
-    private final JButton previewOrder = new SecondaryButton("结算预览");
-    private final JTextField coupon = UiFactory.textField(8);
-    private final JLabel preview = UiFactory.muted(" ");
     private List<CartItemDto> items = Collections.emptyList();
 
     public StoreCartPanel(BasePage page, StoreClientService service, Runnable orderCreated) {
@@ -65,13 +60,9 @@ public final class StoreCartPanel extends SectionCard {
         createOrder.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { createOrder(); }
         });
-        previewOrder.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { previewOrder(); }
-        });
         JPanel actions = UiFactory.horizontal(8);
         actions.add(UiFactory.body("数量")); actions.add(quantity); actions.add(update); actions.add(remove);
-        actions.add(UiFactory.body("优惠券")); actions.add(coupon); actions.add(previewOrder);
-        actions.add(total); actions.add(createOrder); actions.add(preview);
+        actions.add(total); actions.add(createOrder);
         JPanel content = new JPanel(new BorderLayout(0, 10)); content.setOpaque(false);
         content.add(actions, BorderLayout.NORTH);
         JScrollPane scroll = new JScrollPane(table); scroll.setColumnHeaderView(table.getTableHeader());
@@ -134,26 +125,8 @@ public final class StoreCartPanel extends SectionCard {
 
     private void createOrder() {
         if (items.isEmpty()) { page.showWarning("购物车为空，暂不能提交订单。"); return; }
-        AsyncTask.run(new AsyncTask.Work<CheckoutPreviewDto>() {
-            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(RealUi.optional(coupon.getText())); }
-        }, new AsyncTask.Callback<CheckoutPreviewDto>() {
-            @Override public void onSuccess(CheckoutPreviewDto result) { preview.setText("应付 " + money(result.getPayable())); if (RealUi.confirm(StoreCartPanel.this, "确认按服务端结算金额提交？")) confirmOrder(); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
-        });
-    }
-
-    private void previewOrder() {
-        AsyncTask.run(new AsyncTask.Work<CheckoutPreviewDto>() {
-            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(RealUi.optional(coupon.getText())); }
-        }, new AsyncTask.Callback<CheckoutPreviewDto>() {
-            @Override public void onSuccess(CheckoutPreviewDto value) { preview.setText("原价 " + money(value.getSubtotal()) + "　优惠 " + money(value.getPromotionDiscount().add(value.getCouponDiscount())) + "　应付 " + money(value.getPayable())); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
-        });
-    }
-
-    private void confirmOrder() {
         AsyncTask.run(new AsyncTask.Work<OrderDto>() {
-            @Override public OrderDto run() throws Exception { return service.confirmCheckout(new CheckoutConfirmRequest(RealUi.optional(coupon.getText()), "SELF", null)); }
+            @Override public OrderDto run() throws Exception { return service.createOrder(); }
         }, new AsyncTask.Callback<OrderDto>() {
             @Override public void onSuccess(OrderDto result) { page.showSuccess("订单已创建：" + RealUi.text(result.getOrderNo())); load(); if (orderCreated != null) orderCreated.run(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
@@ -163,7 +136,7 @@ public final class StoreCartPanel extends SectionCard {
     private CartItemDto selected() { int row = table.getSelectedRow(); return row < 0 || row >= items.size() ? null : items.get(row); }
     private void selectedChanged(boolean adjusting) { if (!adjusting && selected() != null) quantity.setText(String.valueOf(selected().getQuantity())); }
     private void clear() { items = Collections.emptyList(); model.setRowCount(0); total.setText("合计：¥0.00"); quantity.setText(""); }
-    private void setBusy(boolean busy, String text) { state.setText(text); update.setEnabled(!busy); remove.setEnabled(!busy); createOrder.setEnabled(!busy); previewOrder.setEnabled(!busy); quantity.setEnabled(!busy); coupon.setEnabled(!busy); }
+    private void setBusy(boolean busy, String text) { state.setText(text); update.setEnabled(!busy); remove.setEnabled(!busy); createOrder.setEnabled(!busy); quantity.setEnabled(!busy); }
     private static DefaultTableModel model() { return new DefaultTableModel(new String[]{"商品", "单价", "数量", "小计", "库存", "状态"}, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } }; }
     private static JTable table(DefaultTableModel source) {
         JTable value = new JTable(source) { @Override public String getToolTipText(MouseEvent event) { int row = rowAtPoint(event.getPoint()); int col = columnAtPoint(event.getPoint()); return row < 0 || col < 0 ? null : String.valueOf(getValueAt(row, col)); } };

@@ -1,13 +1,10 @@
 package edu.seu.vcampus.server.student.service;
 
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
-import edu.seu.vcampus.common.dto.student.StudentGradeReportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
@@ -41,18 +38,6 @@ public final class StudentRecordService {
     public StudentGradePage getOwnGrades(SessionContext session, StudentGradeQuery query)
             throws StudentRecordException {
         return grades.getOwnGrades(session, query);
-    }
-
-    public StudentGradeReportDto getOwnGradeReport(SessionContext session,
-                                                    StudentGradeQuery query)
-            throws StudentRecordException {
-        return grades.getOwnGradeReport(session, query);
-    }
-
-    public StudentGradeExportDto exportOwnGrades(SessionContext session,
-                                                 StudentGradeExportQuery query)
-            throws StudentRecordException {
-        return grades.exportOwnGrades(session, query);
     }
 
     public StudentProfilePage searchProfiles(SessionContext session, StudentProfileQuery query)

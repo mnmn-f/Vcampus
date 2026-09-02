@@ -6,12 +6,9 @@ import edu.seu.vcampus.client.network.ClientGateway;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
-import edu.seu.vcampus.common.dto.student.StudentGradeReportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
@@ -52,20 +49,6 @@ public final class NetworkStudentRecordClientService implements StudentRecordCli
             throws NetworkClientException {
         return payload(request(StudentCommands.SELF_GRADES, query),
                 StudentGradePage.class);
-    }
-
-    @Override
-    public StudentGradeReportDto getOwnGradeReport(StudentGradeQuery query)
-            throws NetworkClientException {
-        return payload(request(StudentCommands.SELF_GRADE_REPORT, query),
-                StudentGradeReportDto.class);
-    }
-
-    @Override
-    public StudentGradeExportDto exportOwnGrades(StudentGradeExportQuery query)
-            throws NetworkClientException {
-        return payload(request(StudentCommands.SELF_GRADE_EXPORT, query),
-                StudentGradeExportDto.class);
     }
 
     @Override

@@ -22,7 +22,6 @@
 | 验收项 | 状态 | 证据 |
 |---|---|---|
 | 学生查看本人学籍和成绩，身份不由 payload 的 userId 决定 | [x] | StudentOwnPanel、StudentRecordService、StudentProfileServiceTest、StudentCommandHandlerTest |
-| 学生按学期查看平均学分绩点、平均绩点、加权均分和平均均分，并导出 UTF-8 CSV | [x] | GpaScale、StudentGradeInsightService、StudentGradeMetricsCalculator、StudentGradeCsvExporter、StudentGradeInsightServiceTest |
 | 学籍管理员按条件查询、新建、修改和状态变更；学号唯一 | [x] | StudentRegistrarPanel、StudentProfileEditorPanel、MySqlStudentProfileRepository、StudentProfileServiceTest |
 | 任课教师仅登记本人课程成绩；管理员核对；成绩范围、重复成绩和选课状态校验 | [x] | TeacherGradePanel、StudentGradeService、StudentGradeServiceTest |
 
@@ -32,7 +31,7 @@
 |---|---|---|
 | 课程分页查询、课程新增/修改、授课教师和教室关联 | [x] | AcademicCoursesPanel、CourseEditorPanel、AcademicCourseService、MySqlCourseWriteRepository、AcademicServiceTest |
 | 课程时段新增/修改/删除 | [x] | AcademicScheduleService、MySqlScheduleRuleRepository、AcademicClientService、AcademicCoursesPanel、CourseScheduleEditorPanel；AcademicScheduleClientServiceTest、AcademicScheduleEditorPanelTest、ClientRoleCompositionTest |
-| 学生选课/退课/按学期个人课表、点击课程查看教师/教室；容量、重复和时段冲突 | [x] | AcademicCoursesPanel、StudentSchedulePanel、AcademicEnrollmentService、AcademicScheduleServiceTest、CrossModuleCapacityIntegrationTest |
+| 学生选课/退课/个人课表、教师本人课程；容量、重复和时段冲突 | [x] | AcademicCoursesPanel、StudentSchedulePanel、AcademicEnrollmentService、AcademicServiceTest、CrossModuleCapacityIntegrationTest |
 | 公告按模块、角色可见范围、生效/失效时间读取；教务发布/撤回 | [x] | CampusAnnouncementsPanel、CampusAnnouncementEditorPanel、CampusAnnouncementService、CampusServiceTest |
 | 比赛发布、报名/取消、截止时间、容量和名单 | [x] | CampusCompetitionsPanel、CompetitionEditorPanel、CampusCompetitionService、CampusServiceTest |
 | SRTP 学生本人查询、项目维护、参与人和状态管理 | [x] | CampusSrtpPanel、CampusSrtpEditorPanel、CampusSrtpService、CampusServiceTest |
@@ -59,10 +58,6 @@
 | 账户余额、充值和流水；订单支付原子扣减余额/库存并写流水 | [x] | StoreAccountPanel、StorePaymentService、MySqlStoreAccountRepository、StoreServiceTest |
 | 支付幂等、余额/库存不足和订单状态机 | [x] | StorePaymentService、StoreCommandHandlerTest、MySqlDaoIntegrationTest |
 | 销售统计按日期/商品读取 PAID 或 COMPLETED 订单，不统计 REFUNDED | [x] | StoreSalesPanel、StoreSalesService、MySqlStoreSalesRepository、StoreSalesServiceTest、DatabaseCompatibilityTest |
-| 商品图片、稳定分类、评分汇总和已完成订单一次性评价 | [x] | ProductImageView、StoreCategoryPanel、StoreReviewPanel、StoreExperienceService、store_categories、store_product_reviews |
-| 服务端结算预览/确认、促销和一次性优惠券 | [x] | StoreCartPanel、StorePromotionPanel、StoreCouponPanel、StoreCheckoutService、store_promotions、store_user_coupons |
-| 好友代付的发起/收件箱/接受/拒绝/撤回，付款人原子扣款且订单仍归买家 | [x] | StoreFriendPaymentPanel、StoreExperienceService、store_friend_payments |
-| 商店管理员按自然日查看销量和实付销售额趋势图 | [x] | StoreSalesTrendPanel、MySqlStoreFriendPaymentRepository、StoreSalesTrendDto |
 
 ## 宿舍服务
 

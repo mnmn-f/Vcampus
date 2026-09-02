@@ -4,8 +4,6 @@ import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
-import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
-import edu.seu.vcampus.common.dto.student.StudentGradeReportDto;
 import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
 import edu.seu.vcampus.common.protocol.ResultCodes;
@@ -70,24 +68,6 @@ public class StudentGradeServiceTest {
             return;
         }
         throw new AssertionError("teacher should not record another teacher's course");
-    }
-
-    @Test
-    public void serverDerivesOfficialGradePointFromScore() throws Exception {
-        StudentGradeDto result = service.recordGrade(teacher,
-                grade(1001L, "95"));
-        assertEquals(new BigDecimal("4.5"), result.getGradePoint());
-    }
-
-    @Test
-    public void recordedGradeCarriesServerCourseTermAndCreditsIntoMetrics() throws Exception {
-        repository.addCourse(101L, "CS101", "程序设计", new BigDecimal("3.00"), "2026-FALL");
-        service.recordGrade(teacher, grade(1001L, "95"));
-        StudentGradeReportDto report = service.getOwnGradeReport(student,
-                new StudentGradeQuery("2026-FALL", null, 1, 20));
-        assertEquals(new BigDecimal("3.00"), report.getMetrics().getCredits());
-        assertEquals(new BigDecimal("4.50"), report.getMetrics().getWeightedGpa());
-        assertEquals(new BigDecimal("95.00"), report.getMetrics().getWeightedAverageScore());
     }
 
     @Test

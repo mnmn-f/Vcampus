@@ -35,7 +35,6 @@ final class RealUiLabels {
         put("ALL", "不限"); put("MIXED", "混住"); put("MALE", "男生"); put("FEMALE", "女生");
         put("PENDING", "待审批"); put("APPROVED", "已通过"); put("REJECTED", "已驳回");
         put("PERSONAL", "事假"); put("ILLNESS", "病假"); put("OFF_CAMPUS", "离校"); put("OTHER", "其他");
-        put("DAILY", "日用百货"); put("FOOD", "食品饮料"); put("STATIONERY", "文具用品"); put("CULTURE", "校园文创");
         put("FULL", "满员"); put("STANDARD", "标准间"); put("SUITE", "套间"); put("SPECIAL", "特殊房型");
         put("TEACHING", "教学"); put("LAB", "实验"); put("MEETING", "会议"); put("PASS", "通过"); put("FAIL", "不通过");
         put("WATER", "给排水"); put("PLUMBING", "给排水"); put("LIGHTING", "照明");

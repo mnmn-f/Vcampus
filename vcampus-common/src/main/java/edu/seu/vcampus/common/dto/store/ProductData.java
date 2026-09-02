@@ -13,19 +13,9 @@ public abstract class ProductData implements Serializable {
     private final BigDecimal price;
     private final int stockQty;
     private final String status;
-    private final String imageUrl;
-    private final BigDecimal ratingAverage;
-    private final long ratingCount;
 
     protected ProductData(String sku, String name, String category, String description,
                           BigDecimal price, int stockQty, String status) {
-        this(sku, name, category, description, price, stockQty, status,
-                null, BigDecimal.ZERO, 0L);
-    }
-
-    protected ProductData(String sku, String name, String category, String description,
-                          BigDecimal price, int stockQty, String status, String imageUrl,
-                          BigDecimal ratingAverage, long ratingCount) {
         this.sku = sku;
         this.name = name;
         this.category = category;
@@ -33,9 +23,6 @@ public abstract class ProductData implements Serializable {
         this.price = price;
         this.stockQty = stockQty;
         this.status = status;
-        this.imageUrl = imageUrl;
-        this.ratingAverage = ratingAverage == null ? BigDecimal.ZERO : ratingAverage;
-        this.ratingCount = ratingCount;
     }
 
     public final String getSku() { return sku; }
@@ -50,7 +37,4 @@ public abstract class ProductData implements Serializable {
     public final int getStockQuantity() { return stockQty; }
     public final int getStock() { return stockQty; }
     public final String getStatus() { return status; }
-    public final String getImageUrl() { return imageUrl; }
-    public final BigDecimal getRatingAverage() { return ratingAverage; }
-    public final long getRatingCount() { return ratingCount; }
 }

@@ -25,16 +25,7 @@ public final class ProductDto extends ProductData {
     public ProductDto(long id, String sku, String name, String category, String description,
                       BigDecimal price, int stockQty, String status, Long createdBy,
                       LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this(id, sku, name, category, description, price, stockQty, status, null,
-                BigDecimal.ZERO, 0L, createdBy, createdAt, updatedAt);
-    }
-
-    public ProductDto(long id, String sku, String name, String category, String description,
-                      BigDecimal price, int stockQty, String status, String imageUrl,
-                      BigDecimal ratingAverage, long ratingCount, Long createdBy,
-                      LocalDateTime createdAt, LocalDateTime updatedAt) {
-        super(sku, name, category, description, price, stockQty, status, imageUrl,
-                ratingAverage, ratingCount);
+        super(sku, name, category, description, price, stockQty, status);
         this.id = id;
         this.createdBy = createdBy;
         this.createdAt = createdAt;

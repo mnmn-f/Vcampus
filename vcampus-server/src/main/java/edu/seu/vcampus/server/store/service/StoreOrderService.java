@@ -39,8 +39,6 @@ final class StoreOrderService {
                         }
                         long id = repository.insertOrder(c, session.getUserId(), orderNo(), total);
                         repository.insertOrderItems(c, id, lines);
-                        repository.updateOrderPricing(c, id, total, BigDecimal.ZERO,
-                                null, null, "SELF");
                         repository.clearCart(c, session.getUserId());
                         return order(c, id, false);
                     }

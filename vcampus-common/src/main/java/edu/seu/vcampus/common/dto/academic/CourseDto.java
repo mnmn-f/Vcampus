@@ -13,7 +13,6 @@ public final class CourseDto implements Serializable {
     private final String courseCode;
     private final String courseName;
     private final String courseType;
-    private final String semesterCode;
     private final BigDecimal credits;
     private final Integer totalHours;
     private final int capacity;
@@ -28,20 +27,10 @@ public final class CourseDto implements Serializable {
                      long enrolledCount, String description, String status,
                      List<CourseScheduleDto> schedules,
                      List<CourseInstructorDto> instructors) {
-        this(id, courseCode, courseName, courseType, credits, totalHours, capacity,
-                enrolledCount, description, status, schedules, instructors, null);
-    }
-
-    public CourseDto(long id, String courseCode, String courseName, String courseType,
-                     BigDecimal credits, Integer totalHours, int capacity,
-                     long enrolledCount, String description, String status,
-                     List<CourseScheduleDto> schedules,
-                     List<CourseInstructorDto> instructors, String semesterCode) {
         this.id = id;
         this.courseCode = courseCode;
         this.courseName = courseName;
         this.courseType = courseType;
-        this.semesterCode = semesterCode;
         this.credits = credits;
         this.totalHours = totalHours;
         this.capacity = capacity;
@@ -57,7 +46,6 @@ public final class CourseDto implements Serializable {
     public String getCourseCode() { return courseCode; }
     public String getCourseName() { return courseName; }
     public String getCourseType() { return courseType; }
-    public String getSemesterCode() { return semesterCode; }
     public BigDecimal getCredits() { return credits; }
     public Integer getTotalHours() { return totalHours; }
     public int getCapacity() { return capacity; }

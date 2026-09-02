@@ -64,7 +64,6 @@ final class InMemoryCourseStore {
         course.code = request.getCourseCode();
         course.name = request.getCourseName();
         course.type = request.getCourseType();
-        course.semesterCode = request.getSemesterCode();
         course.credits = request.getCredits();
         course.totalHours = request.getTotalHours();
         course.capacity = request.getCapacity();

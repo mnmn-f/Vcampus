@@ -17,12 +17,12 @@
 
 | 当前职责 | 工作台标题 | 主导航可见入口 | 该职责的重点任务 |
 |---|---|---|---|
-| 学生 | 学生主页 | 我的学籍、选课与课表、图书馆、校园商店、宿舍生活 | 本人学籍/分学期成绩指标与导出、选退课与课程详情、图书借阅/自习室/资源、商品/购物车/优惠券/评价/好友代付、住宿/请假/报修/账单 |
+| 学生 | 学生主页 | 我的学籍、选课与课表、图书馆、校园商店、宿舍生活 | 本人学籍/成绩、选退课与课表、图书借阅/自习室/资源、商品/订单/账户、住宿/请假/报修/账单 |
 | 任课教师 | 教师主页 | 我的教学、图书馆 | 本人课程与成绩登记、教室申请/进度，以及图书馆只读能力 |
 | 学籍管理员 | 学籍工作台 | 学籍管理 | 学生档案查询、新建与修改，成绩档案核对 |
 | 教务老师 | 教务工作台 | 教务管理 | 课程维护、选中课程后的排课时段维护、教务公告/竞赛/SRTP、教室申请审批 |
 | 图书管理员 | 图书馆工作台 | 馆务管理 | 书目与库存、借还、自习室、线上资源与访问日志、借阅台账筛选和 CSV、图书馆公告 |
-| 商店管理员 | 商店工作台 | 商店运营 | 商品图片、分类和库存、促销、订单处理、销售统计与趋势图 |
+| 商店管理员 | 商店工作台 | 商店运营 | 商品和库存、订单处理、已支付订单销售统计 |
 | 宿管员 | 宿管工作台 | 宿舍管理 | 楼栋/房间/床位、住宿关系、住宿/请假审批、门禁/未归/卫生、报修、账单、水电和宿舍公告 |
 | AI 知识管理员 | 知识服务工作台 | 安全与运行 | 查看系统运行状态；校园助手未接入真实服务，当前不显示入口 |
 | 系统管理员 | 系统管理工作台 | 账号与角色、安全与运行 | 用户/状态/角色/会话/注销申请、登录与业务审计、系统监控；不显示其他业务模块写入口 |
@@ -36,7 +36,7 @@
 | `AcademicCoursesPanel`、`CourseEditorPanel`、`CourseScheduleEditorPanel`、`StudentSchedulePanel`、`TeacherGradePanel` | `AcademicClientService`、`StudentRecordClientService` | 课程、排课和选退课；排课时段在课程页内行编辑，冲突与权限由服务端处理 |
 | `CampusAnnouncementsPanel`、`CampusCompetitionsPanel`、`CampusSrtpPanel`、`CampusClassroomsPanel` | `CampusClientService` | 公告、竞赛、SRTP 和教室申请/审批 |
 | `LibraryBooksPanel`、`LibraryBorrowingsPanel`、`LibraryBorrowingLedgerPanel`、`LibraryRoomsPanel`、`LibraryResourcesPanel`、`LibraryResourceAccessLogsPanel` | `LibraryClientService` | 图书、本人借还、预约、线上资源访问/日志、管理员借阅台账和 CSV；单次导出最多 5000 条 |
-| `StoreProductsPanel`、`StoreCartPanel`、`StoreOrdersPanel`、`StoreCouponPanel`、`StoreReviewPanel`、`StoreFriendPaymentPanel`、`StoreSalesPanel`、`StoreSalesTrendPanel` | `StoreClientService` | 商品图片/分类、购物车、服务端结算、订单、优惠券、评价、好友代付和销售趋势；价格、库存、余额、身份和幂等由服务端裁决 |
+| `StoreProductsPanel`、`StoreCartPanel`、`StoreOrdersPanel`、`StoreAccountPanel`、`StoreSalesPanel` | `StoreClientService` | 商品、购物车、订单、账户和销售统计；支付总额、库存、余额和幂等由服务端重算 |
 | `DormAccommodationPanel`、`DormStudentLeavePanel`、`DormStudentRepairsPanel`、`DormStudentRepairEvaluationPanel`、`DormStudentBillsPanel` | `DormClientService` | 学生本人住宿、请假、报修评价和账单；请求中的用户身份由会话确定 |
 | `DormManagerSpacePanel`、`DormManagerLeavePanel`、`DormManagerRequestsPanel`、`DormManagerGovernancePanel`、`DormManagerRepairsPanel`、`DormManagerBillingPanel`、`DormAnnouncementsPanel` | `DormClientService` | 宿管空间维护、住宿/请假审批、巡查、报修、账单和公告；筛选条件不扩大授权范围 |
 | `IdentityUsersPanel`、`IdentitySessionsPanel`、`IdentityCancellationPanel`、`IdentityAuditPanel`、`IdentityMonitorPanel` | `IdentityClientService` | 用户、状态、角色、会话、注销申请、审计与系统快照；会话展示不返回 raw token |

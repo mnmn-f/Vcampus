@@ -131,9 +131,9 @@ public final class MySqlBookRepository implements BookRepository {
         List<Object> params = new ArrayList<Object>();
         String keyword = JdbcLibrarySupport.clean(request.getKeyword());
         if (keyword != null) {
-            where.append(" AND (title LIKE ? OR author LIKE ? OR isbn LIKE ?)");
+            where.append(" AND (title LIKE ? OR author LIKE ? OR isbn LIKE ? OR category LIKE ?)");
             String value = "%" + keyword + "%";
-            params.add(value); params.add(value); params.add(value);
+            params.add(value); params.add(value); params.add(value); params.add(value);
         }
         add(where, params, "category", request.getCategory());
         add(where, params, "status", request.getStatus());

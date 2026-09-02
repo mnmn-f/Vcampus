@@ -21,6 +21,7 @@ public final class TeacherGradePanel extends SectionCard {
     private final StudentRecordClientService service;
     private final JTextField enrollmentId = UiFactory.textField(12);
     private final JTextField score = UiFactory.textField(12);
+    private final JTextField point = UiFactory.textField(12);
     private final JTextArea remark = UiFactory.textArea(3, 24);
     private final JLabel state = UiFactory.muted("填写选课记录编号后提交成绩。");
 
@@ -30,6 +31,7 @@ public final class TeacherGradePanel extends SectionCard {
         JPanel form = new JPanel(new GridLayout(0, 2, 12, 8)); form.setOpaque(false);
         form.add(UiFactory.labelledField("选课记录编号", enrollmentId));
         form.add(UiFactory.labelledField("成绩（0-100）", score));
+        form.add(UiFactory.labelledField("绩点（可选）", point));
         form.add(UiFactory.labelledField("备注", remark));
         JPanel content = new JPanel(new java.awt.BorderLayout(0, 10)); content.setOpaque(false);
         content.add(form, java.awt.BorderLayout.CENTER);
@@ -44,8 +46,10 @@ public final class TeacherGradePanel extends SectionCard {
         try {
             long id = Long.parseLong(enrollmentId.getText().trim());
             BigDecimal value = new BigDecimal(score.getText().trim());
+            String pointText = point.getText().trim();
+            BigDecimal gradePoint = pointText.isEmpty() ? null : new BigDecimal(pointText);
             final StudentGradeRecordRequest request = new StudentGradeRecordRequest(id, value,
-                    null, remark.getText());
+                    gradePoint, remark.getText());
             state.setText("正在提交…");
             AsyncTask.run(new AsyncTask.Work<Object>() {
                 @Override public Object run() throws Exception { return service.recordGrade(request); }
@@ -57,6 +61,6 @@ public final class TeacherGradePanel extends SectionCard {
                     state.setText("提交失败"); page.showError(AsyncTask.message(error));
                 }
             });
-        } catch (NumberFormatException ex) { state.setText("编号和成绩必须是数字"); }
+        } catch (NumberFormatException ex) { state.setText("编号、成绩和绩点必须是数字"); }
     }
 }

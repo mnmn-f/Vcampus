@@ -63,25 +63,6 @@ final class InMemoryStoreAccountRepository implements StoreAccountRepository {
     }
 
     @Override
-    public AccountDto findOrderPaymentAccount(Connection c, long orderId, boolean forUpdate) {
-        synchronized (state) {
-            for (List<AccountTransactionDto> rows : state.ledgers.values()) {
-                for (AccountTransactionDto value : rows) {
-                    if ("PURCHASE".equals(value.getTransactionType())
-                            && "STORE_ORDER".equals(value.getReferenceType())
-                            && value.getReferenceId() != null
-                            && value.getReferenceId().longValue() == orderId) {
-                        for (InMemoryStoreState.MemoryAccount account : state.accounts.values()) {
-                            if (account.id == value.getAccountId()) return toDto(account);
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
-    @Override
     public boolean updateAccountBalance(Connection c, long accountId, BigDecimal expected,
                                        BigDecimal updated) {
         synchronized (state) {

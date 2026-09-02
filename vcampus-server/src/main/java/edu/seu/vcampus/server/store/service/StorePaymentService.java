@@ -85,14 +85,10 @@ final class StorePaymentService {
             total = total.add(expected);
         }
         if (order.getItems().isEmpty() || order.getTotalAmount() == null
-                || order.getOriginalAmount() == null || order.getDiscountAmount() == null
-                || total.compareTo(order.getOriginalAmount()) != 0
-                || order.getDiscountAmount().signum() < 0
-                || order.getOriginalAmount().subtract(order.getDiscountAmount())
-                        .compareTo(order.getTotalAmount()) != 0) {
+                || total.compareTo(order.getTotalAmount()) != 0) {
             throw new StoreServiceException(ResultCodes.CONFLICT, "订单金额校验失败");
         }
-        return order.getTotalAmount();
+        return total;
     }
 
     private void decrement(Connection c, OrderDto order) throws StoreServiceException {

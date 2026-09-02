@@ -29,6 +29,7 @@ public final class InMemoryOnlineResourceRepository implements OnlineResourceRep
         String key = InMemoryLibrarySupport.lower(r.getKeyword());
         for (OnlineResourceView row : resources.values()) {
             String text = InMemoryLibrarySupport.lower(row.getTitle() + " "
+                    + InMemoryLibrarySupport.safe(row.getResourceType()) + " "
                     + InMemoryLibrarySupport.safe(row.getDescription()));
             if (key != null && !text.contains(key)) continue;
             if (!InMemoryLibrarySupport.same(r.getResourceType(), row.getResourceType())) continue;

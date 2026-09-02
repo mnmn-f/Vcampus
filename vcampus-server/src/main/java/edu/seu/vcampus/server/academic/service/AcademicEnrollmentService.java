@@ -5,7 +5,6 @@ import edu.seu.vcampus.common.dto.academic.CourseStatus;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
-import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.security.Permission;
 import edu.seu.vcampus.common.security.Role;
@@ -91,23 +90,13 @@ final class AcademicEnrollmentService {
     }
 
     StudentScheduleDto schedule(SessionContext session) throws AcademicException {
-        return schedule(session, StudentScheduleQuery.all());
-    }
-
-    StudentScheduleDto schedule(SessionContext session, final StudentScheduleQuery query)
-            throws AcademicException {
         support.requirePermission(session, Permission.COURSE_ENROLL, Role.STUDENT);
-        final StudentScheduleQuery safe = query == null ? StudentScheduleQuery.all() : query;
-        if (safe.getSemesterCode() != null && safe.getSemesterCode().length() > 32) {
-            throw AcademicServiceSupport.failure(AcademicCommands.INVALID_SCHEDULE,
-                    "学期编号长度不能超过32个字符");
-        }
         final long studentId = session.getUserId();
         return support.execute(new AcademicServiceSupport.Work<StudentScheduleDto>() {
             @Override
             public StudentScheduleDto run(java.sql.Connection connection) throws Exception {
                 support.verifyStudent(connection, studentId);
-                return repository().findStudentSchedule(connection, studentId, safe);
+                return repository().findStudentSchedule(connection, studentId);
             }
         });
     }

@@ -80,21 +80,6 @@ public final class MySqlStoreAccountRepository implements StoreAccountRepository
     }
 
     @Override
-    public AccountDto findOrderPaymentAccount(Connection c, long orderId, boolean forUpdate) {
-        String sql = "SELECT a.id,a.user_id,a.balance,a.status FROM account_transactions t "
-                + "JOIN accounts a ON a.id=t.account_id WHERE t.reference_type='STORE_ORDER' "
-                + "AND t.reference_id=? AND t.transaction_type='PURCHASE' "
-                + "ORDER BY t.id DESC LIMIT 1" + (forUpdate ? " FOR UPDATE" : "");
-        try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, orderId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? new AccountDto(rs.getLong("id"), rs.getLong("user_id"),
-                        rs.getBigDecimal("balance"), rs.getString("status")) : null;
-            }
-        } catch (SQLException ex) { throw fail("查询订单付款账户失败", ex); }
-    }
-
-    @Override
     public boolean updateAccountBalance(Connection c, long accountId, BigDecimal expected,
                                        BigDecimal updated) {
         String sql = "UPDATE accounts SET balance = ?, version = version + 1 "

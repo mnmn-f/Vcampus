@@ -59,23 +59,21 @@ final class MySqlCourseWriteRepository {
     }
 
     private void insertCourse(Connection c, CourseSaveRequest r, long actor) throws SQLException {
-        String sql = "INSERT INTO courses(course_code,course_name,course_type,semester_code,"
-                + "credits,total_hours,capacity,description,status,created_by) "
-                + "VALUES(?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO courses(course_code,course_name,course_type,credits,"
+                + "total_hours,capacity,description,status,created_by) VALUES(?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement statement = c.prepareStatement(sql)) {
             bindCourse(statement, r, 1);
-            statement.setLong(10, actor);
+            statement.setLong(9, actor);
             statement.executeUpdate();
         }
     }
 
     private void updateCourse(Connection c, CourseSaveRequest r) throws SQLException {
-        String sql = "UPDATE courses SET course_code=?,course_name=?,course_type=?,"
-                + "semester_code=?,credits=?,total_hours=?,capacity=?,description=?,status=? "
-                + "WHERE id=?";
+        String sql = "UPDATE courses SET course_code=?,course_name=?,course_type=?,credits=?,"
+                + "total_hours=?,capacity=?,description=?,status=? WHERE id=?";
         try (PreparedStatement statement = c.prepareStatement(sql)) {
             bindCourse(statement, r, 1);
-            statement.setLong(10, r.getCourseId());
+            statement.setLong(9, r.getCourseId());
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("course not found");
             }
@@ -87,8 +85,6 @@ final class MySqlCourseWriteRepository {
         statement.setString(index++, r.getCourseCode());
         statement.setString(index++, r.getCourseName());
         statement.setString(index++, r.getCourseType());
-        statement.setString(index++, r.getSemesterCode() == null
-                ? "UNSPECIFIED" : r.getSemesterCode());
         statement.setBigDecimal(index++, r.getCredits());
         if (r.getTotalHours() == null) {
             statement.setNull(index++, java.sql.Types.SMALLINT);

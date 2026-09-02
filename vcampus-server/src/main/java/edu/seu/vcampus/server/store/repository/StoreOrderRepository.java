@@ -12,9 +12,6 @@ import java.util.List;
 public interface StoreOrderRepository {
     long insertOrder(Connection connection, long buyerId, String orderNo,
                      BigDecimal totalAmount);
-    void updateOrderPricing(Connection connection, long orderId, BigDecimal originalAmount,
-                            BigDecimal discountAmount, String promotionCode,
-                            String couponCode, String paymentMode);
     void insertOrderItems(Connection connection, long orderId, List<CartLine> lines);
     OrderDto findOrder(Connection connection, long orderId, boolean forUpdate);
     OrderPage findOrders(Connection connection, Long buyerId, OrderQuery query);

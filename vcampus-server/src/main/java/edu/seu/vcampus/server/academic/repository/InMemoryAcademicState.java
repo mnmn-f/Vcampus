@@ -31,7 +31,6 @@ final class InMemoryAcademicState {
         String code;
         String name;
         String type;
-        String semesterCode;
         BigDecimal credits;
         Integer totalHours;
         int capacity;

@@ -1,12 +1,9 @@
 package edu.seu.vcampus.server.student.service;
 
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
-import edu.seu.vcampus.common.dto.student.StudentGradeReportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
@@ -26,7 +23,6 @@ import java.sql.Connection;
 public final class StudentGradeService {
     private final StudentRecordRepository repository;
     private final StudentTransactionRunner transactions;
-    private final StudentGradeInsightService insights;
 
     public StudentGradeService(StudentRecordRepository repository,
                                TransactionManager transactionManager) {
@@ -40,7 +36,6 @@ public final class StudentGradeService {
         }
         this.repository = repository;
         this.transactions = transactions;
-        this.insights = new StudentGradeInsightService(repository, transactions);
     }
 
     public StudentGradePage getOwnGrades(final SessionContext session,
@@ -61,18 +56,6 @@ public final class StudentGradeService {
                         return repository.findGrades(connection, session.getUserId(), safe);
                     }
                 });
-    }
-
-    public StudentGradeReportDto getOwnGradeReport(SessionContext session,
-                                                    StudentGradeQuery query)
-            throws StudentRecordException {
-        return insights.report(session, query);
-    }
-
-    public StudentGradeExportDto exportOwnGrades(SessionContext session,
-                                                 StudentGradeExportQuery query)
-            throws StudentRecordException {
-        return insights.export(session, query);
     }
 
     public StudentGradeDto record(final SessionContext session,
@@ -161,6 +144,11 @@ public final class StudentGradeService {
                 || score.compareTo(new BigDecimal("100")) > 0 || score.scale() > 2) {
             throw invalid("成绩必须在0到100之间");
         }
+        BigDecimal point = request.getGradePoint();
+        if (point != null && (point.compareTo(BigDecimal.ZERO) < 0
+                || point.compareTo(new BigDecimal("5")) > 0 || point.scale() > 2)) {
+            throw invalid("绩点必须在0到5之间");
+        }
         StudentServiceSupport.maxLength(request.getRemark(), 500, "成绩备注");
     }
 
@@ -178,9 +166,6 @@ public final class StudentGradeService {
             throws StudentRecordException {
         if (query.getCourseId() != null && query.getCourseId() <= 0) {
             throw invalid("课程编号必须为正数");
-        }
-        if (query.getSemesterCode() != null && query.getSemesterCode().length() > 32) {
-            throw invalid("学期编号长度不能超过32个字符");
         }
     }
 

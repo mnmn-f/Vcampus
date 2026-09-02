@@ -7,7 +7,6 @@ import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
-import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.server.academic.repository.AcademicRepository;
 import edu.seu.vcampus.server.db.TransactionManager;
@@ -97,12 +96,6 @@ public final class AcademicService {
     public StudentScheduleDto studentSchedule(SessionContext session)
             throws AcademicException {
         return enrollments.schedule(session);
-    }
-
-    public StudentScheduleDto studentSchedule(SessionContext session,
-                                              StudentScheduleQuery query)
-            throws AcademicException {
-        return enrollments.schedule(session, query);
     }
 
     public CoursePageDto teacherCourses(SessionContext session, CourseQuery query)

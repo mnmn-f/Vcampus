@@ -20,10 +20,10 @@ import java.util.List;
 
 /** products 表的 MySQL PreparedStatement DAO。 */
 public final class MySqlStoreProductRepository implements StoreProductRepository {
-    private static final String COLUMNS = "id, sku, name, COALESCE(category_code, category) AS category, description, price, "
-            + "stock_qty, status, image_url, rating_average, rating_count, created_by, "
-            + "created_at, updated_at";
+    private static final String COLUMNS = "id, sku, name, category, description, price, "
+            + "stock_qty, status, created_by, created_at, updated_at";
     private static final String TABLE = " FROM products";
+
     @Override
     public ProductPage searchProducts(Connection c, ProductQuery query) {
         ProductQuery q = query == null ? new ProductQuery() : query;
@@ -43,6 +43,7 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
             throw fail("查询商品失败", ex);
         }
     }
+
     @Override
     public ProductDto findProduct(Connection c, long id, boolean forUpdate) {
         String sql = "SELECT " + COLUMNS + TABLE + " WHERE id = ?"
@@ -56,6 +57,7 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
             throw fail("查询商品详情失败", ex);
         }
     }
+
     @Override
     public boolean skuExists(Connection c, String sku, long excludedId) {
         String sql = "SELECT 1 FROM products WHERE sku = ? AND id <> ?";
@@ -71,7 +73,7 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     @Override
     public void insertProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "INSERT INTO products (sku, name, category, description, price, "
-                + "stock_qty, status, image_url, created_by, category_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "stock_qty, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             bindWrite(ps, r, actor);
             ps.executeUpdate();
@@ -83,11 +85,10 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     @Override
     public void updateProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "UPDATE products SET sku = ?, name = ?, category = ?, description = ?, "
-                + "price = ?, stock_qty = ?, status = ?, image_url = ?, category_code = ?, "
-                + "version = version + 1 WHERE id = ?";
+                + "price = ?, stock_qty = ?, status = ?, version = version + 1 WHERE id = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             bindUpdate(ps, r);
-            ps.setLong(10, r.getId());
+            ps.setLong(8, r.getId());
             if (ps.executeUpdate() != 1) throw new StoreRepositoryException("商品不存在");
         } catch (SQLException ex) {
             throw fail("修改商品失败", ex);
@@ -110,15 +111,6 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
         }
     }
 
-    @Override
-    public void updateRating(Connection c, long productId, java.math.BigDecimal average, long count) {
-        String sql = "UPDATE products SET rating_average=?,rating_count=? WHERE id=?";
-        try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setBigDecimal(1, average); ps.setLong(2, count); ps.setLong(3, productId);
-            if (ps.executeUpdate() != 1) throw new StoreRepositoryException("商品不存在");
-        } catch (SQLException ex) { throw fail("更新商品评分失败", ex); }
-    }
-
     private long count(Connection c, ProductQuery q, String where) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*)" + TABLE + where)) {
             bindFilters(ps, q, 1);
@@ -129,7 +121,7 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     private static String filters(ProductQuery q) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (q.getKeyword() != null) where.append(" AND (sku LIKE ? OR name LIKE ? OR description LIKE ?)");
-        if (q.getCategory() != null) where.append(" AND COALESCE(category_code, category) = ?");
+        if (q.getCategory() != null) where.append(" AND category = ?");
         if (q.getStatus() != null) where.append(" AND status = ?");
         return where.toString();
     }
@@ -149,25 +141,26 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
 
     private static int bindWrite(PreparedStatement ps, ProductWriteRequest r, long actor)
             throws SQLException {
-        int i = bindCommon(ps, r);
-        ps.setLong(i++, actor);
-        setNullable(ps, i, r.getCategory());
-        return i + 1;
+        ps.setString(1, r.getSku());
+        ps.setString(2, r.getName());
+        setNullable(ps, 3, r.getCategory());
+        setNullable(ps, 4, r.getDescription());
+        ps.setBigDecimal(5, r.getPrice());
+        ps.setInt(6, r.getStockQty());
+        ps.setString(7, r.getStatus());
+        ps.setLong(8, actor);
+        return 9;
     }
 
     private static void bindUpdate(PreparedStatement ps, ProductWriteRequest r)
             throws SQLException {
-        int i = bindCommon(ps, r);
-        setNullable(ps, i, r.getCategory());
-    }
-
-    private static int bindCommon(PreparedStatement ps, ProductWriteRequest r)
-            throws SQLException {
-        ps.setString(1, r.getSku()); ps.setString(2, r.getName());
-        setNullable(ps, 3, r.getCategory()); setNullable(ps, 4, r.getDescription());
-        ps.setBigDecimal(5, r.getPrice()); ps.setInt(6, r.getStockQty());
-        ps.setString(7, r.getStatus()); setNullable(ps, 8, r.getImageUrl());
-        return 9;
+        ps.setString(1, r.getSku());
+        ps.setString(2, r.getName());
+        setNullable(ps, 3, r.getCategory());
+        setNullable(ps, 4, r.getDescription());
+        ps.setBigDecimal(5, r.getPrice());
+        ps.setInt(6, r.getStockQty());
+        ps.setString(7, r.getStatus());
     }
 
     private static void setNullable(PreparedStatement ps, int index, String value)
@@ -179,10 +172,8 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     static ProductDto read(ResultSet rs) throws SQLException {
         return new ProductDto(rs.getLong("id"), rs.getString("sku"), rs.getString("name"),
                 rs.getString("category"), rs.getString("description"), rs.getBigDecimal("price"),
-                rs.getInt("stock_qty"), rs.getString("status"), rs.getString("image_url"),
-                rs.getBigDecimal("rating_average"), rs.getLong("rating_count"),
-                nullableLong(rs, "created_by"), time(rs.getTimestamp("created_at")),
-                time(rs.getTimestamp("updated_at")));
+                rs.getInt("stock_qty"), rs.getString("status"), nullableLong(rs, "created_by"),
+                time(rs.getTimestamp("created_at")), time(rs.getTimestamp("updated_at")));
     }
 
     static LocalDateTime time(Timestamp timestamp) {

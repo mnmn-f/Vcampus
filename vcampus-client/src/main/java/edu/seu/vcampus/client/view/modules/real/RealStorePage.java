@@ -27,9 +27,6 @@ public final class RealStorePage extends BasePage {
             @Override public void run() { orders.reload(); }
         }));
         tabs.addTask("我的订单", orders);
-        tabs.addTask("商品评价", new StoreReviewPanel(this, services.store()));
-        tabs.addTask("好友代付", new StoreFriendPaymentPanel(this, services.store()));
-        tabs.addTask("优惠券", new StoreCouponPanel(this, services.store()));
         tabs.addTask("校园账户", new StoreAccountPanel(this, services.store()));
         addBlock(tabs);
     }
@@ -37,11 +34,8 @@ public final class RealStorePage extends BasePage {
     private void buildManager(ClientBusinessServices services) {
         TaskTabs tabs = new TaskTabs();
         tabs.addTask("商品管理", new StoreProductsPanel(this, services.store(), Role.STORE_MANAGER));
-        tabs.addTask("分类管理", new StoreCategoryPanel(this, services.store()));
-        tabs.addTask("促销优惠", new StorePromotionPanel(this, services.store()));
         tabs.addTask("订单处理", new StoreOrdersPanel(this, services.store(), Role.STORE_MANAGER));
         tabs.addTask("销售概览", new StoreSalesPanel(this, services.store()));
-        tabs.addTask("销售趋势", new StoreSalesTrendPanel(this, services.store()));
         addBlock(tabs);
     }
 }

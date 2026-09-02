@@ -81,14 +81,7 @@ final class StoreOrderStatusService {
 
     private void refund(Connection c, OrderDto order, long operator)
             throws StoreServiceException {
-        AccountDto account = repository.findOrderPaymentAccount(c, order.getId(), true);
-        if (account == null && "FRIEND".equalsIgnoreCase(order.getPaymentMode())) {
-            throw new StoreServiceException(ResultCodes.CONFLICT, "未找到好友代付流水，不能退款");
-        }
-        if (account == null) account = account(c, order.getBuyerId());
-        if (!"ACTIVE".equalsIgnoreCase(account.getStatus())) {
-            throw new StoreServiceException(ResultCodes.CONFLICT, "原付款账户不可退款");
-        }
+        AccountDto account = account(c, order.getBuyerId());
         String key = "STORE-REFUND-" + order.getId();
         LedgerRecord old = repository.findTransactionByKey(c, key);
         if (old != null && (old.getAccountId() != account.getId()

@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 增加商店分类、促销、优惠券、评价和好友代付结构。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。`V1__baseline.sql` 创建表、外键、唯一约束、索引、检查约束和两个只读视图；`V2__demo_data.sql` 写入可重复执行的演示角色、权限和少量业务数据。
 
 执行顺序：
 
 ```text
-V1__baseline.sql  ->  V2__demo_data.sql  ->  V3__academic_insights.sql  ->  V4__store_experience.sql
+V1__baseline.sql  ->  V2__demo_data.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -17,10 +17,6 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V1__baseline.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
-mysql --default-character-set=utf8mb4 -u <user> -p < \
-  vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
-mysql --default-character-set=utf8mb4 -u <user> -p < \
-  vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
 ```
 
 脚本使用 `CREATE DATABASE IF NOT EXISTS`、`CREATE TABLE IF NOT EXISTS` 和自然键/幂等键，因此可以在同一个演示库重复执行。它面向全新库；如果已有表的结构与基线不一致，不应靠重复执行修复，而应新增后续版本迁移。生产环境不应直接执行演示数据脚本。
@@ -72,7 +68,7 @@ V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希�
 | 身份资料 | `student_profiles`、`teacher_profiles` |
 | 教务 | `courses`、`course_instructors`、`course_schedules`、`classrooms`、`enrollments`、`course_grades`、`announcements`、`competitions`、`competition_registrations`、`srtp_records`、`classroom_reservations` |
 | 图书馆 | `books`、`borrow_records`、`study_rooms`、`study_room_reservations`、`online_resources`、`online_resource_access_logs` |
-| 商店与账户 | `accounts`、`account_transactions`、`products`、`shopping_carts`、`cart_items`、`store_orders`、`store_order_items`、`store_categories`、`store_promotions`、`store_coupons`、`store_user_coupons`、`store_product_reviews`、`store_friend_payments` |
+| 商店与账户 | `accounts`、`account_transactions`、`products`、`shopping_carts`、`cart_items`、`store_orders`、`store_order_items` |
 | 宿舍 | `dorm_buildings`、`dorm_rooms`、`dorm_beds`、`accommodation_records`、`accommodation_requests`、`leave_requests`、`access_records`、`late_return_alerts`、`hygiene_inspections`、`repair_orders`、`utility_bills`、`utility_allocations` |
 | AI 接口存储 | `ai_chat_sessions`、`ai_chat_messages`、`ai_knowledge_chunks`、`ai_tool_call_logs` |
 

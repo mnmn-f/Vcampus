@@ -14,11 +14,6 @@ public final class OrderDto implements Serializable {
     private final String orderNo;
     private final long buyerId;
     private final BigDecimal totalAmount;
-    private final BigDecimal originalAmount;
-    private final BigDecimal discountAmount;
-    private final String promotionCode;
-    private final String couponCode;
-    private final String paymentMode;
     private final String status;
     private final LocalDateTime createdAt;
     private final LocalDateTime paidAt;
@@ -30,30 +25,22 @@ public final class OrderDto implements Serializable {
                     String status, LocalDateTime createdAt, LocalDateTime paidAt,
                     LocalDateTime cancelledAt, LocalDateTime completedAt,
                     List<OrderItemDto> items) {
-        this(id, orderNo, buyerId, totalAmount, totalAmount, BigDecimal.ZERO, null, null,
-                "SELF", status, createdAt, paidAt, cancelledAt, completedAt, items);
+        this.id = id;
+        this.orderNo = orderNo;
+        this.buyerId = buyerId;
+        this.totalAmount = totalAmount;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.paidAt = paidAt;
+        this.cancelledAt = cancelledAt;
+        this.completedAt = completedAt;
+        this.items = Collections.unmodifiableList(new ArrayList<OrderItemDto>(
+                items == null ? Collections.<OrderItemDto>emptyList() : items));
     }
 
     public OrderDto(long id, String orderNo, long buyerId, BigDecimal totalAmount,
                     String status, List<OrderItemDto> items) {
-        this(id, orderNo, buyerId, totalAmount, totalAmount, BigDecimal.ZERO, null, null,
-                "SELF", status, null, null, null, null, items);
-    }
-
-    public OrderDto(long id, String orderNo, long buyerId, BigDecimal totalAmount,
-                    BigDecimal originalAmount, BigDecimal discountAmount, String promotionCode,
-                    String couponCode, String paymentMode, String status,
-                    LocalDateTime createdAt, LocalDateTime paidAt, LocalDateTime cancelledAt,
-                    LocalDateTime completedAt, List<OrderItemDto> items) {
-        this.id = id; this.orderNo = orderNo; this.buyerId = buyerId; this.totalAmount = totalAmount;
-        this.originalAmount = originalAmount == null ? totalAmount : originalAmount;
-        this.discountAmount = discountAmount == null ? BigDecimal.ZERO : discountAmount;
-        this.promotionCode = promotionCode; this.couponCode = couponCode;
-        this.paymentMode = paymentMode == null ? "SELF" : paymentMode; this.status = status;
-        this.createdAt = createdAt; this.paidAt = paidAt; this.cancelledAt = cancelledAt;
-        this.completedAt = completedAt;
-        this.items = Collections.unmodifiableList(new ArrayList<OrderItemDto>(
-                items == null ? Collections.<OrderItemDto>emptyList() : items));
+        this(id, orderNo, buyerId, totalAmount, status, null, null, null, null, items);
     }
 
     public long getId() { return id; }
@@ -64,11 +51,6 @@ public final class OrderDto implements Serializable {
     public long getUserId() { return buyerId; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public BigDecimal getTotal() { return totalAmount; }
-    public BigDecimal getOriginalAmount() { return originalAmount; }
-    public BigDecimal getDiscountAmount() { return discountAmount; }
-    public String getPromotionCode() { return promotionCode; }
-    public String getCouponCode() { return couponCode; }
-    public String getPaymentMode() { return paymentMode; }
     public String getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getPaidAt() { return paidAt; }

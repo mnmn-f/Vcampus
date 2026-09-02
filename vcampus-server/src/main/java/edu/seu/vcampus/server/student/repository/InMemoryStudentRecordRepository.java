@@ -3,8 +3,6 @@ package edu.seu.vcampus.server.student.repository;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 
-import java.math.BigDecimal;
-
 /** 可重复使用的学籍与成绩内存仓储，供单元测试和本地演示使用。 */
 public final class InMemoryStudentRecordRepository
         extends DelegatingStudentRecordRepository {
@@ -32,11 +30,6 @@ public final class InMemoryStudentRecordRepository
 
     public void addCourse(long courseId, String code, String name) {
         gradeStore.addCourse(courseId, code, name);
-    }
-
-    public void addCourse(long courseId, String code, String name, BigDecimal credits,
-                          String semesterCode) {
-        gradeStore.addCourse(courseId, code, name, credits, semesterCode);
     }
 
     public void addEnrollment(long id, long studentUserId, long courseId, String status) {
