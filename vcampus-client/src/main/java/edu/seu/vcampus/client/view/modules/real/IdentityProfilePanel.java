@@ -35,7 +35,7 @@ public final class IdentityProfilePanel extends JPanel {
     public IdentityProfilePanel(BasePage page, IdentityClientService service, Runnable passwordChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.passwordChanged = passwordChanged;
-        add(profileCard()); add(passwordCard()); add(new IdentityCancellationPanel(page, service)); load();
+        add(profileCard()); add(passwordCard()); load();
     }
 
     private SectionCard profileCard() {

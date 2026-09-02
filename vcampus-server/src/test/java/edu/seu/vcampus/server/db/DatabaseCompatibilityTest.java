@@ -99,8 +99,11 @@ public final class DatabaseCompatibilityTest {
     @Test
     public void academicInsightsMigrationAddsTrustedFieldsIdempotently() throws Exception {
         String migration = resource("/db/migration/V3__academic_insights.sql");
-        assertTrue(migration.contains("ADD COLUMN IF NOT EXISTS `semester_code`"));
-        assertTrue(migration.contains("ADD COLUMN IF NOT EXISTS `gpa_included`"));
+        assertFalse(migration.contains("ADD COLUMN IF NOT EXISTS"));
+        assertTrue(migration.contains("information_schema.columns"));
+        assertTrue(migration.contains("ADD COLUMN semester_code"));
+        assertTrue(migration.contains("ADD COLUMN gpa_included"));
+        assertTrue(migration.contains("IF(@vcampus_column_exists = 0"));
         assertTrue(migration.contains("information_schema.statistics"));
         assertTrue(migration.contains("IF(@vcampus_index_exists = 0"));
         assertTrue(migration.contains("PREPARE vc_idx_stmt FROM"));
@@ -125,6 +128,10 @@ public final class DatabaseCompatibilityTest {
         assertTrue(migration.contains("WHERE `category_code` IS NULL"));
         assertTrue(migration.contains("CONSTRAINT fk_products_category_code FOREIGN KEY"));
         assertTrue(migration.contains("CONSTRAINT ck_store_orders_price_snapshot CHECK"));
+        assertFalse(migration.contains("ADD COLUMN IF NOT EXISTS"));
+        assertTrue(migration.contains("information_schema.columns"));
+        assertTrue(migration.contains("ADD COLUMN category_code"));
+        assertTrue(migration.contains("ADD COLUMN payment_mode"));
     }
 
     private static String tableBlock(String schema, String table) {

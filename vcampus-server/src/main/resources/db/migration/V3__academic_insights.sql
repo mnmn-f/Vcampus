@@ -2,14 +2,29 @@
 -- This migration is additive and keeps legacy grade rows readable.
 USE `vcampus`;
 
-ALTER TABLE `courses`
-    ADD COLUMN IF NOT EXISTS `semester_code` VARCHAR(32) NOT NULL
-        DEFAULT 'UNSPECIFIED' AFTER `course_type`;
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'courses'
+      AND column_name = 'semester_code'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE courses ADD COLUMN semester_code VARCHAR(32) NOT NULL DEFAULT ''UNSPECIFIED'' AFTER course_type',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
 
-ALTER TABLE `course_grades`
-    ADD COLUMN IF NOT EXISTS `gpa_included` TINYINT(1) NOT NULL DEFAULT 1
-        COMMENT 'Server-controlled inclusion flag for GPA calculations'
-        AFTER `grade_point`;
+SET @vcampus_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'course_grades'
+      AND column_name = 'gpa_included'
+);
+SET @vcampus_column_sql = IF(@vcampus_column_exists = 0,
+    'ALTER TABLE course_grades ADD COLUMN gpa_included TINYINT(1) NOT NULL DEFAULT 1 COMMENT ''Server-controlled inclusion flag for GPA calculations'' AFTER grade_point',
+    'SELECT 1');
+PREPARE vc_column_stmt FROM @vcampus_column_sql;
+EXECUTE vc_column_stmt;
+DEALLOCATE PREPARE vc_column_stmt;
 
 -- The V2 demonstration offering has a fixed academic term. Other legacy rows
 -- remain UNSPECIFIED until an academic administrator assigns their term.
