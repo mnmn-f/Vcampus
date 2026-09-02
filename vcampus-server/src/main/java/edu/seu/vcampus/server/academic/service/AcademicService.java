@@ -3,6 +3,8 @@ package edu.seu.vcampus.server.academic.service;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterRequest;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
@@ -108,5 +110,11 @@ public final class AcademicService {
     public CoursePageDto teacherCourses(SessionContext session, CourseQuery query)
             throws AcademicException {
         return courses.teacherCourses(session, query);
+    }
+
+    public CourseRosterDto courseRoster(SessionContext session,
+                                        CourseRosterRequest request)
+            throws AcademicException {
+        return courses.courseRoster(session, request);
     }
 }

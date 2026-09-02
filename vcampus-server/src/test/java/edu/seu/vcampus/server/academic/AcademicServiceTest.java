@@ -5,6 +5,8 @@ import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterRequest;
 import edu.seu.vcampus.common.dto.academic.CourseStatus;
 import edu.seu.vcampus.common.dto.academic.CourseType;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
@@ -34,12 +36,16 @@ public class AcademicServiceTest {
     private SessionContext secondStudent;
     private SessionContext academic;
     private SessionContext teacher;
+    private SessionContext otherTeacher;
+    private SessionContext registrar;
 
     @Before
     public void setUp() {
         repository = new InMemoryAcademicRepository();
-        repository.addActiveStudent(1L);
-        repository.addActiveStudent(2L);
+        repository.addActiveStudent(1L, "S001", "学生一", "电气工程学院",
+                "电气工程及其自动化", "电气2601");
+        repository.addActiveStudent(2L, "S002", "学生二", "计算机科学与工程学院",
+                "软件工程", "软工2601");
         repository.addActiveTeacher(10L, "王老师");
         repository.addActiveTeacher(11L, "李老师");
         repository.addClassroom(new ClassroomDto(21L, "九龙湖教学楼", "B201",
@@ -49,6 +55,8 @@ public class AcademicServiceTest {
         secondStudent = session(2L, Role.STUDENT);
         academic = session(90L, Role.ACADEMIC_ADMIN);
         teacher = session(10L, Role.TEACHER);
+        otherTeacher = session(11L, Role.TEACHER);
+        registrar = session(91L, Role.REGISTRAR);
     }
 
     @Test
@@ -155,6 +163,63 @@ public class AcademicServiceTest {
         assertEquals(1, first.getItems().size());
         assertEquals("A-012", first.getItems().get(0).getCourseCode());
         assertEquals(2L, service.queryCourses(student, null).getTotalElements());
+    }
+
+    @Test
+    public void courseRosterContainsOnlyCurrentlyEnrolledStudents() throws Exception {
+        CourseDto course = service.createCourse(academic, course("R-001", "花名册课程", 10,
+                CourseStatus.PUBLISHED, 10L));
+        EnrollmentDto first = service.enroll(student, course.getId());
+        service.enroll(secondStudent, course.getId());
+        service.drop(secondStudent, course.getId());
+
+        CourseRosterDto roster = service.courseRoster(teacher,
+                new CourseRosterRequest(course.getId()));
+
+        assertEquals(course.getId(), roster.getCourseId());
+        assertEquals(1, roster.getEntries().size());
+        assertEquals(first.getId(), roster.getEntries().get(0).getEnrollmentId());
+        assertEquals("S001", roster.getEntries().get(0).getStudentNo());
+        assertEquals("学生一", roster.getEntries().get(0).getDisplayName());
+        assertEquals("ENROLLED", roster.getEntries().get(0).getEnrollmentStatus());
+    }
+
+    @Test
+    public void emptyCourseRosterReturnsAnEmptyList() throws Exception {
+        CourseDto course = service.createCourse(academic, course("R-002", "空课程", 10,
+                CourseStatus.PUBLISHED, 10L));
+        assertEquals(0, service.courseRoster(teacher,
+                new CourseRosterRequest(course.getId())).getEntries().size());
+    }
+
+    @Test
+    public void rosterRejectsOtherTeacherAndNonTeacherRoles() throws Exception {
+        final CourseDto course = service.createCourse(academic, course("R-003", "权限课程", 10,
+                CourseStatus.PUBLISHED, 10L));
+        assertCode(ResultCodes.FORBIDDEN, new Operation() {
+            @Override public void run() throws Exception {
+                service.courseRoster(otherTeacher, new CourseRosterRequest(course.getId()));
+            }
+        });
+        assertCode(ResultCodes.FORBIDDEN, new Operation() {
+            @Override public void run() throws Exception {
+                service.courseRoster(registrar, new CourseRosterRequest(course.getId()));
+            }
+        });
+        assertCode(ResultCodes.FORBIDDEN, new Operation() {
+            @Override public void run() throws Exception {
+                service.courseRoster(academic, new CourseRosterRequest(course.getId()));
+            }
+        });
+    }
+
+    @Test
+    public void rosterReportsMissingCourse() throws Exception {
+        assertCode(AcademicCommands.COURSE_NOT_FOUND, new Operation() {
+            @Override public void run() throws Exception {
+                service.courseRoster(teacher, new CourseRosterRequest(999999L));
+            }
+        });
     }
 
     private static CourseSaveRequest course(String code, String name, int capacity,

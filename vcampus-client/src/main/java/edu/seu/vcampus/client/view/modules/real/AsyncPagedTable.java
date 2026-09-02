@@ -9,6 +9,7 @@ import edu.seu.vcampus.client.ui.components.TableViewport;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -30,6 +31,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
     public interface Loader<T> { PageSlice<T> load(int page, String keyword, String filter) throws Exception; }
     public interface RowMapper<T> { Object[] values(T row); }
     public interface SelectionListener<T> { void onSelected(T row); }
+    public interface FilterCondition { boolean isActive(); }
 
     private final DataTableToolbar toolbar;
     private final DefaultTableModel model;
@@ -46,6 +48,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private int page = 1;
     private int requestSerial;
     private boolean hasNext;
+    private FilterCondition additionalCondition;
 
     public AsyncPagedTable(String title, String subtitle, String searchHint, String[] filters,
                            String[] columns, Loader<T> loader, RowMapper<T> mapper,
@@ -90,7 +93,19 @@ public final class AsyncPagedTable<T> extends SectionCard {
     }
 
     public void addAction(JButton button) { toolbar.addAction(button); }
+    public void setAdditionalFilters(JComponent filters, FilterCondition condition) {
+        toolbar.setAdditionalFilters(filters);
+        additionalCondition = condition;
+    }
     public void reload() { load(1); }
+    public void resetFilters() {
+        toolbar.getSearchField().setText("");
+        if (toolbar.getFilterBox() != null && toolbar.getFilterBox().getSelectedIndex() != 0) {
+            toolbar.getFilterBox().setSelectedIndex(0);
+        } else {
+            load(1);
+        }
+    }
     public T selectedItem() { int row = table.getSelectedRow(); return row < 0 || row >= items.size() ? null : items.get(row); }
     public int getPage() { return page; }
     public JTable getTable() { return table; }
@@ -119,7 +134,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
     }
 
     private boolean hasCondition(String keyword, String filter) {
-        return keyword != null && keyword.trim().length() > 0 || filter != null && filter.length() > 0 && !filter.startsWith("全部");
+        return keyword != null && keyword.trim().length() > 0
+                || filter != null && filter.length() > 0 && !filter.startsWith("全部")
+                || additionalCondition != null && additionalCondition.isActive();
     }
     private void selectedChanged(boolean adjusting) { if (!adjusting && selectionListener != null) selectionListener.onSelected(selectedItem()); }
     private void setBusy(boolean busy, String text) {

@@ -21,7 +21,7 @@
 
 下层通过接口和构造器接收依赖，禁止通过全局静态对象跨层调用。模块只登记自己的命令、DTO、服务和仓储，不复制 Socket 循环或路由逻辑。
 
-所有模块以 Java 7 源码和字节码级别构建。Common、Client、Server 统一使用 ThreeTen Backport 承载协议和数据库日期时间，避免客户端与服务端出现两套时间类型；质量构建通过 Animal Sniffer 阻止误用 Java 8+ API。MySQL 驱动统一由父 POM 管理为 Connector/J 5.1.49，子模块不重复声明版本。
+所有模块以 Java 17 的语言、字节码和 JDK API 级别构建。Common、Client、Server 继续统一使用 ThreeTen Backport 承载协议和数据库日期时间，避免客户端与服务端出现两套时间类型。MySQL 驱动统一由父 POM 管理为 Connector/J 9.5.0，子模块不重复声明版本。
 
 ## 2. MVC 与服务边界
 

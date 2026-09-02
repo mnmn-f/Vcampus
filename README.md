@@ -14,11 +14,11 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## 运行前提
 
-- JDK 7 或更高版本；源码和字节码按 Java 7 兼容级别构建。
+- JDK 17 或更高版本；源码和字节码统一按 Java 17 兼容级别构建。
 - 正常运行需要 MySQL 8.0；显式界面预览模式不访问数据库。
 - 项目自带 Maven Wrapper，无需预先安装 Maven。
 
-构建使用 Java 7 API 门禁；日期时间由 ThreeTen Backport 提供，MySQL 使用兼容 Java 7 的 Connector/J 5.1.49。应用数据库账号必须在 MySQL 8.0 中使用 `mysql_native_password`；`caching_sha2_password` 需要 Connector/J 8.0.9+，与本项目的 Java 7 编译要求冲突。部署说明见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+构建通过 Maven Compiler Plugin 的 `release=17` 统一语言、字节码和 JDK API 级别；日期时间协议仍沿用现有 ThreeTen Backport 类型以保持客户端与服务端兼容。MySQL 使用官方 Connector/J 9.5.0，可连接 MySQL 8.0 并支持其默认认证方式。部署说明见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
 ## MySQL 迁移
 

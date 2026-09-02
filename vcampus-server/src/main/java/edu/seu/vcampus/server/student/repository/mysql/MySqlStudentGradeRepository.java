@@ -29,6 +29,7 @@ final class MySqlStudentGradeRepository
     static final String GRADE_FROM =
             " FROM course_grades cg JOIN enrollments e ON e.id = cg.enrollment_id "
                     + "JOIN courses c ON c.id = e.course_id";
+    private static final String GRADE_SELECT = "SELECT " + GRADE_COLUMNS + GRADE_FROM;
     private static final String INSERT_GRADE =
             "INSERT INTO course_grades (enrollment_id, score, grade_point, recorded_by, remark) "
                     + "VALUES (?, ?, ?, ?, ?) AS new ON DUPLICATE KEY UPDATE score = new.score, "
@@ -64,7 +65,7 @@ final class MySqlStudentGradeRepository
     }
     @Override
     public StudentGradeDto findByEnrollment(Connection connection, long enrollmentId) {
-        String sql = GRADE_FROM + " WHERE e.id = ?";
+        String sql = GRADE_SELECT + " WHERE e.id = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, enrollmentId);
             List<StudentGradeDto> rows = new ArrayList<StudentGradeDto>();
@@ -125,7 +126,7 @@ final class MySqlStudentGradeRepository
                                   String semesterCode,
                                   int page, int pageSize, int offset) {
         String where = gradeWhere(studentUserId, courseId, semesterCode);
-        String sql = GRADE_FROM + where + " AND e.status <> 'DROPPED'"
+        String sql = GRADE_SELECT + where + " AND e.status <> 'DROPPED'"
                 + " ORDER BY c.course_code, e.id LIMIT ? OFFSET ?";
         List<StudentGradeDto> items = new ArrayList<StudentGradeDto>();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {

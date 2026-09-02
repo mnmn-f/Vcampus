@@ -3,6 +3,7 @@ package edu.seu.vcampus.server.academic.repository.mysql;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
@@ -42,6 +43,18 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     public CoursePageDto findCoursesByTeacher(Connection c, long teacherId,
                                               CourseQuery q) throws SQLException {
         return courseRepository.findCourses(c, q, Long.valueOf(teacherId));
+    }
+
+    @Override
+    public boolean teacherOwnsCourse(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        return enrollmentRepository.teacherOwnsCourse(c, teacherId, courseId);
+    }
+
+    @Override
+    public CourseRosterDto findCourseRoster(Connection c, long teacherId, long courseId)
+            throws SQLException {
+        return enrollmentRepository.findCourseRoster(c, teacherId, courseId);
     }
 
     @Override

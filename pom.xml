@@ -20,14 +20,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <junit.version>4.13.2</junit.version>
         <threetenbp.version>1.5.2</threetenbp.version>
-        <!-- Connector/J 5.1.49 is the Java 7-compatible line. With MySQL 8.0,
-             the application database account must use mysql_native_password;
-             caching_sha2_password requires Connector/J 8.0.9+ and Java 8. -->
-        <mysql.connector.version>5.1.49</mysql.connector.version>
+        <mysql.connector.version>9.5.0</mysql.connector.version>
         <jbcrypt.version>0.4</jbcrypt.version>
     </properties>
 
@@ -40,8 +37,8 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
                 <version>${mysql.connector.version}</version>
             </dependency>
             <dependency>
@@ -67,17 +64,8 @@
                     <configuration>
                         <encoding>UTF-8</encoding>
                         <showWarnings>true</showWarnings>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                        <compilerId>eclipse</compilerId>
+                        <release>${maven.compiler.release}</release>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.codehaus.plexus</groupId>
-                            <artifactId>plexus-compiler-eclipse</artifactId>
-                            <version>2.15.0</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -93,26 +81,6 @@
             <id>quality</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>animal-sniffer-maven-plugin</artifactId>
-                        <version>1.24</version>
-                        <configuration>
-                            <signature>
-                                <groupId>org.codehaus.mojo.signature</groupId>
-                                <!-- The artifact named java17 represents Java SE 7. -->
-                                <artifactId>java17</artifactId>
-                                <version>1.0</version>
-                            </signature>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>check-java7-api</id>
-                                <phase>verify</phase>
-                                <goals><goal>check</goal></goals>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-pmd-plugin</artifactId>

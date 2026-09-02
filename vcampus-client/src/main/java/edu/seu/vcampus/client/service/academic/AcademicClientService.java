@@ -6,6 +6,8 @@ import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterRequest;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
@@ -96,6 +98,11 @@ public final class AcademicClientService {
 
     public CoursePageDto teacherCourses(CourseQuery query) throws NetworkClientException {
         return payload(AcademicCommands.TEACHER_COURSES, query, CoursePageDto.class);
+    }
+
+    public CourseRosterDto courseRoster(long courseId) throws NetworkClientException {
+        return payload(AcademicCommands.COURSE_ROSTER, new CourseRosterRequest(courseId),
+                CourseRosterDto.class);
     }
 
     private <T> T payload(String command, java.io.Serializable body, Class<T> type)
