@@ -44,10 +44,26 @@ public final class Message implements Serializable {
         return response(request, false, code, message, null);
     }
 
+    public static Message stream(Message request, Serializable payload) {
+        return related(request, MessageType.STREAM_CHUNK, payload,
+                true, ResultCodes.OK, null);
+    }
+
+    public static Message action(Message request, Serializable payload) {
+        return related(request, MessageType.ACTION_CONFIRMATION, payload,
+                true, ResultCodes.OK, null);
+    }
+
     private static Message response(Message request, boolean success, String code,
                                     String text, Serializable payload) {
-        return new Message(request.requestId, MessageType.RESPONSE,
-                request.command, null, payload, success, code, text);
+        return related(request, MessageType.RESPONSE, payload, success, code, text);
+    }
+
+    private static Message related(Message request, MessageType type,
+                                   Serializable payload, boolean success,
+                                   String code, String text) {
+        return new Message(request.requestId, type, request.command,
+                null, payload, success, code, text);
     }
 
     public String getRequestId() { return requestId; }
@@ -60,4 +76,3 @@ public final class Message implements Serializable {
     public String getUserMessage() { return userMessage; }
     public long getTimestamp() { return timestamp; }
 }
-

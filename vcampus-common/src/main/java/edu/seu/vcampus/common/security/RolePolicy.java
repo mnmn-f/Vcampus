@@ -47,7 +47,8 @@ public final class RolePolicy {
                 Permission.LIBRARY_READ, Permission.LIBRARY_BORROW,
                 Permission.STUDY_ROOM_RESERVE, Permission.STORE_READ,
                 Permission.STORE_PURCHASE, Permission.DORM_SELF_READ,
-                Permission.DORM_REQUEST, Permission.DORM_BILL_PAY));
+                Permission.DORM_REQUEST, Permission.DORM_BILL_PAY,
+                Permission.AI_QUERY));
         result.put(Role.TEACHER, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE,
                 Permission.COURSE_READ, Permission.COURSE_TEACH,
@@ -74,7 +75,7 @@ public final class RolePolicy {
                 Permission.ANNOUNCEMENT_MANAGE));
         result.put(Role.AI_KNOWLEDGE_ADMIN, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE,
-                Permission.SYSTEM_MONITOR));
+                Permission.AI_KNOWLEDGE_MANAGE, Permission.SYSTEM_MONITOR));
         result.put(Role.SYSTEM_ADMIN, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE, Permission.USER_MANAGE,
                 Permission.ROLE_MANAGE, Permission.SYSTEM_MONITOR));

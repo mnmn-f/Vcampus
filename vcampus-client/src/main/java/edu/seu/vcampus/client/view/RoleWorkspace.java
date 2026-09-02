@@ -57,7 +57,8 @@ public final class RoleWorkspace {
                     action("我的学籍", "查看学籍与成绩", ModuleId.STUDENT_RECORD),
                     action("宿舍服务", "住宿、请假、报修和账单", ModuleId.DORMITORY),
                     action("图书馆", "检索图书、借阅与自习空间", ModuleId.LIBRARY),
-                    action("校园商店", "选购商品和查看订单", ModuleId.STORE));
+                    action("校园商店", "选购商品和查看订单", ModuleId.STORE),
+                    action("校园助手", "问答、查询和确认校园业务", ModuleId.AI_ASSISTANT));
             case TEACHER: return list(
                     action("我的教学", "课程、成绩和教室使用", ModuleId.ACADEMIC),
                     action("图书馆", "检索图书与线上资源", ModuleId.LIBRARY));
@@ -72,6 +73,7 @@ public final class RoleWorkspace {
             case DORM_MANAGER: return list(
                     action("宿舍管理", "住宿、审批、报修和空间维护", ModuleId.DORMITORY));
             case AI_KNOWLEDGE_ADMIN: return list(
+                    action("知识服务", "维护助手知识库与查看运行状态", ModuleId.AI_ASSISTANT),
                     action("系统运行", "查看服务运行状态", ModuleId.SYSTEM));
             default: return list(
                     action("账号与角色", "维护账号、角色和会话", ModuleId.USER_ADMIN),

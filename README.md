@@ -8,7 +8,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 - [vcampus-client](vcampus-client)：Swing 视图、页面控制器、客户端服务和网络网关。
 - [vcampus-server](vcampus-server)：TCP 服务、命令路由、业务服务、事务、DAO 和 MySQL 访问。
 - [scripts/start-server.ps1](scripts/start-server.ps1)、[scripts/start-client.ps1](scripts/start-client.ps1)：Windows 服务端/客户端网络启动脚本。
-- 设计与验收文档：[ARCHITECTURE](docs/ARCHITECTURE.md)、[FEATURE_BASELINE](docs/FEATURE_BASELINE.md)、[PAGE_MAP](docs/PAGE_MAP.md)、[IMPLEMENTATION_ROADMAP](docs/IMPLEMENTATION_ROADMAP.md)、[DATABASE](docs/DATABASE.md)、[DEPLOYMENT](docs/DEPLOYMENT.md)、[ROLE_MATRIX](docs/ROLE_MATRIX.md)、[UI_SPEC](docs/UI_SPEC.md)、[UI_PREVIEW_GALLERY](docs/UI_PREVIEW_GALLERY.md)。
+- 设计与验收文档：[ARCHITECTURE](docs/ARCHITECTURE.md)、[FEATURE_BASELINE](docs/FEATURE_BASELINE.md)、[PAGE_MAP](docs/PAGE_MAP.md)、[IMPLEMENTATION_ROADMAP](docs/IMPLEMENTATION_ROADMAP.md)、[DATABASE](docs/DATABASE.md)、[DEPLOYMENT](docs/DEPLOYMENT.md)、[ROLE_MATRIX](docs/ROLE_MATRIX.md)、[UI_SPEC](docs/UI_SPEC.md)、[UI_PREVIEW_GALLERY](docs/UI_PREVIEW_GALLERY.md)、[AI_MODULE](docs/AI_MODULE.md)。
 
 界面入口可先看 [UI 视觉证据画廊](docs/UI_PREVIEW_GALLERY.md)：其中包含登录页、九类职责主页和代表性业务页。画廊图片是离屏预览，用于核对布局与人员分流，不代替真实数据库验收。
 
@@ -124,4 +124,4 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
 - 排课已由 AcademicCoursesPanel → CourseScheduleEditorPanel 在真实页面行内维护时段，服务端负责冲突和权限校验。
 - 线上资源支持访问记录和图书管理员分页日志；借阅台账支持筛选与 CSV 导出，单次最多 5000 条，覆盖已有文件前需确认。
 - 未实现后台预警/账单定时调度器。
-- AI 当前只保留协议和存储预留，未接入真实模型、RAG、外部知识库或写操作工具，因此不在任何角色的导航中显示。
+- AI 助手已接入兼容 OpenAI Responses API 的模型、校园知识 RAG、系统操作指引和业务工具注册表；学生可进行问答和业务查询，涉及数据变更的工具必须二次确认，AI 知识管理员可维护知识库。配置、权限边界、工具清单和运行方法见 [AI_MODULE](docs/AI_MODULE.md)。

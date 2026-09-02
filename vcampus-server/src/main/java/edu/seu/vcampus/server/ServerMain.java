@@ -6,6 +6,7 @@ import edu.seu.vcampus.server.auth.LoginCommandHandler;
 import edu.seu.vcampus.server.auth.LoginAuditSink;
 import edu.seu.vcampus.server.auth.LogoutCommandHandler;
 import edu.seu.vcampus.server.auth.SwitchRoleCommandHandler;
+import edu.seu.vcampus.server.ai.registry.AiCommandRegistry;
 import edu.seu.vcampus.server.campus.registry.CampusCommandRegistry;
 import edu.seu.vcampus.server.campus.service.CampusService;
 import edu.seu.vcampus.server.academic.registry.AcademicCommandRegistry;
@@ -110,6 +111,7 @@ public final class ServerMain {
         StoreCommandRegistry.registerAll(router, storeService);
         CampusCommandRegistry.registerAll(router, campusService);
         IdentityCommandRegistry.registerAll(router, identityService);
+        AiCommandRegistry.registerAll(router, transactions);
         return router;
     }
 

@@ -5,3 +5,5 @@ manual-classes/
 *.log
 .env
 application-local.properties
+.codex-doc-review/
+~$*.docx
