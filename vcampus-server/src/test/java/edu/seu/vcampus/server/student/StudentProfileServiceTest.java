@@ -68,6 +68,34 @@ public class StudentProfileServiceTest {
     }
 
     @Test
+    public void registrarSearchSupportsEverySingleAndCombinedFilter() throws Exception {
+        service.createProfile(registrar, request(1L, "S001", "电气工程学院",
+                "电气工程及其自动化", "电气2601", StudentStatus.ENROLLED));
+        service.createProfile(registrar, request(2L, "S002", "计算机科学与工程学院",
+                "软件工程", "软工2601", StudentStatus.SUSPENDED));
+
+        assertOnly("S001", new StudentProfileQuery("001", null, null, null, null, null, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, "学生一", null, null, null, null, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, null, "电气工程学院", null, null, null, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, null, null, "电气工程及其自动化", null, null, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, null, null, null, "电气2601", null, 1, 20));
+        assertOnly("S002", new StudentProfileQuery(null, null, null, null, null, StudentStatus.SUSPENDED, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, null, "电气工程学院",
+                "电气工程及其自动化", null, null, 1, 20));
+        assertOnly("S001", new StudentProfileQuery(null, null, "电气工程学院",
+                null, "电气2601", null, 1, 20));
+        assertOnly("S002", new StudentProfileQuery("S002", null, null,
+                null, null, StudentStatus.SUSPENDED, 1, 20));
+        assertOnly("S001", new StudentProfileQuery("S001", "学生一", "电气工程学院",
+                "电气工程及其自动化", "电气2601", StudentStatus.ENROLLED, 1, 20));
+
+        assertEquals(2L, service.searchProfiles(registrar,
+                new StudentProfileQuery(" ", "", null, "  ", "", null, 1, 20)).getTotal());
+        assertEquals(0L, service.searchProfiles(registrar,
+                new StudentProfileQuery(null, null, "不存在学院", null, null, null, 1, 20)).getTotal());
+    }
+
+    @Test
     public void duplicateStudentNumberIsRejected() throws Exception {
         service.createProfile(registrar, request(1L, "S001", "软件工程", "软工2601"));
         try {
@@ -135,9 +163,21 @@ public class StudentProfileServiceTest {
 
     private static StudentProfileWriteRequest request(long id, String no,
                                                       String college, String clazz) {
-        return new StudentProfileWriteRequest(id, no, college, "软件工程", clazz,
+        return request(id, no, college, "软件工程", clazz, StudentStatus.ENROLLED);
+    }
+
+    private static StudentProfileWriteRequest request(long id, String no, String college,
+                                                      String major, String clazz,
+                                                      StudentStatus status) {
+        return new StudentProfileWriteRequest(id, no, college, major, clazz,
                 2026, 2030, "UNDERGRADUATE", "UNKNOWN", null, null, null, null,
-                StudentStatus.ENROLLED);
+                status);
+    }
+
+    private void assertOnly(String studentNo, StudentProfileQuery query) throws Exception {
+        StudentProfilePage result = service.searchProfiles(registrar, query);
+        assertEquals(1L, result.getTotal());
+        assertEquals(studentNo, result.getItems().get(0).getStudentNo());
     }
 
     private static SessionContext session(long id, Role role) {

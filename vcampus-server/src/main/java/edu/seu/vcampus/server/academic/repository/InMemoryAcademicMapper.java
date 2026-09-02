@@ -44,12 +44,13 @@ final class InMemoryAcademicMapper {
         for (int i = 0; i < source.teacherIds.size(); i++) {
             Long id = source.teacherIds.get(i);
             teachers.add(new CourseInstructorDto(id, state.teachers.get(id),
+                    "T" + id,
                     i == 0 ? "PRIMARY" : "ASSISTANT"));
         }
         return new CourseDto(source.id, source.code, source.name, source.type,
                 source.credits, source.totalHours, source.capacity,
                 countEnrolled(source.id), source.description, source.status,
-                scheduleList, teachers);
+                scheduleList, teachers, source.semesterCode);
     }
 
     CourseScheduleDto schedule(InMemoryAcademicState.ScheduleState source) {

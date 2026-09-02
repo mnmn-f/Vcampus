@@ -14,25 +14,29 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## 运行前提
 
-- JDK 7 或更高版本；源码和字节码按 Java 7 兼容级别构建。
+- JDK 17 或更高版本；源码和字节码统一按 Java 17 兼容级别构建。
 - 正常运行需要 MySQL 8.0；显式界面预览模式不访问数据库。
 - 项目自带 Maven Wrapper，无需预先安装 Maven。
 
-构建使用 Java 7 API 门禁；日期时间由 ThreeTen Backport 提供，MySQL 使用兼容 Java 7 的 Connector/J 5.1.49。应用数据库账号必须在 MySQL 8.0 中使用 `mysql_native_password`；`caching_sha2_password` 需要 Connector/J 8.0.9+，与本项目的 Java 7 编译要求冲突。部署说明见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+构建通过 Maven Compiler Plugin 的 `release=17` 统一语言、字节码和 JDK API 级别；日期时间协议仍沿用现有 ThreeTen Backport 类型以保持客户端与服务端兼容。MySQL 使用官方 Connector/J 9.5.0，可连接 MySQL 8.0 并支持其默认认证方式。部署说明见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
 ## MySQL 迁移
 
-V1 建立表、外键、唯一键、CHECK、索引和查询视图；V2 写入可重复执行的演示角色、权限和业务数据。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 增加商品图片、分类、促销、优惠券、评价、好友代付和订单价格快照。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
+    vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
+    vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
 
-脚本包含幂等键和重复保护，V2 可重复执行；正式环境不要直接导入演示账号。MySqlStoreSalesRepository 直接聚合已支付订单明细，V1 的 vw_store_sales 仅作兼容/查询辅助。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
+脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
 服务端从 JVM 属性或环境变量读取数据库连接：
 
@@ -73,7 +77,7 @@ V1 建立表、外键、唯一键、CHECK、索引和查询视图；V2 写入可
 
     java -Dvcampus.client.mode=demo -jar .\vcampus-client\target\vCampusClient.jar
 
-预览模式不访问数据库，只验证登录页、人员信息和角色分流；业务模块统一提示连接服务端，不再维护另一套静态业务页面。登录页只填写账号和密码，页面不提供人员或角色选择；`demo_teacher` 登录成功后可切换其已有的教师和教务职责：
+预览模式不访问数据库，主要用于验证登录页、人员信息和角色分流。图书馆模块额外提供进程内可操作数据，可检查图书借还、自习室预约和线上资源流程；关闭客户端后数据重置。其他业务模块仍需连接服务端。登录页只填写账号和密码，页面不提供人员或角色选择；`demo_teacher` 登录成功后可切换其已有的教师和教务职责：
 
 | 登录账号 | 密码 | 登录后职责 |
 |---|---|---|
@@ -87,7 +91,7 @@ V1 建立表、外键、唯一键、CHECK、索引和查询视图；V2 写入可
 | `demo_ai` | `ai123` | AI 知识管理员 |
 | `demo_system` | `system123` | 系统管理员 |
 
-预览模式不提供业务数据和业务操作；完整功能必须通过服务端和 MySQL 验收。
+图书馆预览可直接运行 `.\scripts\start-library-demo.ps1`。该预览不替代真实权限、事务和 MySQL 验收，正式业务仍应使用网络模式。
 
 ## 真实网络模式
 

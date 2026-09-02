@@ -3,11 +3,13 @@ package edu.seu.vcampus.server.academic.handler;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
+import edu.seu.vcampus.common.dto.academic.CourseRosterRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleIdRequest;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.protocol.Message;
@@ -19,7 +21,7 @@ import edu.seu.vcampus.server.academic.service.AcademicService;
 import edu.seu.vcampus.server.router.CommandHandler;
 import edu.seu.vcampus.server.security.SessionContext;
 
-/** 将十个教务命令适配到同一个服务层，避免每个命令复制鉴权和异常处理。 */
+/** 将教务命令适配到同一个服务层，避免每个命令复制鉴权和异常处理。 */
 public final class AcademicCommandHandler implements CommandHandler {
     private final String command;
     private final AcademicService service;
@@ -76,13 +78,19 @@ public final class AcademicCommandHandler implements CommandHandler {
                 return Message.success(request, null);
             }
             if (AcademicCommands.STUDENT_SCHEDULE.equals(command)) {
-                StudentScheduleDto result = service.studentSchedule(session);
+                StudentScheduleDto result = service.studentSchedule(session,
+                        payload == null ? StudentScheduleQuery.all()
+                                : require(payload, StudentScheduleQuery.class));
                 return Message.success(request, result);
             }
             if (AcademicCommands.TEACHER_COURSES.equals(command)) {
                 CoursePageDto result = service.teacherCourses(session,
                         payload == null ? null : require(payload, CourseQuery.class));
                 return Message.success(request, result);
+            }
+            if (AcademicCommands.COURSE_ROSTER.equals(command)) {
+                return Message.success(request, service.courseRoster(session,
+                        require(payload, CourseRosterRequest.class)));
             }
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的教务操作");
         } catch (AcademicException ex) {
@@ -104,7 +112,8 @@ public final class AcademicCommandHandler implements CommandHandler {
                 || AcademicCommands.SCHEDULE_DELETE.equals(command)) {
             return Permission.COURSE_MANAGE;
         }
-        if (AcademicCommands.TEACHER_COURSES.equals(command)) {
+        if (AcademicCommands.TEACHER_COURSES.equals(command)
+                || AcademicCommands.COURSE_ROSTER.equals(command)) {
             return Permission.COURSE_TEACH;
         }
         return Permission.COURSE_ENROLL;

@@ -4,6 +4,9 @@ package edu.seu.vcampus.common.protocol.command;
 public final class StudentCommands {
     public static final String SELF_PROFILE = "student.self-profile";
     public static final String SELF_GRADES = "student.self-grades";
+    public static final String SELF_GRADE_REPORT = "student.self-grade-report";
+    public static final String SELF_GRADE_EXPORT = "student.self-grade-export";
+    public static final String GRADE_EXPORT_TOO_LARGE = "STUDENT.GRADE_EXPORT_TOO_LARGE";
     public static final String PROFILE_SEARCH = "student.profile.search";
     public static final String PROFILE_DETAIL = "student.profile.detail";
     public static final String PROFILE_CREATE = "student.profile.create";

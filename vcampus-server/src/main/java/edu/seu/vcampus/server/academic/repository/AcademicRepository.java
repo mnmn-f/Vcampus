@@ -3,11 +3,13 @@ package edu.seu.vcampus.server.academic.repository;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,6 +27,12 @@ public interface AcademicRepository {
 
     CoursePageDto findCoursesByTeacher(Connection connection, long teacherUserId,
                                        CourseQuery query) throws SQLException;
+
+    boolean teacherOwnsCourse(Connection connection, long teacherUserId,
+                              long courseId) throws SQLException;
+
+    CourseRosterDto findCourseRoster(Connection connection, long teacherUserId,
+                                     long courseId) throws SQLException;
 
     CourseDto findCourse(Connection connection, long courseId) throws SQLException;
 
@@ -69,4 +77,7 @@ public interface AcademicRepository {
 
     StudentScheduleDto findStudentSchedule(Connection connection, long studentUserId)
             throws SQLException;
+
+    StudentScheduleDto findStudentSchedule(Connection connection, long studentUserId,
+                                           StudentScheduleQuery query) throws SQLException;
 }

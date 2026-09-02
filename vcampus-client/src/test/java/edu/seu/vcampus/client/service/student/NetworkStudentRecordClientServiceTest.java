@@ -5,6 +5,8 @@ import edu.seu.vcampus.client.network.NetworkClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
+import edu.seu.vcampus.common.dto.student.StudentProfilePage;
+import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.command.StudentCommands;
@@ -13,6 +15,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 /** 客户端只传消息并映射 DTO，同时每次请求使用当前会话令牌。 */
 public class NetworkStudentRecordClientServiceTest {
@@ -35,6 +38,25 @@ public class NetworkStudentRecordClientServiceTest {
         assertEquals(StudentCommands.SELF_PROFILE, gateway.lastRequest.getCommand());
         assertEquals("token-7", gateway.lastRequest.getSessionToken());
         assertNull(gateway.lastRequest.getPayload());
+    }
+
+    @Test
+    public void profileSearchReusesCommandAndPassesEveryCondition() throws Exception {
+        RecordingGateway gateway = new RecordingGateway();
+        ClientSession session = new ClientSession();
+        session.open(new LoginResult(9L, "registrar", "教务", Role.REGISTRAR, "token-9"));
+        NetworkStudentRecordClientService service = new NetworkStudentRecordClientService(
+                new NetworkClientService(gateway), session);
+        StudentProfileQuery query = new StudentProfileQuery("S001", "学生一", "电气工程学院",
+                "电气工程及其自动化", "电气2601", StudentStatus.ENROLLED, 2, 10);
+        gateway.payload = new StudentProfilePage(java.util.Collections.<StudentProfileDto>emptyList(),
+                0L, 2, 10);
+
+        service.searchProfiles(query);
+
+        assertEquals(StudentCommands.PROFILE_SEARCH, gateway.lastRequest.getCommand());
+        assertEquals("token-9", gateway.lastRequest.getSessionToken());
+        assertSame(query, gateway.lastRequest.getPayload());
     }
 
     private static final class RecordingGateway implements ClientGateway {

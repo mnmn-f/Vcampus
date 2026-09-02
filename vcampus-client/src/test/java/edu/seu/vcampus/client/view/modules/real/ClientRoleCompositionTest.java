@@ -46,6 +46,28 @@ public final class ClientRoleCompositionTest {
         assertFalse(hasType(student, CourseScheduleEditorPanel.class));
     }
 
+    @Test public void libraryNavigationMatchesStudentAndLibrarianDesign() {
+        BasePage student = ModulePages.forModule(ModuleId.LIBRARY, session(Role.STUDENT),
+                null, services(Role.STUDENT));
+        assertTrue(has(student, "首页"));
+        assertTrue(has(student, "图书查阅"));
+        assertTrue(has(student, "自习室预约"));
+        assertTrue(has(student, "线上资源"));
+        assertFalse(has(student, "图书管理"));
+
+        BasePage librarian = ModulePages.forModule(ModuleId.LIBRARY, session(Role.LIBRARIAN),
+                null, services(Role.LIBRARIAN));
+        assertTrue(has(librarian, "公告管理"));
+        assertTrue(has(librarian, "图书管理"));
+        assertTrue(has(librarian, "借阅管理"));
+        assertTrue(has(librarian, "自习室管理"));
+        assertTrue(has(librarian, "线上资源管理"));
+
+        BasePage teacher = ModulePages.forModule(ModuleId.LIBRARY, session(Role.TEACHER),
+                null, services(Role.TEACHER));
+        assertFalse(hasType(teacher, LibraryRoomEditorPanel.class));
+    }
+
     private static ClientBusinessServices services(Role role) {
         return new ClientBusinessServices(new NetworkClientService(new EmptyGateway()), session(role));
     }

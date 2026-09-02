@@ -19,7 +19,7 @@ public final class LibraryBorrowingsPanel extends JPanel {
     }
 
     private AsyncPagedTable<BorrowRecordView> table() {
-        AsyncPagedTable<BorrowRecordView> table = new AsyncPagedTable<BorrowRecordView>("我的借阅", "借书和还书会更新库存与借阅记录。",
+        AsyncPagedTable<BorrowRecordView> table = new AsyncPagedTable<BorrowRecordView>("我的借阅记录", "借书和还书会更新库存与借阅记录。",
                 "可按状态筛选", new String[]{"全部状态", "借阅中", "逾期", "已归还"},
                 new String[]{"记录编号", "图书", "借出时间", "应还时间", "归还时间", "状态"},
                 new AsyncPagedTable.Loader<BorrowRecordView>() {

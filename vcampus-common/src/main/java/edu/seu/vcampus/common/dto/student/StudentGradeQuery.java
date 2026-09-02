@@ -6,10 +6,16 @@ import java.io.Serializable;
 public final class StudentGradeQuery implements Serializable {
     private static final long serialVersionUID = 1L;
     private final Long courseId;
+    private final String semesterCode;
     private final int page;
     private final int pageSize;
 
     public StudentGradeQuery(Long courseId, int page, int pageSize) {
+        this(null, courseId, page, pageSize);
+    }
+
+    public StudentGradeQuery(String semesterCode, Long courseId, int page, int pageSize) {
+        this.semesterCode = clean(semesterCode);
         this.courseId = courseId;
         this.page = page < 1 ? 1 : Math.min(page, StudentProfileQuery.MAX_PAGE);
         this.pageSize = pageSize < 1 ? StudentProfileQuery.DEFAULT_PAGE_SIZE
@@ -21,7 +27,16 @@ public final class StudentGradeQuery implements Serializable {
     }
 
     public Long getCourseId() { return courseId; }
+    public String getSemesterCode() { return semesterCode; }
     public int getPage() { return page; }
     public int getPageSize() { return pageSize; }
     public int getOffset() { return (page - 1) * pageSize; }
+
+    public StudentGradeQuery withSemesterCode(String value) {
+        return new StudentGradeQuery(value, courseId, page, pageSize);
+    }
+
+    private static String clean(String value) {
+        return value == null || value.trim().isEmpty() ? null : value.trim();
+    }
 }

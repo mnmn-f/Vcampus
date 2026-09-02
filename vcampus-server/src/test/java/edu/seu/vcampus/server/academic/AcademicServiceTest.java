@@ -38,8 +38,10 @@ public class AcademicServiceTest {
     @Before
     public void setUp() {
         repository = new InMemoryAcademicRepository();
-        repository.addActiveStudent(1L);
-        repository.addActiveStudent(2L);
+        repository.addActiveStudent(1L, "S001", "学生一", "电气工程学院",
+                "电气工程及其自动化", "电气2601");
+        repository.addActiveStudent(2L, "S002", "学生二", "计算机科学与工程学院",
+                "软件工程", "软工2601");
         repository.addActiveTeacher(10L, "王老师");
         repository.addActiveTeacher(11L, "李老师");
         repository.addClassroom(new ClassroomDto(21L, "九龙湖教学楼", "B201",

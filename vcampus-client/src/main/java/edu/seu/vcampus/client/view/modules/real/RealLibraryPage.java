@@ -1,27 +1,66 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.composition.ClientBusinessServices;
+import edu.seu.vcampus.client.service.campus.CampusClientService;
+import edu.seu.vcampus.client.service.library.DemoLibraryCampusClientService;
+import edu.seu.vcampus.client.service.library.DemoLibraryClientService;
+import edu.seu.vcampus.client.service.library.LibraryClientService;
 import edu.seu.vcampus.client.session.ClientSession;
-import edu.seu.vcampus.client.ui.components.TaskTabs;
+import edu.seu.vcampus.client.ui.LineIcon;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.client.view.RoleWorkspace;
 import edu.seu.vcampus.common.module.ModuleId;
 import edu.seu.vcampus.common.security.Role;
 
-/** 图书馆模块的实时网络页面。 */
+/** 图书馆模块页面；网络模式与 Demo 模式复用同一套界面和主题。 */
 public final class RealLibraryPage extends BasePage {
+    private static final DemoLibraryClientService DEMO_LIBRARY =
+            new DemoLibraryClientService();
+
     public RealLibraryPage(ClientSession session, ClientBusinessServices services) {
-        super(session, RoleWorkspace.navigationLabel(session.getActiveRole(), ModuleId.LIBRARY), "");
+        this(session, services.library(), services.campus());
+    }
+
+    public static RealLibraryPage demo(ClientSession session) {
+        return new RealLibraryPage(session, DEMO_LIBRARY,
+                new DemoLibraryCampusClientService(session.getActiveRole()));
+    }
+
+    private RealLibraryPage(ClientSession session, LibraryClientService library,
+                            CampusClientService campus) {
+        super(session, RoleWorkspace.navigationLabel(session.getActiveRole(), ModuleId.LIBRARY),
+                "图书查询与借阅、自习室预约、公告和线上资源服务。");
         Role role = session.getActiveRole(); setHeaderContext(role.getDisplayName());
-        TaskTabs tabs = new TaskTabs();
-        tabs.addTask(role == Role.LIBRARIAN ? "馆藏管理" : "图书检索",
-                new LibraryBooksPanel(this, services.library(), role));
-        if (role == Role.STUDENT) tabs.addTask("我的借阅", new LibraryBorrowingsPanel(this, services.library()));
-        if (showsBorrowingLedger(role)) tabs.addTask("借阅台账", new LibraryBorrowingLedgerPanel(this, services.library()));
-        tabs.addTask("自习空间", new LibraryRoomsPanel(this, services.library(), role));
-        tabs.addTask("线上资源", new LibraryResourcesPanel(this, services.library(), role));
-        tabs.addTask("图书馆公告", new CampusAnnouncementsPanel(this, services.campus(), role,
-                "LIBRARY", "图书馆公告", Role.LIBRARIAN));
+        LibraryTaskTabs tabs = new LibraryTaskTabs(role == Role.LIBRARIAN);
+        if (role == Role.LIBRARIAN) {
+            tabs.addTask("公告管理", LineIcon.Kind.SYSTEM,
+                    new CampusAnnouncementsPanel(this, campus, role,
+                            "LIBRARY", "公告管理", Role.LIBRARIAN));
+            tabs.addTask("图书管理", LineIcon.Kind.LIBRARY,
+                    new LibraryBooksPanel(this, library, role));
+            tabs.addTask("借阅管理", LineIcon.Kind.ACADEMIC,
+                    new LibraryBorrowingLedgerPanel(this, library));
+            tabs.addTask("自习室管理", LineIcon.Kind.PROFILE,
+                    new LibraryRoomsPanel(this, library, role));
+            tabs.addTask("线上资源管理", LineIcon.Kind.SYSTEM,
+                    new LibraryResourcesPanel(this, library, role));
+        } else {
+            tabs.addTask("首页", LineIcon.Kind.DASHBOARD,
+                    new CampusAnnouncementsPanel(this, campus, role,
+                            "LIBRARY", "公告栏", Role.LIBRARIAN));
+            if (role == Role.STUDENT) {
+                tabs.addTask("图书查阅", LineIcon.Kind.LIBRARY,
+                        new LibraryBooksPanel(this, library, role),
+                        new LibraryBorrowingsPanel(this, library));
+            } else {
+                tabs.addTask("图书查阅", LineIcon.Kind.LIBRARY,
+                        new LibraryBooksPanel(this, library, role));
+            }
+            tabs.addTask("自习室预约", LineIcon.Kind.ACADEMIC,
+                    new LibraryRoomsPanel(this, library, role));
+            tabs.addTask("线上资源", LineIcon.Kind.STUDENT_RECORD,
+                    new LibraryResourcesPanel(this, library, role));
+        }
         addBlock(tabs);
     }
 

@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.library.LibraryClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.library.BookDetail;
@@ -34,8 +35,9 @@ public final class LibraryBooksPanel extends JPanel {
     }
 
     private AsyncPagedTable<BookDetail> table() {
-        AsyncPagedTable<BookDetail> table = new AsyncPagedTable<BookDetail>("图书检索与库存", "按书名、作者或 ISBN 搜索。",
-                "搜索书名、作者或 ISBN", new String[]{"全部状态", "在架", "不可借", "归档"},
+        AsyncPagedTable<BookDetail> table = new AsyncPagedTable<BookDetail>(
+                role == Role.LIBRARIAN ? "图书信息管理" : "书籍信息", "按书名、作者、ISBN 或分类搜索。",
+                "搜索书名、作者、ISBN 或分类", new String[]{"全部状态", "在架", "不可借", "归档"},
                 new String[]{"ISBN", "书名", "作者", "可借/总量", "位置", "状态"},
                 new AsyncPagedTable.Loader<BookDetail>() {
                     @Override public PageSlice<BookDetail> load(int p, String keyword, String filter) throws Exception {
@@ -48,12 +50,17 @@ public final class LibraryBooksPanel extends JPanel {
                 }, new AsyncPagedTable.SelectionListener<BookDetail>() {
                     @Override public void onSelected(BookDetail row) { selectBook(row); }
                 });
-        if (role == Role.STUDENT) { JButton borrow = new PrimaryButton("借阅"); borrow.addActionListener(new java.awt.event.ActionListener() {
+        if (role == Role.STUDENT) { JButton borrow = new PrimaryButton("借阅此书"); borrow.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { borrow(); }
         }); table.addAction(borrow); }
-        if (role == Role.LIBRARIAN) { JButton create = new PrimaryButton("新建图书"); create.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
-        }); table.addAction(create); }
+        if (role == Role.LIBRARIAN) {
+            JButton create = new PrimaryButton("新建图书"); create.addActionListener(new java.awt.event.ActionListener() {
+                @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
+            }); table.addAction(create);
+            JButton archive = new DangerButton("删除（归档）"); archive.addActionListener(new java.awt.event.ActionListener() {
+                @Override public void actionPerformed(java.awt.event.ActionEvent e) { archiveBook(); }
+            }); table.addAction(archive);
+        }
         return table;
     }
 
@@ -87,6 +94,16 @@ public final class LibraryBooksPanel extends JPanel {
             @Override public void onSuccess(BookDetail result) { page.showSuccess("图书已保存。"); books.reload(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
+    }
+
+    private void archiveBook() {
+        final BookDetail value = books.selectedItem();
+        if (value == null) { page.showWarning("请先选择要归档的图书。"); return; }
+        if (!RealUi.confirm(this, "确认归档“" + value.getTitle() + "”？归档后学生不能借阅。")) return;
+        saveBook(new BookUpsertRequest(value.getId(), value.getIsbn(), value.getTitle(),
+                value.getAuthor(), value.getPublisher(), value.getCategory(),
+                Integer.valueOf(value.getTotalCopies()), Integer.valueOf(value.getAvailableCopies()),
+                value.getLocation(), value.getDescription(), "ARCHIVED"));
     }
 
     private static String bookStatus(String filter) { return "在架".equals(filter) ? "ON_SHELF" : "不可借".equals(filter) ? "UNAVAILABLE" : "归档".equals(filter) ? "ARCHIVED" : null; }

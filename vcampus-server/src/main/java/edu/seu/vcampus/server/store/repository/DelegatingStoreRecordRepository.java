@@ -68,6 +68,9 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     @Override public boolean adjustStock(Connection c, long id, int delta) {
         return products.adjustStock(c, id, delta);
     }
+    @Override public void updateRating(Connection c, long id, BigDecimal average, long count) {
+        products.updateRating(c, id, average, count);
+    }
 
     @Override public CartDto findCart(Connection c, long userId) { return cart.findCart(c, userId); }
     @Override public void ensureCart(Connection c, long userId) { cart.ensureCart(c, userId); }
@@ -90,6 +93,11 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     }
     @Override public void insertOrderItems(Connection c, long id, List<CartLine> l) {
         orders.insertOrderItems(c, id, l);
+    }
+    @Override public void updateOrderPricing(Connection c, long id, BigDecimal original,
+                                              BigDecimal discount, String promotion,
+                                              String coupon, String mode) {
+        orders.updateOrderPricing(c, id, original, discount, promotion, coupon, mode);
     }
     @Override public OrderDto findOrder(Connection c, long id, boolean lock) {
         return orders.findOrder(c, id, lock);
@@ -120,6 +128,10 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     }
     @Override public LedgerRecord findTransactionByKey(Connection c, String k) {
         return accounts.findTransactionByKey(c, k);
+    }
+    @Override public AccountDto findOrderPaymentAccount(Connection c, long orderId,
+                                                         boolean lock) {
+        return accounts.findOrderPaymentAccount(c, orderId, lock);
     }
     @Override public boolean updateAccountBalance(Connection c, long id, BigDecimal e,
                                                    BigDecimal n) {

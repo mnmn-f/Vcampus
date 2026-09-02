@@ -4,11 +4,13 @@ import edu.seu.vcampus.common.dto.academic.ClassroomDto;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
+import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,7 +25,16 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
             new InMemoryEnrollmentStore(state, mapper, courseStore);
 
     public synchronized void addActiveStudent(long userId) {
+        addActiveStudent(userId, "S" + userId, "学生" + userId,
+                null, null, null);
+    }
+
+    public synchronized void addActiveStudent(long userId, String studentNo,
+                                              String displayName, String college,
+                                              String major, String className) {
         state.students.add(userId);
+        state.studentProfiles.put(userId, new InMemoryAcademicState.StudentState(userId,
+                studentNo, displayName, college, major, className));
     }
 
     public synchronized void addActiveTeacher(long userId) {
@@ -50,6 +61,28 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
     public synchronized CoursePageDto findCoursesByTeacher(Connection c, long teacherId,
                                                             CourseQuery q) {
         return courseStore.findCourses(q, Long.valueOf(teacherId));
+    }
+
+    @Override
+    public synchronized boolean teacherOwnsCourse(Connection c, long teacherId,
+                                                  long courseId) {
+        CourseDto course = courseStore.findCourse(courseId);
+        if (course == null) return false;
+        for (edu.seu.vcampus.common.dto.academic.CourseInstructorDto instructor
+                : course.getInstructors()) {
+            if (instructor.getTeacherUserId() == teacherId) return true;
+        }
+        return false;
+    }
+
+    @Override
+    public synchronized CourseRosterDto findCourseRoster(Connection c, long teacherId,
+                                                         long courseId) {
+        if (!teacherOwnsCourse(c, teacherId, courseId)) {
+            return new CourseRosterDto(courseId,
+                    java.util.Collections.<edu.seu.vcampus.common.dto.academic.CourseRosterEntryDto>emptyList());
+        }
+        return enrollmentStore.roster(courseId);
     }
 
     @Override
@@ -141,6 +174,12 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
     @Override
     public synchronized StudentScheduleDto findStudentSchedule(Connection c, long studentId) {
         return enrollmentStore.schedule(studentId);
+    }
+
+    @Override
+    public synchronized StudentScheduleDto findStudentSchedule(Connection c, long studentId,
+                                                                StudentScheduleQuery query) {
+        return enrollmentStore.schedule(studentId, query);
     }
 
     public synchronized int courseCount() {

@@ -3,8 +3,11 @@ package edu.seu.vcampus.server.academic.service;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
+import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
+import edu.seu.vcampus.common.dto.academic.CourseRosterRequest;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.CourseStatus;
+import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.security.Permission;
 import edu.seu.vcampus.common.security.Role;
@@ -89,6 +92,32 @@ final class AcademicCourseService {
             @Override
             public CoursePageDto run(java.sql.Connection connection) throws Exception {
                 return repository().findCoursesByTeacher(connection, teacherId, selected);
+            }
+        });
+    }
+
+    CourseRosterDto courseRoster(SessionContext session, CourseRosterRequest request)
+            throws AcademicException {
+        support.requirePermission(session, Permission.COURSE_TEACH, Role.TEACHER);
+        if (request == null || request.getCourseId() <= 0) {
+            throw AcademicServiceSupport.failure(AcademicCommands.INVALID_COURSE,
+                    "课程编号不正确");
+        }
+        final long courseId = request.getCourseId();
+        final long teacherId = session.getUserId();
+        return support.execute(new AcademicServiceSupport.Work<CourseRosterDto>() {
+            @Override public CourseRosterDto run(java.sql.Connection connection)
+                    throws Exception {
+                AcademicRepository repository = repository();
+                if (repository.findCourse(connection, courseId) == null) {
+                    throw AcademicServiceSupport.failure(AcademicCommands.COURSE_NOT_FOUND,
+                            "课程不存在");
+                }
+                if (!repository.teacherOwnsCourse(connection, teacherId, courseId)) {
+                    throw AcademicServiceSupport.failure(ResultCodes.FORBIDDEN,
+                            "只能查看本人授课课程的花名册");
+                }
+                return repository.findCourseRoster(connection, teacherId, courseId);
             }
         });
     }

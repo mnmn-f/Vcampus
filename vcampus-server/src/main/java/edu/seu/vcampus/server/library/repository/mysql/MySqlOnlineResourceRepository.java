@@ -93,8 +93,9 @@ public final class MySqlOnlineResourceRepository implements OnlineResourceReposi
         List<Object> params = new ArrayList<Object>();
         String keyword = JdbcLibrarySupport.clean(r.getKeyword());
         if (keyword != null) {
-            where.append(" AND (title LIKE ? OR description LIKE ?)");
-            String value = "%" + keyword + "%"; params.add(value); params.add(value);
+            where.append(" AND (title LIKE ? OR resource_type LIKE ? OR description LIKE ?)");
+            String value = "%" + keyword + "%";
+            params.add(value); params.add(value); params.add(value);
         }
         String type = JdbcLibrarySupport.clean(r.getResourceType());
         if (type != null) { where.append(" AND resource_type=?"); params.add(type); }

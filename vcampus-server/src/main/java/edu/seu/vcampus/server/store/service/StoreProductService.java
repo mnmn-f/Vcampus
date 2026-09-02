@@ -14,6 +14,7 @@ import edu.seu.vcampus.server.security.SessionContext;
 import edu.seu.vcampus.server.store.repository.StoreRecordRepository;
 
 import java.sql.Connection;
+import java.net.URI;
 import java.util.Locale;
 
 /** 商品检索、详情与商店管理员维护。 */
@@ -153,6 +154,7 @@ final class StoreProductService {
         StoreServiceSupport.maxLength(request.getName(), 200, "商品名称");
         StoreServiceSupport.maxLength(request.getCategory(), 80, "商品分类");
         StoreServiceSupport.maxLength(request.getDescription(), 65535, "商品描述");
+        validateImage(request.getImageUrl());
         StoreServiceSupport.money(request.getPrice(), "商品", true);
         if (request.getStockQty() < 0) {
             throw new StoreServiceException(ResultCodes.INVALID_INPUT, "库存不能为负数");
@@ -165,6 +167,22 @@ final class StoreProductService {
             ProductStatus.valueOf(StoreServiceSupport.required(value, "商品状态").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new StoreServiceException(ResultCodes.INVALID_INPUT, "商品状态不正确");
+        }
+    }
+
+    private static void validateImage(String value) throws StoreServiceException {
+        if (value == null || value.trim().isEmpty()) return;
+        StoreServiceSupport.maxLength(value, 1000, "商品图片地址");
+        try {
+            URI uri = new URI(value.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || !("http".equalsIgnoreCase(scheme)
+                    || "https".equalsIgnoreCase(scheme)) || uri.getHost() == null) {
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception ex) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT,
+                    "商品图片地址必须是 http 或 https 链接");
         }
     }
 }

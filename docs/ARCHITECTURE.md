@@ -21,7 +21,7 @@
 
 下层通过接口和构造器接收依赖，禁止通过全局静态对象跨层调用。模块只登记自己的命令、DTO、服务和仓储，不复制 Socket 循环或路由逻辑。
 
-所有模块以 Java 7 源码和字节码级别构建。Common、Client、Server 统一使用 ThreeTen Backport 承载协议和数据库日期时间，避免客户端与服务端出现两套时间类型；质量构建通过 Animal Sniffer 阻止误用 Java 8+ API。MySQL 驱动统一由父 POM 管理为 Connector/J 5.1.49，子模块不重复声明版本。
+所有模块以 Java 17 的语言、字节码和 JDK API 级别构建。Common、Client、Server 继续统一使用 ThreeTen Backport 承载协议和数据库日期时间，避免客户端与服务端出现两套时间类型。MySQL 驱动统一由父 POM 管理为 Connector/J 9.5.0，子模块不重复声明版本。
 
 ## 2. MVC 与服务边界
 
@@ -52,6 +52,8 @@
 | 教室申请/审批 | classroom 行 FOR UPDATE → reservation 行 FOR UPDATE → overlap 检查 → 状态写入；申请和审批保持相同方向 |
 | 图书借还 | books 行 → borrow_records 行 → 库存和借阅状态一起写入 |
 | 商店支付 | order → account → product 库存 → 重算明细金额、写流水和订单状态 |
+| 商店结算 | cart/product FOR UPDATE → 服务端重算促销与优惠券 → 订单价格快照 → 优惠券占用 → 清空购物车 |
+| 好友代付 | friend-payment FOR UPDATE → order FOR UPDATE → payer account FOR UPDATE → product 库存 → 账户流水 → 订单/代付状态一起提交 |
 | 宿舍入住/调宿/缴费 | 当前住宿或分摊 → 目标 bed/account → 写记录和状态；活动学生/床位由生成列唯一键保护 |
 
 数据库唯一键、外键和 CHECK 负责单行边界，服务层事务负责跨行冲突和身份范围。遇到并发冲突返回稳定结果码，不通过降低隔离级别或吞掉死锁掩盖问题。教室锁序由 CampusClassroomLockIntegrationTest 覆盖。

@@ -3,6 +3,7 @@ package edu.seu.vcampus.client.view.modules.real;
 import edu.seu.vcampus.client.service.student.StudentRecordClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
+import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradePage;
@@ -15,6 +16,9 @@ import edu.seu.vcampus.common.dto.student.StudentStatus;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
 
 /** 学籍管理员实时维护档案并核对成绩。 */
 public final class StudentRegistrarPanel extends JPanel {
@@ -22,6 +26,10 @@ public final class StudentRegistrarPanel extends JPanel {
     private final StudentRecordClientService service;
     private final StudentProfileEditorPanel editor;
     private final JLabel detail = UiFactory.muted("选择学生查看详情。");
+    private final JTextField studentNo = UiFactory.textField(12);
+    private final JTextField college = UiFactory.textField(12);
+    private final JTextField major = UiFactory.textField(12);
+    private final JTextField className = UiFactory.textField(12);
     private final AsyncPagedTable<StudentProfileDto> profiles;
     private final AsyncPagedTable<StudentGradeDto> grades;
     private long detailSerial;
@@ -45,23 +53,59 @@ public final class StudentRegistrarPanel extends JPanel {
 
     private AsyncPagedTable<StudentProfileDto> profileTable() {
         AsyncPagedTable<StudentProfileDto> table = new AsyncPagedTable<StudentProfileDto>(
-                "学生档案", "按学号、姓名、学院、专业和状态查询，支持分页浏览。", "搜索学号或姓名",
-                new String[]{"全部状态", "在读", "休学", "毕业", "退学"},
-                new String[]{"学号", "姓名", "学院", "专业", "班级", "状态"},
+                "学生档案", "按学号、姓名、学院、专业、班级和状态组合查询，支持分页浏览。", "输入姓名",
+                statusOptions(),
+                new String[]{"学号", "姓名", "学院", "专业", "班级", "入学年份", "状态"},
                 new AsyncPagedTable.Loader<StudentProfileDto>() {
                     @Override public PageSlice<StudentProfileDto> load(int p, String keyword, String filter) throws Exception {
-                        StudentStatus status = status(filter); String value = keyword == null ? null : keyword.trim();
-                        String no = value != null && value.matches("\\d+") ? value : null; String name = no == null ? value : null;
-                        StudentProfilePage result = service.searchProfiles(new StudentProfileQuery(no, name, null, null, null, status, p, 20));
+                        StudentProfilePage result = service.searchProfiles(new StudentProfileQuery(
+                                studentNo.getText(), keyword, college.getText(), major.getText(),
+                                className.getText(), status(filter), p, 20));
                         return new PageSlice<StudentProfileDto>(result.getItems(), result.getTotal(), result.getPage(), result.getPageSize());
                     }
                 }, new AsyncPagedTable.RowMapper<StudentProfileDto>() {
-                    @Override public Object[] values(StudentProfileDto row) { return new Object[]{row.getStudentNo(), row.getDisplayName(), row.getCollege(), row.getMajor(), row.getClassName(), RealUi.status(RealUi.text(row.getStatus()))}; }
+                    @Override public Object[] values(StudentProfileDto row) { return new Object[]{row.getStudentNo(), row.getDisplayName(), row.getCollege(), row.getMajor(), row.getClassName(), RealUi.text(row.getEnrollmentYear()), RealUi.status(RealUi.text(row.getStatus()))}; }
                 }, new AsyncPagedTable.SelectionListener<StudentProfileDto>() {
                     @Override public void onSelected(StudentProfileDto row) { selectProfile(row); }
                 });
+        table.setAdditionalFilters(profileFilters(), new AsyncPagedTable.FilterCondition() {
+            @Override public boolean isActive() {
+                return hasText(studentNo) || hasText(college) || hasText(major) || hasText(className);
+            }
+        });
+        java.awt.event.ActionListener search = new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { table.reload(); }
+        };
+        studentNo.addActionListener(search); college.addActionListener(search);
+        major.addActionListener(search); className.addActionListener(search);
+        PrimaryButton query = new PrimaryButton("查询"); query.addActionListener(search);
+        SecondaryButton reset = new SecondaryButton("重置");
+        reset.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                studentNo.setText(""); college.setText(""); major.setText(""); className.setText("");
+                table.resetFilters();
+            }
+        });
+        table.addAction(query); table.addAction(reset);
         table.getTable().getColumnModel().getColumn(0).setPreferredWidth(110);
         return table;
+    }
+
+    private JPanel profileFilters() {
+        JPanel filters = new JPanel(new GridLayout(2, 2, 12, 6)); filters.setOpaque(false);
+        filters.add(filter("学号", studentNo)); filters.add(filter("学院", college));
+        filters.add(filter("专业", major)); filters.add(filter("班级", className));
+        return filters;
+    }
+
+    private JPanel filter(String label, JTextField field) {
+        JPanel value = new JPanel(new BorderLayout(8, 0)); value.setOpaque(false);
+        value.add(UiFactory.body(label), BorderLayout.WEST); value.add(field, BorderLayout.CENTER);
+        return value;
+    }
+
+    private static boolean hasText(JTextField field) {
+        return field.getText() != null && !field.getText().trim().isEmpty();
     }
 
     private AsyncPagedTable<StudentGradeDto> gradeTable() {
@@ -111,10 +155,16 @@ public final class StudentRegistrarPanel extends JPanel {
     }
 
     private static StudentStatus status(String value) {
-        if ("在读".equals(value)) return StudentStatus.ENROLLED;
-        if ("休学".equals(value)) return StudentStatus.SUSPENDED;
-        if ("毕业".equals(value)) return StudentStatus.GRADUATED;
-        if ("退学".equals(value)) return StudentStatus.WITHDRAWN;
+        for (StudentStatus status : StudentStatus.values()) {
+            if (RealUi.status(status.name()).equals(value)) return status;
+        }
         return null;
+    }
+
+    private static String[] statusOptions() {
+        StudentStatus[] statuses = StudentStatus.values();
+        String[] values = new String[statuses.length + 1]; values[0] = "全部状态";
+        for (int i = 0; i < statuses.length; i++) values[i + 1] = RealUi.status(statuses[i].name());
+        return values;
     }
 }

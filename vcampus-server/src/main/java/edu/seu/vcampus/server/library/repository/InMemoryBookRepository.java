@@ -32,7 +32,8 @@ public final class InMemoryBookRepository implements BookRepository {
         for (BookDetail b : books.values()) {
             String text = InMemoryLibrarySupport.lower(b.getTitle() + " "
                     + InMemoryLibrarySupport.safe(b.getAuthor()) + " "
-                    + InMemoryLibrarySupport.safe(b.getIsbn()));
+                    + InMemoryLibrarySupport.safe(b.getIsbn()) + " "
+                    + InMemoryLibrarySupport.safe(b.getCategory()));
             if (keyword != null && !text.contains(keyword)) continue;
             if (category != null && !category.equals(InMemoryLibrarySupport.lower(b.getCategory()))) continue;
             if (status != null && !status.equals(InMemoryLibrarySupport.lower(b.getStatus()))) continue;
