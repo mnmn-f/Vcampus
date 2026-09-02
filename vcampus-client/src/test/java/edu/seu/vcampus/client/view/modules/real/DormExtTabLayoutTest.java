@@ -80,6 +80,14 @@ public final class DormExtTabLayoutTest {
     }
 
     @Test
+    public void managerHasOneAnnouncementEntry() {
+        JTabbedPane pages = tabs(managerPage());
+        Component notice = pages.getComponentAt(indexOf(pages, "宿舍公告"));
+        assertEquals(1, countType(notice, DormExtNoticePanel.class));
+        assertEquals(0, countType(notice, DormAnnouncementsPanel.class));
+    }
+
+    @Test
     public void onlyTheSelectedTabContributesItsHeight() {
         // 没显示的页首选高度被压成 0，否则最高的一页会把每一页都撑高，
         // 矮的页面底下就会多出一大片可以往下滚的空白。
@@ -146,6 +154,13 @@ public final class DormExtTabLayoutTest {
             if (hasText(child, text)) return true;
         }
         return false;
+    }
+
+    private static int countType(Component root, Class<?> type) {
+        int count = type.isInstance(root) ? 1 : 0;
+        if (!(root instanceof Container)) return count;
+        for (Component child : ((Container) root).getComponents()) count += countType(child, type);
+        return count;
     }
 
     private static ClientBusinessServices services() {

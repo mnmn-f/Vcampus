@@ -21,13 +21,7 @@ import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import org.threeten.bp.LocalDate;
-
-/**
- * 宿管员连续未归预警：阈值配置、手动扫描、通知辅导员与核实。
- *
- * <p>与既有「日常治理」里的晚归记录是两回事：那边记的是回来了但超时，这里记的是
- * 一直没回来，因此有连续未归天数和一般/严重/已豁免的分级。</p>
- */
+/** 宿管员连续未归预警：扫描、通知辅导员与核实。 */
 public final class DormExtWarningPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 
@@ -38,7 +32,6 @@ public final class DormExtWarningPanel extends JPanel {
     private final JTextField scanDate = UiFactory.textField(10);
     private final JTextField teacher = UiFactory.textField(8);
     private final JTextField note = UiFactory.textField(16);
-
     public DormExtWarningPanel(BasePage page, DormExtClientService service) {
         super();
         setOpaque(false);
@@ -50,16 +43,8 @@ public final class DormExtWarningPanel extends JPanel {
         add(warnings);
         add(actions());
     }
-
     public void reload() { warnings.reload(); }
-
-    /**
-     * 手动扫描。
-     *
-     * <p>正常由每日 08:00 的定时任务跑，这里是补扫和演示用的入口。预警天数、通知
-     * 天数、请假豁免这些阈值挪到了「设置」标签页——它们是调一次管很久的东西，
-     * 放在天天要用的页面上只会增加误触。</p>
-     */
+    /** 手动补扫指定日期；自动扫描由服务端完成。 */
     private JPanel scanCard() {
         SectionCard card = new SectionCard("手动扫描",
                 "每日 08:00 自动扫描；这里可以补扫某一天。预警阈值在「设置」里调。");
@@ -77,7 +62,6 @@ public final class DormExtWarningPanel extends JPanel {
         wrap.add(card, BorderLayout.CENTER);
         return wrap;
     }
-
     private AsyncPagedTable<AbsenceWarningDto> warningTable() {
         return new AsyncPagedTable<AbsenceWarningDto>("连续未归预警",
                 "按扫描日记录，同一学生同一扫描日只留一条。",
@@ -104,7 +88,6 @@ public final class DormExtWarningPanel extends JPanel {
                     }
                 }, null);
     }
-
     private JPanel actions() {
         SectionCard card = new SectionCard("处理预警",
                 "系统内没有学生到辅导员的映射，通知时需要指定接收人。");
@@ -129,7 +112,6 @@ public final class DormExtWarningPanel extends JPanel {
         wrap.add(card, BorderLayout.CENTER);
         return wrap;
     }
-
     private void scan() {
         final LocalDate date;
         try {
@@ -154,7 +136,6 @@ public final class DormExtWarningPanel extends JPanel {
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
-
     private void notifyTeacher() {
         final AbsenceWarningDto selected = warnings.selectedItem();
         if (selected == null) { page.showWarning("请先选择一条预警。"); return; }
@@ -168,14 +149,12 @@ public final class DormExtWarningPanel extends JPanel {
         handle(new WarningHandleRequest(selected.getId(), teacherId, RealUi.optional(note.getText())),
                 true, "已记录通知。");
     }
-
     private void verify() {
         final AbsenceWarningDto selected = warnings.selectedItem();
         if (selected == null) { page.showWarning("请先选择一条预警。"); return; }
         handle(new WarningHandleRequest(selected.getId(), null, RealUi.optional(note.getText())),
                 false, "预警已核实。");
     }
-
     private void handle(final WarningHandleRequest request, final boolean notify, final String ok) {
         AsyncTask.run(new AsyncTask.Work<AbsenceWarningDto>() {
             @Override public AbsenceWarningDto run() throws Exception {
@@ -189,7 +168,6 @@ public final class DormExtWarningPanel extends JPanel {
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
-
     private static int positive(String text, String label) {
         Long value = RealUi.number(RealUi.required(text, label));
         if (value == null || value.longValue() <= 0L) {
@@ -197,20 +175,17 @@ public final class DormExtWarningPanel extends JPanel {
         }
         return value.intValue();
     }
-
     private static String statusCode(String filter) {
         if ("待处理".equals(filter)) return AbsenceWarningDto.STATUS_PENDING;
         if ("已通知".equals(filter)) return AbsenceWarningDto.STATUS_NOTIFIED;
         if ("已核实".equals(filter)) return AbsenceWarningDto.STATUS_VERIFIED;
         return null;
     }
-
     private static String statusLabel(String value) {
         if (AbsenceWarningDto.STATUS_NOTIFIED.equals(value)) return "已通知";
         if (AbsenceWarningDto.STATUS_VERIFIED.equals(value)) return "已核实";
         return "待处理";
     }
-
     private static String levelLabel(String value) {
         if (AbsenceWarningDto.LEVEL_SEVERE.equals(value)) return "严重";
         if (AbsenceWarningDto.LEVEL_EXEMPT.equals(value)) return "已豁免";

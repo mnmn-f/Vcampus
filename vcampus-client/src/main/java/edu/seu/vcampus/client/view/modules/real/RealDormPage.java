@@ -2,7 +2,6 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.composition.ClientBusinessServices;
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
-import edu.seu.vcampus.client.service.dorm.ext.NetworkDormExtClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.client.ui.components.TaskTabs;
 import edu.seu.vcampus.client.view.BasePage;
@@ -34,7 +33,7 @@ public final class RealDormPage extends BasePage {
     }
 
     private void buildStudent(ClientBusinessServices services) {
-        DormExtClientService ext = NetworkDormExtClientService.create(session);
+        DormExtClientService ext = services.dormExt();
         TaskTabs tabs = new TaskTabs();
         tabs.addTask("我的住宿", new DormAccommodationPanel(this, services.dorm()));
         // 请假和外来登记都是「向宿管提交一件事再等审批」，放在一起找得到。
@@ -56,7 +55,7 @@ public final class RealDormPage extends BasePage {
     }
 
     private void buildManager(ClientBusinessServices services) {
-        DormExtClientService ext = NetworkDormExtClientService.create(session);
+        DormExtClientService ext = services.dormExt();
         TaskTabs tabs = new TaskTabs();
         tabs.addTask("住宿与空间", new DormManagerSpacePanel(this, services.dorm()));
         // 住宿申请、请假、来访三类审批合并：对宿管来说都是「待我处理的申请」。
@@ -82,7 +81,6 @@ public final class RealDormPage extends BasePage {
                 new DormExtHygienePanel(this, ext),
                 governance.hygienePart());
         tabs.addTask("宿舍公告",
-                new DormAnnouncementsPanel(this, services.dorm(), Role.DORM_MANAGER),
                 new DormExtNoticePanel(this, ext, true));
         tabs.addTask("设置", new DormExtSettingsPanel(this, ext));
         DormExtTabHeights.fitToSelectedTab(tabs);

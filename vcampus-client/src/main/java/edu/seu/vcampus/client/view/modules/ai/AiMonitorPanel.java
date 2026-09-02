@@ -27,7 +27,7 @@ public final class AiMonitorPanel extends SectionCard {
     private final JLabel tools = UiFactory.body("—");
 
     public AiMonitorPanel(AiAssistantClientService service) {
-        super("AI 服务运行监控", "只展示 API、知识库与工具运行摘要；密钥和会话 token 永不下发。");
+        super("AI 服务运行监控", "");
         this.service = service; setContent(content()); refresh();
     }
 

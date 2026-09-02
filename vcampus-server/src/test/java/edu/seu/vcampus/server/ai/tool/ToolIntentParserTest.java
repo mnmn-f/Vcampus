@@ -52,5 +52,8 @@ public final class ToolIntentParserTest {
         String arguments = parser.parse("搜索图书 Java 入门").getArgumentsJson();
         assertTrue(arguments.contains("Java 入门"));
         assertFalse(arguments.contains("搜索图书"));
+        String controlled = parser.parse("搜索图书 Java\n\t入门").getArgumentsJson();
+        assertTrue(controlled.contains("Java\\n\\t入门"));
+        assertFalse(controlled.contains("\n"));
     }
 }

@@ -5,6 +5,7 @@ import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.protocol.command.CampusCommands;
 import edu.seu.vcampus.common.protocol.command.DormCommands;
+import edu.seu.vcampus.common.protocol.command.DormExtCommands;
 import edu.seu.vcampus.common.protocol.command.LibraryCommands;
 import edu.seu.vcampus.common.protocol.command.IdentityCommands;
 import edu.seu.vcampus.common.protocol.command.StudentCommands;
@@ -32,6 +33,7 @@ public class ServerMainProductionRouterTest {
         assertUnauthorized(router, AcademicCommands.COURSE_LIST);
         assertUnauthorized(router, LibraryCommands.BOOK_SEARCH);
         assertUnauthorized(router, DormCommands.MY_ACCOMMODATION);
+        assertUnauthorized(router, DormExtCommands.STAY_MINE);
         assertUnauthorized(router, StoreCommands.PRODUCT_SEARCH);
         assertUnauthorized(router, CampusCommands.COMPETITION_LIST);
         assertUnauthorized(router, IdentityCommands.SYSTEM_MONITOR);

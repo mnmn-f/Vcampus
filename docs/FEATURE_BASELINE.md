@@ -75,8 +75,11 @@
 | 门禁记录、未归判断、预警列表和处理备注 | [x] | DormManagerGovernancePanel、DormGovernanceService、DormServiceTest |
 | 卫生检查、评分、问题记录和整改状态 | [x] | DormManagerGovernancePanel、DormGovernanceService、DormServiceTest |
 | 报修申请、受理、处理中、完成、取消和本人一次性评价 | [x] | DormStudentRepairsPanel、DormStudentRepairEvaluationPanel、DormManagerRepairsPanel、DormRepairEvaluationTest |
-| 宿舍公告、房间水电账单、学生分摊和本人缴费 | [x] | DormAnnouncementsPanel、DormStudentBillsPanel、DormManagerBillingPanel、DormBillingService、DormServiceTest |
-| 门禁预警或账单的后台定时生成 | [ ] | 当前只有查询/处理和账单服务，未发现真实 scheduler；不把静态任务文字当成已完成 |
+| 宿舍公告、房间水电账单、学生分摊和本人缴费 | [x] | DormExtNoticePanel、DormStudentBillsPanel、DormManagerBillingPanel、DormBillingService、DormServiceTest |
+| 外来人员登记/审核、在宿状态和本人门禁明细 | [x] | DormExtVisitorPanel、DormExtVisitorAuditPanel、DormExtStayPanel、DormExtStayAdminPanel |
+| 抄表出账、连续未归预警、卫生分项/任务、报修入内许可 | [x] | DormExtBillingPanel、DormExtWarningPanel、DormExtHygienePanel、DormExtPermitPanel |
+| 公告类型、楼栋/房间范围、置顶和唯一入口 | [x] | DormExtNoticePanel、dorm_notice_extras、DormNoticeVisibilityTest |
+| 未归/通知、卫生和月度出账后台调度 | [x] | DormScheduler、DormSchedulerCalendarTest、DormSchedulerExecutionTest |
 
 ## 网络、通用界面与部署
 
@@ -87,16 +90,15 @@
 | 生产组合根使用同一 JdbcConnectionFactory、TransactionManager、SessionManager；真实登录→业务只读→登出→旧 token 拒绝 | [x] | ServerMain.createProductionRouter、ClientBusinessServices、ProductionRouterMySqlIntegrationTest |
 | 列表页统一筛选、分页、加载、空状态、错误提示和内嵌编辑；危险操作确认 | [x] | AsyncPagedTable、RealUi、各 Real 页面及 ClientRoleCompositionTest |
 
-## AI 助手（接口阶段）
+## AI 助手
 
 | 验收项 | 状态 | 证据 |
 |---|---|---|
-| 会话、消息、流式片段、取消、只读工具/写操作确认的协议边界 | [ ] | AiAssistantGateway、AiQuery、AiStreamListener；尚无真实服务 |
-| 未实现能力不出现在任何角色的导航、主页或业务按钮中 | [x] | RolePolicy、RoleWorkspace、ModulePagesTest、RoleAwareShellUiTest |
-| 真实模型、RAG、外部知识库和写操作工具 | [ ] | 当前版本明确不实现；ai_* 表只是存储模型，不能作为模型接入证据 |
+| 会话、消息、流式片段、取消和本地知识检索 | [x] | AiAssistantService、AiConversationService、AiKnowledgeService、KnowledgeRanker、AiChatPanel |
+| 可选 Responses API；未配置密钥时离线降级 | [x] | ResponsesAiModel、AiModelConfig、ResponsesAiModelTest |
+| 白名单业务工具、写操作二次确认和并发防重 | [x] | AiToolRegistry、AiToolService、AiToolRepository.claim、AiToolClaimMySqlIntegrationTest |
+| 学生问答与 AI 知识管理员维护/监控按角色显示 | [x] | RolePolicy、RoleWorkspace、AiAssistantPage、AiKnowledgePanel、AiMonitorPanel |
 
 ## 明确延期或不纳入本版本
 
-- 后台预警/账单调度器。
-- 真实 AI、RAG、外部知识库和自动执行写操作。
-- 宿舍公告和校园通用公告当前共享 announcements 表，但保留两个客户端服务边界；后续做适配合并，不重复建表。
+- AI 外部知识库同步；当前知识片段存储在本系统 MySQL 中。

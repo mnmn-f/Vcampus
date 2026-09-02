@@ -6,6 +6,7 @@ import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /** 内存仓储的分页、文本和状态小工具。 */
 final class InMemoryDormSupport {
@@ -35,5 +36,15 @@ final class InMemoryDormSupport {
         List<T> rows = from >= to ? Collections.<T>emptyList()
                 : new ArrayList<T>(source.subList(from, to));
         return new DormPage<T>(page, size, source.size(), rows);
+    }
+
+    static String[] location(Map<Long, String> rooms, long roomId) {
+        String value = rooms.get(Long.valueOf(roomId));
+        return value == null ? new String[] { "?", "?" } : value.split("/", 2);
+    }
+
+    static String periodKey(long roomId, org.threeten.bp.LocalDate start,
+                            org.threeten.bp.LocalDate end) {
+        return roomId + "|" + start + "|" + end;
     }
 }

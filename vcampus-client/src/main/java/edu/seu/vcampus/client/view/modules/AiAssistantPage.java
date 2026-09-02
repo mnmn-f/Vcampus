@@ -17,7 +17,7 @@ public final class AiAssistantPage extends BasePage {
     }
 
     private AiAssistantPage(ClientSession session, Factory factory) {
-        super(session, "校园助手", "自然语言问答、校园业务代办与知识服务管理");
+        super(session, "校园助手", "");
         setHeaderContext("身份：" + session.getActiveRole().getDisplayName());
         AiAssistantClientService built = factory == null ? null : factory.create();
         AiAssistantClientService service = built == null

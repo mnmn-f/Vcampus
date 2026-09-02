@@ -22,8 +22,6 @@ import edu.seu.vcampus.server.router.StreamWriter;
 import edu.seu.vcampus.server.security.SessionContext;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /** AI 问答、RAG、工具确认和降级策略的编排入口。 */
 public final class AiAssistantService {
@@ -36,8 +34,7 @@ public final class AiAssistantService {
     private final ToolResultFormatter formatter = new ToolResultFormatter();
     private final AiPromptBuilder prompts = new AiPromptBuilder();
     private final AiModel model;
-    private final ConcurrentMap<String, ActiveQuery> active =
-            new ConcurrentHashMap<String, ActiveQuery>();
+    private final AiQueryLimiter limiter = new AiQueryLimiter();
 
     public AiAssistantService(AiConversationService conversations, AiKnowledgeService knowledge,
             AiToolService toolLogs, AiToolRegistry tools, ToolBridge bridge, AiModel model) {
@@ -47,13 +44,13 @@ public final class AiAssistantService {
 
     public void query(final Message envelope, final AiQuery query,
                       final SessionContext session, final StreamWriter writer) {
-        validate(query);
-        ActiveQuery running = new ActiveQuery(Thread.currentThread(), session.getUserId());
-        if (active.putIfAbsent(query.getRequestId(), running) != null) {
-            throw new AiServiceException(ResultCodes.CONFLICT, "请求编号正在使用");
-        }
+        String requestId = query == null ? null : query.getRequestId();
         String sessionId = null;
+        boolean registered = false;
         try {
+            validate(query);
+            limiter.register(requestId, session.getUserId());
+            registered = true;
             sessionId = conversations.beginQuery(session, query.getSessionId(),
                     query.getRequestId(), query.getText());
             AiToolInvocation invocation = intents.parse(query.getText());
@@ -72,13 +69,13 @@ public final class AiAssistantService {
         } catch (Exception ex) {
             writer.write(Message.failure(envelope, ResultCodes.INTERNAL_ERROR,
                     "校园助手暂时无法回答，请稍后重试"));
-        } finally { active.remove(query.getRequestId()); }
+        } finally {
+            if (registered) limiter.release(requestId, session.getUserId());
+        }
     }
 
     public boolean cancel(SessionContext session, String requestId) {
-        ActiveQuery task = requestId == null ? null : active.get(requestId);
-        if (task == null || task.userId != session.getUserId()) return false;
-        task.thread.interrupt(); return true;
+        return limiter.cancel(session.getUserId(), requestId);
     }
 
     public AiConfirmResult confirm(SessionContext session, AiActionConfirmation confirmation) {
@@ -182,11 +179,4 @@ public final class AiAssistantService {
 
     private boolean blank(String value) { return value == null || value.trim().isEmpty(); }
 
-    private static final class ActiveQuery {
-        private final Thread thread;
-        private final long userId;
-        private ActiveQuery(Thread thread, long userId) {
-            this.thread = thread; this.userId = userId;
-        }
-    }
 }

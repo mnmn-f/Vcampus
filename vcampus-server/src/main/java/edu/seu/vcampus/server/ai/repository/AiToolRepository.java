@@ -42,6 +42,19 @@ public final class AiToolRepository {
         } finally { ps.close(); }
     }
 
+    /** 原子领取待确认操作；并发请求中只有一个调用方会得到 true。 */
+    public boolean claim(Connection c, long id, long userId, long oldestCreatedAt) throws Exception {
+        PreparedStatement ps = c.prepareStatement(
+                "UPDATE ai_tool_call_logs SET status='CONFIRMED',confirmed_by=? "
+                        + "WHERE id=? AND requested_by=? AND status='CONFIRM_REQUIRED' "
+                        + "AND created_at>=FROM_UNIXTIME(? / 1000.0)");
+        try {
+            ps.setLong(1, userId); ps.setLong(2, id); ps.setLong(3, userId);
+            ps.setLong(4, oldestCreatedAt);
+            return ps.executeUpdate() == 1;
+        } finally { ps.close(); }
+    }
+
     public void finish(Connection c, long id, String status, String summary,
                        Long confirmedBy) throws Exception {
         PreparedStatement ps = c.prepareStatement(

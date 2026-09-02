@@ -32,7 +32,9 @@ public final class AiToolService {
 
     public AiToolRecord pending(final long actionId, final long userId) {
         AiToolRecord record = tx(new Work<AiToolRecord>() {
-            public AiToolRecord run(Connection c) throws Exception { return repository.find(c, actionId); }
+            public AiToolRecord run(Connection c) throws Exception {
+                return repository.find(c, actionId);
+            }
         });
         if (record == null || record.getRequestedBy() != userId) {
             throw new AiServiceException(ResultCodes.NOT_FOUND, "待确认操作不存在");
@@ -43,6 +45,15 @@ public final class AiToolService {
         if (System.currentTimeMillis() - record.getCreatedAt() > CONFIRM_TTL_MILLIS) {
             finish(actionId, "CANCELLED", "确认已超时", Long.valueOf(userId));
             throw new AiServiceException(ResultCodes.CONFLICT, "确认已超时，请重新发起");
+        }
+        boolean claimed = tx(new Work<Boolean>() {
+            public Boolean run(Connection c) throws Exception {
+                long cutoff = System.currentTimeMillis() - CONFIRM_TTL_MILLIS;
+                return Boolean.valueOf(repository.claim(c, actionId, userId, cutoff));
+            }
+        }).booleanValue();
+        if (!claimed) {
+            throw new AiServiceException(ResultCodes.CONFLICT, "该操作已经处理");
         }
         return record;
     }

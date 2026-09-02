@@ -13,7 +13,10 @@ import edu.seu.vcampus.server.academic.registry.AcademicCommandRegistry;
 import edu.seu.vcampus.server.academic.service.AcademicService;
 import edu.seu.vcampus.server.db.JdbcConnectionFactory;
 import edu.seu.vcampus.server.db.TransactionManager;
+import edu.seu.vcampus.server.dorm.ext.registry.DormExtCommandRegistry;
+import edu.seu.vcampus.server.dorm.ext.schedule.DormScheduler;
 import edu.seu.vcampus.server.dorm.registry.DormCommandRegistry;
+import edu.seu.vcampus.server.dorm.service.DormExtService;
 import edu.seu.vcampus.server.dorm.service.DormService;
 import edu.seu.vcampus.server.library.registry.LibraryCommandRegistry;
 import edu.seu.vcampus.server.library.service.LibraryService;
@@ -41,17 +44,18 @@ public final class ServerMain {
         final SessionManager sessionManager = new SessionManager();
         JdbcConnectionFactory connections = new JdbcConnectionFactory();
         UserRepository repository = new MySqlUserRepository(connections);
-        CommandRouter router = createProductionRouter(repository, new PasswordHasher(),
-                sessionManager, connections);
+        final ProductionRuntime runtime = createProductionRuntime(repository,
+                new PasswordHasher(), sessionManager, connections, true);
         final int maxConnections = readPositiveInt("vcampus.server.max-connections",
                 TcpServer.DEFAULT_MAX_CONNECTIONS);
         final int readTimeout = readPositiveInt("vcampus.server.client-read-timeout",
                 TcpServer.DEFAULT_CLIENT_READ_TIMEOUT_MILLIS);
-        final TcpServer server = new TcpServer(readPort(args), maxConnections, router,
+        final TcpServer server = new TcpServer(readPort(args), maxConnections, runtime.router,
                 readTimeout);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
+                runtime.stop();
                 server.stop();
             }
         }, "vcampus-server-shutdown"));
@@ -85,6 +89,14 @@ public final class ServerMain {
                                                         PasswordHasher passwordHasher,
                                                         SessionManager sessions,
                                                         JdbcConnectionFactory connections) {
+        return createProductionRuntime(users, passwordHasher, sessions, connections, false).router;
+    }
+
+    private static ProductionRuntime createProductionRuntime(UserRepository users,
+                                                              PasswordHasher passwordHasher,
+                                                              SessionManager sessions,
+                                                              JdbcConnectionFactory connections,
+                                                              boolean startScheduler) {
         if (connections == null) {
             throw new IllegalArgumentException("connections is required");
         }
@@ -99,6 +111,7 @@ public final class ServerMain {
         LibraryService libraryService =
                 LibraryCommandRegistry.createMySqlService(transactions);
         DormService dormService = DormCommandRegistry.createMySqlService(transactions);
+        DormExtService dormExtService = DormExtCommandRegistry.createMySqlService(transactions);
         StoreService storeService = StoreCommandRegistry.createMySqlService(transactions);
         CampusService campusService = CampusCommandRegistry.createMySqlService(transactions);
         IdentityService identityService = IdentityCommandRegistry.createMySqlService(
@@ -108,11 +121,18 @@ public final class ServerMain {
         AcademicCommandRegistry.registerAll(router, academicService);
         LibraryCommandRegistry.registerAll(router, libraryService);
         DormCommandRegistry.registerAll(router, dormService);
+        DormExtCommandRegistry.registerAll(router, dormExtService);
         StoreCommandRegistry.registerAll(router, storeService);
         CampusCommandRegistry.registerAll(router, campusService);
         IdentityCommandRegistry.registerAll(router, identityService);
         AiCommandRegistry.registerAll(router, transactions);
-        return router;
+        DormScheduler scheduler = null;
+        if (startScheduler && DormScheduler.enabled()) {
+            scheduler = new DormScheduler(dormExtService);
+            dormExtService.attachTaskRunner(scheduler);
+            scheduler.start();
+        }
+        return new ProductionRuntime(router, scheduler);
     }
 
     private static int readPort(String[] args) {
@@ -143,6 +163,20 @@ public final class ServerMain {
             return parsed;
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException(key + " 必须是正整数", ex);
+        }
+    }
+
+    private static final class ProductionRuntime {
+        private final CommandRouter router;
+        private final DormScheduler scheduler;
+
+        private ProductionRuntime(CommandRouter router, DormScheduler scheduler) {
+            this.router = router;
+            this.scheduler = scheduler;
+        }
+
+        private void stop() {
+            if (scheduler != null) scheduler.stop();
         }
     }
 }

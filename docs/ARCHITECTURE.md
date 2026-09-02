@@ -17,7 +17,7 @@
 
 服务端生产组合根是 [ServerMain.java](../vcampus-server/src/main/java/edu/seu/vcampus/server/ServerMain.java) 的 createProductionRouter。它装配一个 JdbcConnectionFactory、一个 TransactionManager、一个 SessionManager 和一个 CommandRouter，再把各模块 Registry 接到同一个路由器。测试用 createRouter 可替换仓储，但不改变生产入口。
 
-客户端网络组合根是 [ClientBusinessServices.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/composition/ClientBusinessServices.java)。[AppLauncher.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/AppLauncher.java) 默认创建一个 SocketClientGateway、一个 NetworkClientService 和一个 ClientSession；身份、学籍、教务、校园、图书、商店和宿舍服务共享这条请求边界。只有显式指定 `vcampus.client.mode=demo` 才进入本地外壳预览；该模式不维护第二套静态业务页面，所有业务模块复用同一个“需要连接服务端”空状态页。
+客户端网络组合根是 [ClientBusinessServices.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/composition/ClientBusinessServices.java)。[AppLauncher.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/AppLauncher.java) 默认创建一个 SocketClientGateway、一个 NetworkClientService 和一个 ClientSession；身份、学籍、教务、校园、图书、商店、基础宿舍和宿舍扩展服务共享这条请求边界。只有 AI 流式响应按协议另开短期流式连接；宿舍扩展不自建或缓存第二条 Socket。只有显式指定 `vcampus.client.mode=demo` 才进入本地外壳预览。
 
 下层通过接口和构造器接收依赖，禁止通过全局静态对象跨层调用。模块只登记自己的命令、DTO、服务和仓储，不复制 Socket 循环或路由逻辑。
 
@@ -60,7 +60,7 @@
 
 ## 5. 公告与公共模型复用
 
-同构的校园、教务和图书馆公告共用 announcements 表，并由 CampusAnnouncementService 按 module_code、visible_scope、target_role_id、publish_at 和 expire_at 查询，客户端复用 CampusAnnouncementsPanel。宿舍当前保留 DormAnnouncementService、DormAnnouncementDto 和 DormAnnouncementsPanel，以兼容宿舍专用请求边界，但仍写入同一表的 DORM 模块行；这是兼容层，不是重复建表。后续可将宿舍页面适配通用服务。
+同构的校园、教务和图书馆公告共用 announcements 表。宿舍公告仍写入其中 `module_code='DORM'` 的记录，并由 dorm_notice_extras 一对一补充类型、楼栋/房间范围和置顶信息；真实宿舍页面统一使用 DormExtNoticePanel，不并列展示两套公告入口。
 
 账户流水、销售事实和业务历史同样保留明确实体；销售统计由已支付订单明细聚合，V1 的 vw_store_sales 只作兼容查询辅助，不作为 MySqlStoreSalesRepository 的唯一事实来源。
 
@@ -78,11 +78,11 @@ SafeObjectInputStream 只允许 common DTO/协议、必要的数值/时间/枚�
 
 ## 8. AI 边界
 
-AiAssistantGateway、AiQuery 和 AiStreamListener 只定义问答、流式片段和取消边界；当前没有真实模型服务，也不向任何角色授予 AI 权限或显示入口。ai_chat_* 和 ai_tool_call_logs 是存储预留，不代表已经接入真实模型、RAG、外部知识库或写操作工具。
+校园助手通过独立流式 Socket 复用当前登录会话，支持会话历史、取消、MySQL 知识片段检索和可选 Responses API。未配置 `VCAMPUS_AI_API_KEY` 时只使用本地知识检索，不影响服务端启动。工具仅能调用 `AiToolRegistry` 白名单中的现有业务命令；模型文本不能自行选择命令，所有写操作必须由当前用户二次确认，并由数据库原子领取确认记录以防并发重复执行。学生拥有问答入口，AI 知识管理员拥有知识维护和监控入口，最终权限仍由业务命令和当前 `SessionContext` 校验。
 
 ## 9. 当前诚实边界
 
 - 排课已形成真实页面闭环：教务管理员在 AcademicCoursesPanel 选中课程后，由 CourseScheduleEditorPanel 行内新增、修改和删除时段；冲突与非法状态仍由服务端校验。
 - 线上资源访问由 RESOURCE_ACCESS 写入访问日志，图书管理员通过 RESOURCE_ACCESS_LOGS 分页查看；借阅台账通过 BORROW_ADMIN_LIST 筛选并支持最多 5000 条 CSV 导出，覆盖已有文件前由页面确认。
-- 未发现服务端后台预警/账单定时调度器；查询和人工处理不等于自动任务。
-- 宿舍公告和通用公告的客户端服务尚未合并，保留明确兼容边界。
+- 宿舍未归扫描、通知、卫生任务和月度出账由 DormScheduler 统一调度；也可通过配置关闭后台任务。
+- 宿舍扩展与基础宿舍命令统一注册到 ServerMain 的同一个 CommandRouter，并共享客户端网络组合根。

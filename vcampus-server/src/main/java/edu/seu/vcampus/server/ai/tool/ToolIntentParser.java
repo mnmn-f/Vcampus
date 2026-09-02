@@ -141,6 +141,9 @@ public final class ToolIntentParser {
     }
 
     private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return value.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\b", "\\b").replace("\f", "\\f")
+                .replace("\n", "\\n").replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

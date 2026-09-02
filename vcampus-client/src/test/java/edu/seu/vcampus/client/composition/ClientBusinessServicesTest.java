@@ -12,6 +12,7 @@ import edu.seu.vcampus.common.dto.dorm.DormBuildingDto;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.UtilityBillDto;
 import edu.seu.vcampus.common.dto.dorm.UtilityBillQuery;
+import edu.seu.vcampus.common.dto.dorm.ext.AbsenceWarningDto;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
 import edu.seu.vcampus.common.dto.store.ProductPage;
@@ -19,6 +20,7 @@ import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.protocol.command.DormCommands;
+import edu.seu.vcampus.common.protocol.command.DormExtCommands;
 import edu.seu.vcampus.common.protocol.command.LibraryCommands;
 import edu.seu.vcampus.common.protocol.command.StoreCommands;
 import edu.seu.vcampus.common.protocol.command.StudentCommands;
@@ -54,20 +56,25 @@ public final class ClientBusinessServicesTest {
         services.dorm().buildings(null);
         gateway.payload = new DormPage<UtilityBillDto>(1, 20, 0, Collections.<UtilityBillDto>emptyList());
         services.dorm().managerBills(UtilityBillQuery.all());
+        gateway.payload = new DormPage<AbsenceWarningDto>(1, 20, 0,
+                Collections.<AbsenceWarningDto>emptyList());
+        services.dormExt().warnings(null);
 
-        assertEquals(6, gateway.commands.size());
+        assertEquals(7, gateway.commands.size());
         assertEquals(StudentCommands.SELF_PROFILE, gateway.commands.get(0));
         assertEquals(AcademicCommands.STUDENT_SCHEDULE, gateway.commands.get(1));
         assertEquals(LibraryCommands.BOOK_SEARCH, gateway.commands.get(2));
         assertEquals(StoreCommands.PRODUCT_SEARCH, gateway.commands.get(3));
         assertEquals(DormCommands.BUILDING_LIST, gateway.commands.get(4));
         assertEquals(DormCommands.UTILITY_MANAGER_LIST, gateway.commands.get(5));
+        assertEquals(DormExtCommands.WARNING_LIST, gateway.commands.get(6));
         assertEquals("token-7", gateway.tokens.get(0));
         assertEquals("token-7", gateway.tokens.get(1));
         assertEquals("token-7", gateway.tokens.get(2));
         assertEquals("token-7", gateway.tokens.get(3));
         assertEquals("token-7", gateway.tokens.get(4));
         assertEquals("token-7", gateway.tokens.get(5));
+        assertEquals("token-7", gateway.tokens.get(6));
     }
 
     private static final class RecordingGateway implements ClientGateway {

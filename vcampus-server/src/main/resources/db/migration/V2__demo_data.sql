@@ -465,7 +465,7 @@ AS new
 ON DUPLICATE KEY UPDATE `amount` = new.amount, `status` = new.status;
 
 -- ============================================================================
--- AI storage boundary demo rows: no real model or write tool is invoked.
+-- AI demo rows seed local conversations, knowledge and audit records only.
 -- ============================================================================
 
 INSERT INTO `ai_chat_sessions` (`user_id`, `title`, `status`, `model_name`)

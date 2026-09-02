@@ -21,30 +21,19 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.threeten.bp.LocalDate;
-
-/**
- * 宿管员卫生检查：五项分项打分与检查任务清单。
- *
- * <p>界面只收五项分数，总分、等级和是否整改都由服务端算完回传，避免两边算法
- * 走偏；不合格时服务端会自动排一条复查任务，列表里能直接看到。</p>
- */
+/** 宿管员卫生检查：五项分项打分与检查任务清单。 */
 public final class DormExtHygienePanel extends JPanel {
     private static final long serialVersionUID = 1L;
-
     private final BasePage page;
     private final DormExtClientService service;
     private final AsyncPagedTable<HygieneTaskDto> tasks;
-
     private final JTextField room = UiFactory.textField(8);
     private final JTextField[] scores = new JTextField[HygieneItemScoreDto.ITEM_CODES.length];
     private final JTextField issue = UiFactory.textField(20);
-
     public DormExtHygienePanel(BasePage page, DormExtClientService service) {
         super();
         setOpaque(false);
@@ -58,9 +47,7 @@ public final class DormExtHygienePanel extends JPanel {
         add(tasks);
         resetScores();
     }
-
     public void reload() { tasks.reload(); }
-
     private JPanel scoreForm() {
         SectionCard card = new SectionCard("卫生检查评分",
                 "五项各 0~20 分；总分与等级由服务端计算，低于 "
@@ -74,19 +61,13 @@ public final class DormExtHygienePanel extends JPanel {
                     scores[i]));
         }
         fields.add(UiFactory.labelledField("问题描述", issue));
-
         JPanel line = UiFactory.horizontal(8);
         JButton reset = new SecondaryButton("重置为满分");
-        reset.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { resetScores(); }
-        });
+        reset.addActionListener(e -> resetScores());
         JButton submit = new PrimaryButton("提交检查");
-        submit.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { submit(); }
-        });
+        submit.addActionListener(e -> submit());
         line.add(reset);
         line.add(submit);
-
         JPanel content = new JPanel(new BorderLayout(0, 10));
         content.setOpaque(false);
         content.add(fields, BorderLayout.CENTER);
@@ -97,7 +78,6 @@ public final class DormExtHygienePanel extends JPanel {
         wrap.add(card, BorderLayout.CENTER);
         return wrap;
     }
-
     private AsyncPagedTable<HygieneTaskDto> taskTable() {
         return new AsyncPagedTable<HygieneTaskDto>("检查任务",
                 "顺序即待办顺序：待检查在最前，复查优先于周检查，同组按计划日期从早到晚。",
@@ -123,28 +103,17 @@ public final class DormExtHygienePanel extends JPanel {
                     }
                 }, null);
     }
-
-    /**
-     * 补生成本周检查任务。
-     *
-     * <p>正常情况下每周一 09:00 由 DormScheduler 自动生成，这个按钮只是补漏用的手动
-     * 入口（比如那天服务端没开），不值得单独占一整块，挂在任务表的工具栏上就够了。
-     * 计划日期固定取今天：要补的就是当期，填别的日期只会造出对不上的任务。</p>
-     */
+    /** 补生成本周检查任务。 */
     private JButton generateButton() {
         JButton generate = new SecondaryButton("补生成本周任务");
-        generate.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { generate(); }
-        });
+        generate.addActionListener(e -> generate());
         return generate;
     }
-
     private void resetScores() {
         room.setText("");
         issue.setText("");
         for (JTextField field : scores) field.setText("20");
     }
-
     private void submit() {
         final HygieneScoreSubmitRequest request;
         try {
@@ -179,7 +148,6 @@ public final class DormExtHygienePanel extends JPanel {
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
-
     private void generate() {
         final LocalDate date = LocalDate.now();
         AsyncTask.run(new AsyncTask.Work<HygieneTaskGenerateResultDto>() {
@@ -196,7 +164,6 @@ public final class DormExtHygienePanel extends JPanel {
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
-
     private static BigDecimal score(String text, String label) {
         String value = RealUi.required(text, label);
         try {
@@ -211,14 +178,12 @@ public final class DormExtHygienePanel extends JPanel {
             throw new IllegalArgumentException(label + "得分必须是数字。");
         }
     }
-
     private static String taskStatus(String filter) {
         if ("待检查".equals(filter)) return HygieneTaskDto.STATUS_PENDING;
         if ("已完成".equals(filter)) return HygieneTaskDto.STATUS_DONE;
         if ("已跳过".equals(filter)) return HygieneTaskDto.STATUS_SKIPPED;
         return null;
     }
-
     private static String taskLabel(String status) {
         if (HygieneTaskDto.STATUS_DONE.equals(status)) return "已完成";
         if (HygieneTaskDto.STATUS_SKIPPED.equals(status)) return "已跳过";
