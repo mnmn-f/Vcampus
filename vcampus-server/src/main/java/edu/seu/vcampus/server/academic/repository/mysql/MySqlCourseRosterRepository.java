@@ -16,11 +16,13 @@ import java.util.List;
 final class MySqlCourseRosterRepository {
     private static final String SQL =
             "SELECT e.id AS enrollment_id,e.student_user_id,e.status AS enrollment_status,"
-            + "e.enrolled_at,u.display_name,sp.student_no,sp.college,sp.major,sp.class_name "
+            + "e.enrolled_at,u.display_name,sp.student_no,sp.college,sp.major,sp.class_name,"
+            + "cg.score,cg.remark AS grade_remark "
             + "FROM course_instructors ci "
-            + "JOIN enrollments e ON e.course_id=ci.course_id AND e.status=? "
+            + "JOIN enrollments e ON e.course_id=ci.course_id AND e.status<>? "
             + "JOIN users u ON u.id=e.student_user_id "
             + "LEFT JOIN student_profiles sp ON sp.user_id=e.student_user_id "
+            + "LEFT JOIN course_grades cg ON cg.enrollment_id=e.id "
             + "WHERE ci.teacher_user_id=? AND ci.course_id=? "
             + "ORDER BY sp.student_no ASC,u.display_name ASC,e.id ASC";
 
@@ -30,7 +32,7 @@ final class MySqlCourseRosterRepository {
             throws SQLException {
         List<CourseRosterEntryDto> entries = new ArrayList<CourseRosterEntryDto>();
         try (PreparedStatement statement = connection.prepareStatement(SQL)) {
-            statement.setString(1, EnrollmentStatus.ENROLLED.name());
+            statement.setString(1, EnrollmentStatus.DROPPED.name());
             statement.setLong(2, teacherId);
             statement.setLong(3, courseId);
             try (ResultSet result = statement.executeQuery()) {
@@ -46,6 +48,7 @@ final class MySqlCourseRosterRepository {
                 result.getString("display_name"), result.getString("college"),
                 result.getString("major"), result.getString("class_name"),
                 result.getString("enrollment_status"),
-                JdbcTemporal.localDateTime(result.getTimestamp("enrolled_at")));
+                JdbcTemporal.localDateTime(result.getTimestamp("enrolled_at")),
+                result.getBigDecimal("score"), result.getString("grade_remark"));
     }
 }

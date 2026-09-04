@@ -28,6 +28,8 @@ public final class ClientRoleCompositionTest {
         BasePage student = ModulePages.forModule(ModuleId.ACADEMIC, session(Role.STUDENT),
                 null, services);
         assertTrue(has(student, "报名")); assertTrue(has(student, "提交申请"));
+        assertTrue(hasType(student, StudentEnrollmentsPanel.class));
+        assertTrue(hasType(student, StudentGradesPanel.class));
 
         services = services(Role.SYSTEM_ADMIN);
         BasePage admin = ModulePages.forModule(ModuleId.USER_ADMIN, session(Role.SYSTEM_ADMIN),

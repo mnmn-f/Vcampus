@@ -52,7 +52,7 @@ public class AcademicCourseRosterServiceTest {
     }
 
     @Test
-    public void containsOnlyCurrentlyEnrolledStudents() throws Exception {
+    public void excludesDroppedStudents() throws Exception {
         CourseDto course = createCourse("R-001", "花名册课程");
         EnrollmentDto first = service.enroll(student, course.getId());
         service.enroll(secondStudent, course.getId());

@@ -6,6 +6,7 @@ import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.security.Permission;
 import edu.seu.vcampus.common.security.Role;
@@ -108,6 +109,18 @@ final class AcademicEnrollmentService {
             public StudentScheduleDto run(java.sql.Connection connection) throws Exception {
                 support.verifyStudent(connection, studentId);
                 return repository().findStudentSchedule(connection, studentId, safe);
+            }
+        });
+    }
+
+    StudentEnrollmentListDto enrollments(SessionContext session) throws AcademicException {
+        support.requirePermission(session, Permission.COURSE_ENROLL, Role.STUDENT);
+        final long studentId = session.getUserId();
+        return support.execute(new AcademicServiceSupport.Work<StudentEnrollmentListDto>() {
+            @Override public StudentEnrollmentListDto run(java.sql.Connection connection)
+                    throws Exception {
+                support.verifyStudent(connection, studentId);
+                return repository().findStudentEnrollments(connection, studentId);
             }
         });
     }

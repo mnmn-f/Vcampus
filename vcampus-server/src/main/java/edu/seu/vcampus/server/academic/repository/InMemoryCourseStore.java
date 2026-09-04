@@ -157,6 +157,10 @@ final class InMemoryCourseStore {
     private boolean matches(InMemoryAcademicState.CourseState source, CourseQuery query) {
         return (query.getKeyword() == null || contains(source.code, query.getKeyword())
                 || contains(source.name, query.getKeyword()))
+                && (query.getCourseCode() == null
+                || contains(source.code, query.getCourseCode()))
+                && (query.getCourseName() == null
+                || contains(source.name, query.getCourseName()))
                 && (query.getStatus() == null || query.getStatus().equals(source.status))
                 && (query.getCourseType() == null || query.getCourseType().equals(source.type));
     }

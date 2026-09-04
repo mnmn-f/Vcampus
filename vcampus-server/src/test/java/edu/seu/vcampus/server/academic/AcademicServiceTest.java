@@ -9,6 +9,7 @@ import edu.seu.vcampus.common.dto.academic.CourseStatus;
 import edu.seu.vcampus.common.dto.academic.CourseType;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
 import edu.seu.vcampus.common.security.Role;
@@ -157,6 +158,26 @@ public class AcademicServiceTest {
         assertEquals(1, first.getItems().size());
         assertEquals("A-012", first.getItems().get(0).getCourseCode());
         assertEquals(2L, service.queryCourses(student, null).getTotalElements());
+    }
+
+    @Test
+    public void courseFiltersUseAndSemanticsAndEnrollmentHistoryIsVisible() throws Exception {
+        CourseDto first = service.createCourse(academic, course("DEMO-SE-001",
+                "软件工程实践", 20, CourseStatus.PUBLISHED, 10L));
+        service.createCourse(academic, course("DEMO-SE-002", "软件工程导论", 20,
+                CourseStatus.DRAFT, 10L));
+        CoursePageDto filtered = service.queryCourses(academic,
+                new CourseQuery(1, 20, null, "SE-001", "工程实践",
+                        CourseStatus.PUBLISHED.name(), CourseType.ELECTIVE.name()));
+        assertEquals(1L, filtered.getTotalElements());
+        assertEquals(first.getId(), filtered.getItems().get(0).getId());
+
+        service.enroll(student, first.getId());
+        service.drop(student, first.getId());
+        StudentEnrollmentListDto history = service.studentEnrollments(student);
+        assertEquals(1, history.getItems().size());
+        assertEquals("DROPPED", history.getItems().get(0).getEnrollment().getStatus());
+        assertEquals("DEMO-SE-001", history.getItems().get(0).getCourse().getCourseCode());
     }
 
     private static CourseSaveRequest course(String code, String name, int capacity,

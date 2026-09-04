@@ -5,6 +5,8 @@ import edu.seu.vcampus.common.dto.academic.CourseRosterDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentDto;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
 import edu.seu.vcampus.server.db.JdbcTemporal;
 
 import java.sql.Connection;
@@ -175,6 +177,25 @@ final class MySqlEnrollmentRepository {
             }
         }
         return new StudentScheduleDto(studentId, semesterCode, coursesList);
+    }
+
+    StudentEnrollmentListDto findStudentEnrollments(Connection c, long studentId)
+            throws SQLException {
+        requireConnection(c);
+        String sql = "SELECT id,student_user_id,course_id,status,enrolled_at,dropped_at "
+                + "FROM enrollments WHERE student_user_id=? ORDER BY enrolled_at DESC,id DESC";
+        List<StudentEnrollmentDto> items = new ArrayList<StudentEnrollmentDto>();
+        try (PreparedStatement statement = c.prepareStatement(sql)) {
+            statement.setLong(1, studentId);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    EnrollmentDto enrollment = readEnrollment(result);
+                    CourseDto course = courses.findCourse(c, enrollment.getCourseId(), false);
+                    if (course != null) items.add(new StudentEnrollmentDto(enrollment, course));
+                }
+            }
+        }
+        return new StudentEnrollmentListDto(items);
     }
 
     private EnrollmentDto readEnrollment(ResultSet result) throws SQLException {

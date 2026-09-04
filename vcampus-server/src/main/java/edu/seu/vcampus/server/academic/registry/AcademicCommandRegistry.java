@@ -36,6 +36,8 @@ public final class AcademicCommandRegistry {
                         new AcademicCommandHandler(AcademicCommands.STUDENT_DROP, service))
                 .register(AcademicCommands.STUDENT_SCHEDULE,
                         new AcademicCommandHandler(AcademicCommands.STUDENT_SCHEDULE, service))
+                .register(AcademicCommands.STUDENT_ENROLLMENTS,
+                        new AcademicCommandHandler(AcademicCommands.STUDENT_ENROLLMENTS, service))
                 .register(AcademicCommands.TEACHER_COURSES,
                         new AcademicCommandHandler(AcademicCommands.TEACHER_COURSES, service))
                 .register(AcademicCommands.COURSE_ROSTER,

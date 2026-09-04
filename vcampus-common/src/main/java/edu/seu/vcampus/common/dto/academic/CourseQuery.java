@@ -12,6 +12,8 @@ public final class CourseQuery implements Serializable {
     private final int pageNumber;
     private final int pageSize;
     private final String keyword;
+    private final String courseCode;
+    private final String courseName;
     private final String status;
     private final String courseType;
 
@@ -21,6 +23,12 @@ public final class CourseQuery implements Serializable {
 
     public CourseQuery(int pageNumber, int pageSize, String keyword,
                        String status, String courseType) {
+        this(pageNumber, pageSize, keyword, null, null, status, courseType);
+    }
+
+    public CourseQuery(int pageNumber, int pageSize, String keyword,
+                       String courseCode, String courseName, String status,
+                       String courseType) {
         if (pageNumber < 1) {
             throw new IllegalArgumentException("pageNumber must be positive");
         }
@@ -30,6 +38,8 @@ public final class CourseQuery implements Serializable {
         this.pageNumber = pageNumber;
         this.pageSize = pageSize;
         this.keyword = textOrNull(keyword);
+        this.courseCode = textOrNull(courseCode);
+        this.courseName = textOrNull(courseName);
         this.status = codeOrNull(status);
         this.courseType = codeOrNull(courseType);
     }
@@ -46,6 +56,10 @@ public final class CourseQuery implements Serializable {
         return keyword;
     }
 
+    public String getCourseCode() { return courseCode; }
+
+    public String getCourseName() { return courseName; }
+
     public String getStatus() {
         return status;
     }
@@ -55,11 +69,13 @@ public final class CourseQuery implements Serializable {
     }
 
     public CourseQuery withStatus(String value) {
-        return new CourseQuery(pageNumber, pageSize, keyword, value, courseType);
+        return new CourseQuery(pageNumber, pageSize, keyword, courseCode, courseName,
+                value, courseType);
     }
 
     public CourseQuery withKeyword(String value) {
-        return new CourseQuery(pageNumber, pageSize, value, status, courseType);
+        return new CourseQuery(pageNumber, pageSize, value, courseCode, courseName,
+                status, courseType);
     }
 
     private static String textOrNull(String value) {

@@ -21,7 +21,8 @@ final class MySqlStudentGradeReadRepository {
 
     static List<StudentGradeDto> findAll(Connection connection, long studentUserId,
                                          String semesterCode, Long courseId, int limit) {
-        String sql = MySqlStudentGradeRepository.GRADE_FROM
+        String sql = "SELECT " + MySqlStudentGradeRepository.GRADE_COLUMNS
+                + MySqlStudentGradeRepository.GRADE_FROM
                 + " WHERE e.student_user_id = ? AND e.status <> 'DROPPED'";
         if (semesterCode != null && semesterCode.trim().length() > 0) {
             sql += " AND c.semester_code = ?";

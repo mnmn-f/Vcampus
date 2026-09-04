@@ -7,6 +7,8 @@ import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentDto;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
 
 import java.sql.SQLException;
 import org.threeten.bp.LocalDateTime;
@@ -103,11 +105,26 @@ final class InMemoryEnrollmentStore {
         return new StudentScheduleDto(studentId, semesterCode, result);
     }
 
+    StudentEnrollmentListDto enrollments(long studentId) {
+        List<StudentEnrollmentDto> result = new ArrayList<StudentEnrollmentDto>();
+        for (InMemoryAcademicState.EnrollmentState value : state.enrollments.values()) {
+            if (value.studentId != studentId) continue;
+            CourseDto course = courses.findCourse(value.courseId);
+            if (course != null) result.add(new StudentEnrollmentDto(mapper.enrollment(value), course));
+        }
+        Collections.sort(result, new Comparator<StudentEnrollmentDto>() {
+            @Override public int compare(StudentEnrollmentDto left, StudentEnrollmentDto right) {
+                return Long.compare(right.getEnrollment().getId(), left.getEnrollment().getId());
+            }
+        });
+        return new StudentEnrollmentListDto(result);
+    }
+
     CourseRosterDto roster(long courseId) {
         List<CourseRosterEntryDto> result = new ArrayList<CourseRosterEntryDto>();
         for (InMemoryAcademicState.EnrollmentState enrollment : state.enrollments.values()) {
             if (enrollment.courseId != courseId
-                    || !EnrollmentStatus.ENROLLED.name().equals(enrollment.status)) continue;
+                    || EnrollmentStatus.DROPPED.name().equals(enrollment.status)) continue;
             InMemoryAcademicState.StudentState student =
                     state.studentProfiles.get(enrollment.studentId);
             result.add(new CourseRosterEntryDto(enrollment.id, enrollment.studentId,

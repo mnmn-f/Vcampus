@@ -68,6 +68,8 @@ public final class TeacherGradePanelTest {
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override public void run() {
                 table(panel).setRowSelectionInterval(0, 0);
+                assertEquals("92.00", text(panel, "score").getText());
+                assertEquals("已有成绩", area(panel, "remark").getText());
                 text(panel, "score").setText("91.5");
                 area(panel, "remark").setText("平时成绩良好");
                 findButton(panel, "登记 / 修改成绩").doClick();
@@ -145,7 +147,7 @@ public final class TeacherGradePanelTest {
                 roster.countDown();
                 CourseRosterEntryDto entry = new CourseRosterEntryDto(731L, 7L, "S007",
                         "学生七", "计算机学院", "软件工程", "软工2601", "ENROLLED",
-                        LocalDateTime.now());
+                        LocalDateTime.now(), new BigDecimal("92.00"), "已有成绩");
                 return Message.success(request, new CourseRosterDto(19L,
                         Collections.singletonList(entry)));
             }

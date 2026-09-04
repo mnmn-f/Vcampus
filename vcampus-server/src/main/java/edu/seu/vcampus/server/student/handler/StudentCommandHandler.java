@@ -63,6 +63,10 @@ public final class StudentCommandHandler implements CommandHandler {
                     service.reviewGrades(session, reviewQuery(request)));
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的学籍操作");
         } catch (StudentRecordException ex) {
+            if (ResultCodes.INTERNAL_ERROR.equals(ex.getResultCode())) {
+                System.err.println("[VCampus][student] internal request failure: " + command);
+                ex.printStackTrace(System.err);
+            }
             return Message.failure(request, ex.getResultCode(), ex.getUserMessage());
         } catch (IllegalArgumentException ex) {
             return Message.failure(request, ResultCodes.INVALID_INPUT, "请求参数格式不正确");

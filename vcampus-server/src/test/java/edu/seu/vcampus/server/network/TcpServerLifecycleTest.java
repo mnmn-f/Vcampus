@@ -70,6 +70,11 @@ public final class TcpServerLifecycleTest {
         }
     }
 
+    @Test
+    public void desktopDefaultAllowsNormalIdleReadingTime() {
+        assertEquals(30 * 60 * 1000, TcpServer.DEFAULT_CLIENT_READ_TIMEOUT_MILLIS);
+    }
+
     private static void readHeader(InputStream input) throws Exception {
         byte[] header = new byte[4];
         int offset = 0;

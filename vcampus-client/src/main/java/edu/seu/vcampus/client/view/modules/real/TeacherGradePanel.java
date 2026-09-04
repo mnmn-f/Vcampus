@@ -51,7 +51,7 @@ public final class TeacherGradePanel extends SectionCard {
 
     public TeacherGradePanel(BasePage page, AcademicClientService academic,
                              StudentRecordClientService grades) {
-        super("成绩登记", "选择本人授课课程及当前在选学生，成绩保存复用现有登记链路。");
+        super("成绩登记", "选择本人授课课程及未退课学生，成绩保存复用现有登记链路。");
         if (page == null || academic == null || grades == null) {
             throw new IllegalArgumentException("grade panel dependencies are required");
         }
@@ -95,6 +95,9 @@ public final class TeacherGradePanel extends SectionCard {
                         selectedEnrollment = row < 0 || row >= rosterEntries.size()
                                 ? null : rosterEntries.get(row);
                         if (selectedEnrollment != null) {
+                            score.setText(selectedEnrollment.getScore() == null ? ""
+                                    : selectedEnrollment.getScore().toPlainString());
+                            remark.setText(RealUi.text(selectedEnrollment.getGradeRemark()));
                             state.setText("已选择 " + RealUi.text(selectedEnrollment.getDisplayName())
                                     + "（" + RealUi.text(selectedEnrollment.getStudentNo()) + "）");
                         }
@@ -147,7 +150,7 @@ public final class TeacherGradePanel extends SectionCard {
                             RealUi.status(entry.getEnrollmentStatus())});
                 }
                 state.setText(rosterEntries.isEmpty()
-                        ? "该课程暂无当前在选学生" : "请选择一名学生登记成绩");
+                        ? "该课程暂无未退课学生" : "请选择一名学生登记成绩");
             }
             @Override public void onFailure(Throwable error) {
                 if (serial != rosterSerial) return;
@@ -160,6 +163,7 @@ public final class TeacherGradePanel extends SectionCard {
     private void clearRoster() {
         rosterEntries = Collections.emptyList(); selectedEnrollment = null;
         rosterModel.setRowCount(0); roster.clearSelection();
+        score.setText(""); remark.setText("");
     }
 
     private long selectedCourseId() {

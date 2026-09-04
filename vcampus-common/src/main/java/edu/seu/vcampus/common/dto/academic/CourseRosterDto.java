@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** 一门课程当前 ENROLLED 学生的只读花名册。 */
+/** 一门课程未退课（ENROLLED/COMPLETED）学生的只读花名册。 */
 public final class CourseRosterDto implements Serializable {
     private static final long serialVersionUID = 1L;
     private final long courseId;

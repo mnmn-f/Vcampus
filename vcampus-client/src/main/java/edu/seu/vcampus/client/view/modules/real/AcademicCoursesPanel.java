@@ -4,16 +4,21 @@ import edu.seu.vcampus.client.service.academic.AcademicClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
+import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CoursePageDto;
 import edu.seu.vcampus.common.dto.academic.CourseQuery;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
+import edu.seu.vcampus.common.dto.academic.CourseStatus;
+import edu.seu.vcampus.common.dto.academic.CourseType;
 import edu.seu.vcampus.common.security.Role;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JComboBox;
+import javax.swing.JTextField;
 import java.awt.BorderLayout;
 
 /** 课程查询、学生选退课和教务课程维护。 */
@@ -22,6 +27,9 @@ public final class AcademicCoursesPanel extends JPanel {
     private final AcademicClientService service;
     private final Role role;
     private final JLabel detail = UiFactory.muted("选择课程查看详情。");
+    private final JTextField courseCode = UiFactory.textField(10);
+    private final JComboBox<Object> courseType = combo("全部类型", CourseType.values());
+    private final JComboBox<Object> courseStatus = combo("全部状态", CourseStatus.values());
     private final AsyncPagedTable<CourseDto> courses;
     private final CourseEditorPanel editor;
     private final CourseScheduleEditorPanel scheduleEditor;
@@ -29,7 +37,7 @@ public final class AcademicCoursesPanel extends JPanel {
     public AcademicCoursesPanel(BasePage page, AcademicClientService service, Role role) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.role = role;
-        courses = table(); add(courses);
+        courses = table(); configureFilters(); add(courses);
         if (role == Role.ACADEMIC_ADMIN) {
             editor = new CourseEditorPanel(new CourseEditorPanel.Listener() {
                 @Override public void onSave(CourseSaveRequest request, boolean update) { saveCourse(request, update); }
@@ -41,11 +49,13 @@ public final class AcademicCoursesPanel extends JPanel {
 
     private AsyncPagedTable<CourseDto> table() {
         AsyncPagedTable<CourseDto> table = new AsyncPagedTable<CourseDto>("课程与课表", "课程、容量、授课教师和状态。",
-                "搜索课程编号或名称", new String[]{"全部状态", "已发布", "已结束"},
+                "输入课程名称", null,
                 new String[]{"编号", "课程名称", "类型", "学分", "容量", "状态"},
                 new AsyncPagedTable.Loader<CourseDto>() {
                     @Override public PageSlice<CourseDto> load(int p, String keyword, String filter) throws Exception {
-                        CourseQuery query = new CourseQuery(p, 20, keyword, status(filter), null);
+                        CourseQuery query = new CourseQuery(p, 20, null,
+                                courseCode.getText(), keyword, selected(courseStatus),
+                                selected(courseType));
                         CoursePageDto result = role == Role.TEACHER ? service.teacherCourses(query) : service.queryCourses(query);
                         return new PageSlice<CourseDto>(result.getItems(), result.getTotalElements(), result.getPageNumber(), result.getPageSize());
                     }
@@ -68,6 +78,36 @@ public final class AcademicCoursesPanel extends JPanel {
             }); table.addAction(create);
         }
         return table;
+    }
+
+    private void configureFilters() {
+        JPanel filters = UiFactory.horizontal(8);
+        filters.add(UiFactory.body("课程编号")); filters.add(courseCode);
+        filters.add(UiFactory.body("课程类型")); filters.add(courseType);
+        filters.add(UiFactory.body("课程状态")); filters.add(courseStatus);
+        JButton reset = new SecondaryButton("重置");
+        reset.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                courseCode.setText(""); courseType.setSelectedIndex(0);
+                courseStatus.setSelectedIndex(0); courses.resetFilters();
+            }
+        });
+        filters.add(reset);
+        courses.setAdditionalFilters(filters, new AsyncPagedTable.FilterCondition() {
+            @Override public boolean isActive() {
+                return courseCode.getText().trim().length() > 0
+                        || courseType.getSelectedIndex() > 0
+                        || courseStatus.getSelectedIndex() > 0;
+            }
+        });
+        java.awt.event.ActionListener reload = new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                courses.reload();
+            }
+        };
+        courseCode.addActionListener(reload);
+        courseType.addActionListener(reload);
+        courseStatus.addActionListener(reload);
     }
 
     private void selectCourse(CourseDto value) {
@@ -119,5 +159,17 @@ public final class AcademicCoursesPanel extends JPanel {
         });
     }
 
-    private static String status(String filter) { return "已发布".equals(filter) ? "PUBLISHED" : "已结束".equals(filter) ? "CLOSED" : null; }
+    private static JComboBox<Object> combo(String all, Enum<?>[] values) {
+        Object[] items = new Object[values.length + 1];
+        items[0] = all;
+        System.arraycopy(values, 0, items, 1, values.length);
+        JComboBox<Object> result = new JComboBox<Object>(items);
+        RealUi.codeRenderer(result);
+        return result;
+    }
+
+    private static String selected(JComboBox<Object> box) {
+        Object value = box.getSelectedItem();
+        return value instanceof Enum ? ((Enum<?>) value).name() : null;
+    }
 }

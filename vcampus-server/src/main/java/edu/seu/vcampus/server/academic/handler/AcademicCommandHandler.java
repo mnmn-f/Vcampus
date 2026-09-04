@@ -83,6 +83,9 @@ public final class AcademicCommandHandler implements CommandHandler {
                                 : require(payload, StudentScheduleQuery.class));
                 return Message.success(request, result);
             }
+            if (AcademicCommands.STUDENT_ENROLLMENTS.equals(command)) {
+                return Message.success(request, service.studentEnrollments(session));
+            }
             if (AcademicCommands.TEACHER_COURSES.equals(command)) {
                 CoursePageDto result = service.teacherCourses(session,
                         payload == null ? null : require(payload, CourseQuery.class));
@@ -94,6 +97,10 @@ public final class AcademicCommandHandler implements CommandHandler {
             }
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的教务操作");
         } catch (AcademicException ex) {
+            if (ResultCodes.INTERNAL_ERROR.equals(ex.getResultCode())) {
+                System.err.println("[VCampus][academic] internal request failure: " + command);
+                ex.printStackTrace(System.err);
+            }
             return Message.failure(request, ex.getResultCode(), ex.getUserMessage());
         } catch (IllegalArgumentException ex) {
             return Message.failure(request, ResultCodes.INVALID_INPUT, "请求参数格式不正确");

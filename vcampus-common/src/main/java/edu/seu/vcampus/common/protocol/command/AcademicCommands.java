@@ -11,6 +11,7 @@ public final class AcademicCommands {
     public static final String STUDENT_ENROLL = "academic.enrollment.enroll";
     public static final String STUDENT_DROP = "academic.enrollment.drop";
     public static final String STUDENT_SCHEDULE = "academic.student.schedule";
+    public static final String STUDENT_ENROLLMENTS = "academic.student.enrollments";
     public static final String TEACHER_COURSES = "academic.teacher.courses";
     public static final String COURSE_ROSTER = "academic.course.roster";
 

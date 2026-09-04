@@ -21,7 +21,8 @@ import java.util.logging.Logger;
 public final class TcpServer implements AutoCloseable {
     public static final int DEFAULT_PORT = 8888;
     public static final int DEFAULT_MAX_CONNECTIONS = 32;
-    public static final int DEFAULT_CLIENT_READ_TIMEOUT_MILLIS = 30000;
+    /** Desktop UI connections may remain idle while a user reads or fills a form. */
+    public static final int DEFAULT_CLIENT_READ_TIMEOUT_MILLIS = 30 * 60 * 1000;
 
     private static final Logger LOGGER =
             Logger.getLogger(TcpServer.class.getName());

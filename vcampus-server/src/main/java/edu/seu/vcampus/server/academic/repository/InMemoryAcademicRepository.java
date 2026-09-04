@@ -11,6 +11,7 @@ import edu.seu.vcampus.common.dto.academic.EnrollmentDto;
 import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
+import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -180,6 +181,12 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
     public synchronized StudentScheduleDto findStudentSchedule(Connection c, long studentId,
                                                                 StudentScheduleQuery query) {
         return enrollmentStore.schedule(studentId, query);
+    }
+
+    @Override
+    public synchronized StudentEnrollmentListDto findStudentEnrollments(Connection c,
+                                                                         long studentId) {
+        return enrollmentStore.enrollments(studentId);
     }
 
     public synchronized int courseCount() {

@@ -3,6 +3,7 @@ param(
     [string]$DatabaseUrl = 'jdbc:mysql://127.0.0.1:3306/vcampus?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false',
     [string]$DatabaseUser = 'root',
     [int]$Port = 8888,
+    [int]$ClientReadTimeoutMillis = 1800000,
     [int]$StartupTimeoutSeconds = 15
 )
 
@@ -16,6 +17,13 @@ $passwordPointer = [IntPtr]::Zero
 $environmentRestored = $false
 
 try {
+    $existingListener = Get-NetTCPConnection -LocalPort $Port -State Listen `
+        -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $existingListener) {
+        throw "Port $Port is already listening (PID $($existingListener.OwningProcess)). " +
+            'Stop that process before starting a new VCampus Server.'
+    }
+
     $securePassword = Read-Host 'MySQL password (input is hidden)' -AsSecureString
     $passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
     Write-Host 'Password received'
@@ -31,7 +39,7 @@ try {
     $arguments = @(
         "-Dvcampus.server.port=$Port",
         '-Dvcampus.server.max-connections=32',
-        '-Dvcampus.server.client-read-timeout=30000',
+        "-Dvcampus.server.client-read-timeout=$ClientReadTimeoutMillis",
         '-jar',
         $jar
     )

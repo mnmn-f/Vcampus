@@ -84,6 +84,8 @@ final class MySqlCourseQueryRepository {
         if (q.getKeyword() != null) {
             sql.append(" AND (c.course_code LIKE ? OR c.course_name LIKE ?)");
         }
+        if (q.getCourseCode() != null) sql.append(" AND c.course_code LIKE ?");
+        if (q.getCourseName() != null) sql.append(" AND c.course_name LIKE ?");
         if (q.getStatus() != null) {
             sql.append(" AND c.status=?");
         }
@@ -102,6 +104,8 @@ final class MySqlCourseQueryRepository {
             values.add("%" + q.getKeyword() + "%");
             values.add("%" + q.getKeyword() + "%");
         }
+        if (q.getCourseCode() != null) values.add("%" + q.getCourseCode() + "%");
+        if (q.getCourseName() != null) values.add("%" + q.getCourseName() + "%");
         if (q.getStatus() != null) {
             values.add(q.getStatus());
         }

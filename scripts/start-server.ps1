@@ -40,7 +40,7 @@ $portValue = Read-Setting $Port $env:VCAMPUS_SERVER_PORT '8888' 'Port' 1 65535
 $maxValue = Read-Setting $MaxConnections $env:VCAMPUS_SERVER_MAX_CONNECTIONS '32' `
     'MaxConnections' 1 2147483647
 $timeoutValue = Read-Setting $ClientReadTimeoutMillis `
-    $env:VCAMPUS_SERVER_CLIENT_READ_TIMEOUT '30000' 'ClientReadTimeoutMillis' 1 2147483647
+    $env:VCAMPUS_SERVER_CLIENT_READ_TIMEOUT '1800000' 'ClientReadTimeoutMillis' 1 2147483647
 
 $aiModel = $env:VCAMPUS_AI_MODEL
 if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'gpt-4.1-mini' }
