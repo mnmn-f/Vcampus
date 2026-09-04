@@ -18,7 +18,8 @@ public final class JdbcConnectionFactory {
     public static final String DEFAULT_URL =
             "jdbc:mysql://127.0.0.1:3306/vcampus"
                     + "?useUnicode=true&characterEncoding=UTF-8"
-                    + "&serverTimezone=Asia/Shanghai&useSSL=false";
+                    + "&serverTimezone=Asia/Shanghai&useSSL=false"
+                    + "&allowPublicKeyRetrieval=true";
     public static final String DEFAULT_USER = "root";
     public static final String DEFAULT_PASSWORD = "";
 

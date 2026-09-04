@@ -10,9 +10,12 @@ import edu.seu.vcampus.server.security.SessionManager;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** 统一命令登记、会话解析、细粒度鉴权和异常兜底入口。 */
 public final class CommandRouter {
+    private static final Logger LOGGER = Logger.getLogger(CommandRouter.class.getName());
     private final Map<String, CommandHandler> handlers =
             new ConcurrentHashMap<String, CommandHandler>();
     private final SessionManager sessionManager;
@@ -65,6 +68,7 @@ public final class CommandRouter {
         } catch (RouteException ex) {
             return Message.failure(request, ex.getResultCode(), ex.getUserMessage());
         } catch (RuntimeException ex) {
+            LOGGER.log(Level.SEVERE, "Command failed: " + command, ex);
             return Message.failure(request, ResultCodes.INTERNAL_ERROR, "服务器暂时无法处理请求");
         }
     }
@@ -95,6 +99,8 @@ public final class CommandRouter {
         } catch (RouteException ex) {
             writer.write(Message.failure(request, ex.getResultCode(), ex.getUserMessage()));
         } catch (RuntimeException ex) {
+            LOGGER.log(Level.SEVERE, "Streaming command failed: "
+                    + request.getCommand().trim(), ex);
             writer.write(Message.failure(request, ResultCodes.INTERNAL_ERROR,
                     "服务器暂时无法处理请求"));
         }

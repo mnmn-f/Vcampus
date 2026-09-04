@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$DatabaseUrl = 'jdbc:mysql://127.0.0.1:3306/vcampus?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false',
+    [string]$DatabaseUrl = 'jdbc:mysql://127.0.0.1:3306/vcampus?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true',
     [string]$DatabaseUser = 'root',
     [int]$Port = 8888,
     [int]$ClientReadTimeoutMillis = 1800000,

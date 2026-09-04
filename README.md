@@ -66,7 +66,7 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
 在项目根目录执行下面两步；第一次运行或代码变更后先构建：
 
     .\mvnw.cmd package
-    java -Dvcampus.db.url="jdbc:mysql://127.0.0.1:3306/vcampus" -Dvcampus.db.user=<db-user> -Dvcampus.db.password=<db-password> -jar .\vcampus-server\target\vCampusServer.jar
+    java -Dvcampus.db.url="jdbc:mysql://127.0.0.1:3306/vcampus?useSSL=false&allowPublicKeyRetrieval=true" -Dvcampus.db.user=<db-user> -Dvcampus.db.password=<db-password> -jar .\vcampus-server\target\vCampusServer.jar
     java -jar .\vcampus-client\target\vCampusClient.jar
 
 客户端默认进入网络模式并连接 `127.0.0.1:8888`。跨电脑或修改端口时使用 `vcampus.server.host` 和 `vcampus.server.port`，具体参数见下方“真实网络模式”。
@@ -97,7 +97,7 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
 
 先启动已初始化数据库的服务端：
 
-    java -Dvcampus.db.url="jdbc:mysql://127.0.0.1:3306/vcampus" -Dvcampus.db.user=<db-user> -Dvcampus.db.password=<db-password> -Dvcampus.server.port=8888 -jar vcampus-server\target\vCampusServer.jar
+    java -Dvcampus.db.url="jdbc:mysql://127.0.0.1:3306/vcampus?useSSL=false&allowPublicKeyRetrieval=true" -Dvcampus.db.user=<db-user> -Dvcampus.db.password=<db-password> -Dvcampus.server.port=8888 -jar vcampus-server\target\vCampusServer.jar
 
 再在客户端电脑运行：
 
