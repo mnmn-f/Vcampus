@@ -45,7 +45,7 @@ public final class SafeObjectInputStream extends ObjectInputStream {
         if (name == null || name.length() == 0) return false;
         if (name.charAt(0) == '[') return isAllowedArray(name);
         if (name.startsWith("edu.seu.vcampus.common.dto.")
-                || name.startsWith("edu.seu.vcampus.common.protocol.")) 
+                || name.startsWith("edu.seu.vcampus.common.protocol.")
                 || name.startsWith("edu.seu.vcampus.common.ai.")){
             return true;
         }
