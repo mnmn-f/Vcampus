@@ -20,6 +20,7 @@ public final class RoleWorkspace {
             case LIBRARIAN: return "图书馆工作台";
             case STORE_MANAGER: return "商店工作台";
             case DORM_MANAGER: return "宿管工作台";
+            case REPAIR_WORKER: return "报修工作台";
             case AI_KNOWLEDGE_ADMIN: return "知识服务工作台";
             default: return "系统管理工作台";
         }
@@ -38,7 +39,11 @@ public final class RoleWorkspace {
         }
         if (module == ModuleId.LIBRARY) return role == Role.LIBRARIAN ? "馆务管理" : "图书馆";
         if (module == ModuleId.STORE) return role == Role.STORE_MANAGER ? "商店运营" : "校园商店";
-        if (module == ModuleId.DORMITORY) return role == Role.DORM_MANAGER ? "宿舍管理" : "宿舍生活";
+        if (module == ModuleId.DORMITORY) {
+            if (role == Role.DORM_MANAGER) return "宿舍管理";
+            if (role == Role.REPAIR_WORKER) return "报修工作台";
+            return "宿舍生活";
+        }
         if (module == ModuleId.USER_ADMIN) return "账号与角色";
         if (module == ModuleId.SYSTEM) return "安全与运行";
         return module.getDisplayName();
@@ -72,6 +77,8 @@ public final class RoleWorkspace {
                     action("商店运营", "商品、订单和销售统计", ModuleId.STORE));
             case DORM_MANAGER: return list(
                     action("宿舍管理", "住宿、审批、报修和空间维护", ModuleId.DORMITORY));
+            case REPAIR_WORKER: return list(
+                    action("报修工作台", "接单、上报进度和查看入内授权", ModuleId.DORMITORY));
             case AI_KNOWLEDGE_ADMIN: return list(
                     action("知识服务", "维护助手知识库与查看运行状态", ModuleId.AI_ASSISTANT),
                     action("系统运行", "查看服务运行状态", ModuleId.SYSTEM));

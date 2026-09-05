@@ -4,7 +4,6 @@ import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
-import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -40,27 +39,30 @@ public final class DormExtWarningPanel extends JPanel {
         this.service = service;
         this.warnings = warningTable();
         add(scanCard());
-        add(warnings);
-        add(actions());
+        add(javax.swing.Box.createVerticalStrut(20));
+        add(DormUi.split(warnings, actions(), 430));
     }
     public void reload() { warnings.reload(); }
     /** 手动补扫指定日期；自动扫描由服务端完成。 */
     private JPanel scanCard() {
-        SectionCard card = new SectionCard("手动扫描",
-                "每日 08:00 自动扫描；这里可以补扫某一天。预警阈值在「设置」里调。");
-        JPanel line = UiFactory.horizontal(8);
-        line.add(UiFactory.body("扫描日期（留空为今天）"));
+        JPanel line = UiFactory.horizontal(9);
+        line.add(UiFactory.body("补扫日期（留空为今天）"));
         line.add(scanDate);
         JButton scan = new PrimaryButton("立即扫描");
         scan.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { scan(); }
         });
         line.add(scan);
-        card.setContent(line);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+        JPanel box = DormUi.panel();
+        box.add(line, BorderLayout.CENTER);
+        box.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 70));
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.add(DormUi.header("连续未归预警",
+                "每日 08:00 自动扫描；这里可以补扫某一天。预警阈值在「设置」里调。", null, false));
+        column.add(box);
+        return column;
     }
     private AsyncPagedTable<AbsenceWarningDto> warningTable() {
         return new AsyncPagedTable<AbsenceWarningDto>("连续未归预警",
@@ -88,14 +90,15 @@ public final class DormExtWarningPanel extends JPanel {
                     }
                 }, null);
     }
+    /** 右栏：选中一条预警后在这里通知辅导员或标记已核实。 */
     private JPanel actions() {
-        SectionCard card = new SectionCard("处理预警",
-                "系统内没有学生到辅导员的映射，通知时需要指定接收人。");
-        JPanel line = UiFactory.horizontal(8);
-        line.add(UiFactory.body("辅导员用户号"));
-        line.add(teacher);
-        line.add(UiFactory.body("备注"));
-        line.add(note);
+        JPanel fields = new JPanel();
+        fields.setOpaque(false);
+        fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
+        fields.add(labelled("辅导员用户号", teacher));
+        fields.add(javax.swing.Box.createVerticalStrut(11));
+        fields.add(labelled("处理备注", note));
+
         JButton notify = new PrimaryButton("通知辅导员");
         notify.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { notifyTeacher(); }
@@ -104,13 +107,35 @@ public final class DormExtWarningPanel extends JPanel {
         verify.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { verify(); }
         });
-        line.add(notify);
-        line.add(verify);
-        card.setContent(line);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+        JPanel buttons = UiFactory.horizontal(9);
+        buttons.add(notify);
+        buttons.add(verify);
+
+        JPanel rows = new JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
+        rows.add(fields);
+        rows.add(javax.swing.Box.createVerticalStrut(14));
+        rows.add(buttons);
+        JPanel box = DormUi.panel();
+        box.add(rows, BorderLayout.CENTER);
+
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.add(DormUi.header("处理预警",
+                "系统里没有学生到辅导员的映射，通知时要指定接收人。", null, false));
+        column.add(box);
+        return column;
+    }
+
+    private static JPanel labelled(String label, java.awt.Component control) {
+        JPanel holder = new JPanel(new BorderLayout(0, 5));
+        holder.setOpaque(false);
+        holder.add(DormUi.caption(label), BorderLayout.NORTH);
+        holder.add(control, BorderLayout.CENTER);
+        holder.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 62));
+        return holder;
     }
     private void scan() {
         final LocalDate date;

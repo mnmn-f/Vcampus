@@ -4,7 +4,6 @@ import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
-import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -17,7 +16,8 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -34,12 +34,13 @@ public final class DormExtVisitorPanel extends JPanel {
     private final DormExtClientService service;
     private final AsyncPagedTable<VisitorRegistrationDto> registrations;
 
-    private final JTextField visitorName = UiFactory.textField(10);
-    private final JTextField visitorIdCard = UiFactory.textField(18);
-    private final JTextField visitorPhone = UiFactory.textField(12);
-    private final JTextField visitReason = UiFactory.textField(16);
-    private final JTextField startAt = UiFactory.textField(16);
-    private final JTextField endAt = UiFactory.textField(16);
+    private final JTextField visitorName = UiFactory.textField(8);
+    private final JTextField visitorIdCard = UiFactory.textField(16);
+    private final JTextField visitorPhone = UiFactory.textField(10);
+    private final JTextField visitReason = UiFactory.textField(12);
+    // 来访要精确到几点，所以是「日历选日期 + 滚轮拨时刻」，不是让人手打一串格式。
+    private final DormDateTimeField startAt = new DormDateTimeField();
+    private final DormDateTimeField endAt = new DormDateTimeField();
 
     public DormExtVisitorPanel(BasePage page, DormExtClientService service) {
         super();
@@ -50,44 +51,76 @@ public final class DormExtVisitorPanel extends JPanel {
         this.registrations = table();
         add(form());
         add(registrations);
-        add(actions());
     }
 
     public void reload() { registrations.reload(); }
 
+    /** 字段按内容定宽排两行，不再用等分网格把短字段撑成长条。 */
     private JPanel form() {
-        SectionCard card = new SectionCard("外来人员登记",
-                "来访房间按你的住宿记录自动确定；证件号仅供宿管线下核验，登记后只显示掩码。");
-        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
-        fields.setOpaque(false);
-        fields.add(UiFactory.labelledField("来访人姓名", visitorName));
-        fields.add(UiFactory.labelledField("来访人证件号", visitorIdCard));
-        fields.add(UiFactory.labelledField("联系电话（可空）", visitorPhone));
-        fields.add(UiFactory.labelledField("来访事由", visitReason));
-        fields.add(UiFactory.labelledField("来访时间（yyyy-MM-dd HH:mm）", startAt));
-        fields.add(UiFactory.labelledField("离开时间（yyyy-MM-dd HH:mm）", endAt));
+        JPanel first = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        first.setOpaque(false);
+        first.add(field("来访人姓名", visitorName, 132));
+        first.add(field("证件号", visitorIdCard, 220));
+        first.add(field("联系电话（可空）", visitorPhone, 150));
+        first.add(field("来访事由", visitReason, 180));
 
-        JPanel line = UiFactory.horizontal(8);
-        JButton reset = new SecondaryButton("清空");
-        reset.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { clearForm(); }
-        });
+        JPanel second = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        second.setOpaque(false);
+        second.add(field("来访时间", startAt, 330));
+        second.add(field("离开时间", endAt, 330));
+
         JButton submit = new PrimaryButton("提交登记");
         submit.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { submit(); }
         });
-        line.add(reset);
-        line.add(submit);
+        JButton reset = new SecondaryButton("清空");
+        reset.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { clearForm(); }
+        });
+        JButton cancel = new SecondaryButton("撤销选中登记");
+        cancel.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { cancel(); }
+        });
+        JPanel buttons = UiFactory.horizontal(9);
+        buttons.add(submit);
+        buttons.add(reset);
+        buttons.add(cancel);
 
-        JPanel content = new JPanel(new BorderLayout(0, 10));
-        content.setOpaque(false);
-        content.add(fields, BorderLayout.CENTER);
-        content.add(line, BorderLayout.SOUTH);
-        card.setContent(content);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+        JPanel rows = new JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
+        first.setAlignmentX(LEFT_ALIGNMENT);
+        second.setAlignmentX(LEFT_ALIGNMENT);
+        buttons.setAlignmentX(LEFT_ALIGNMENT);
+        rows.add(first);
+        rows.add(javax.swing.Box.createVerticalStrut(12));
+        rows.add(second);
+        rows.add(javax.swing.Box.createVerticalStrut(14));
+        rows.add(buttons);
+
+        JPanel box = DormUi.panel();
+        box.add(rows, BorderLayout.CENTER);
+        box.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.add(DormUi.header("外来人员登记",
+                "来访房间按你的住宿记录自动确定；证件号仅供宿管线下核验，登记后只显示掩码。只有待审核的登记能撤销。",
+                null, false));
+        section.add(box);
+        section.add(javax.swing.Box.createVerticalStrut(20));
+        section.setAlignmentX(LEFT_ALIGNMENT);
+        return section;
+    }
+
+    private static JPanel field(String label, java.awt.Component control, int width) {
+        JPanel holder = new JPanel(new BorderLayout(0, 5));
+        holder.setOpaque(false);
+        holder.add(DormUi.caption(label), BorderLayout.NORTH);
+        holder.add(control, BorderLayout.CENTER);
+        holder.setPreferredSize(new Dimension(width, 60));
+        return holder;
     }
 
     private AsyncPagedTable<VisitorRegistrationDto> table() {
@@ -112,28 +145,13 @@ public final class DormExtVisitorPanel extends JPanel {
                 }, null);
     }
 
-    private JPanel actions() {
-        SectionCard card = new SectionCard("撤销登记", "只有待审核的登记可以撤销。");
-        JPanel line = UiFactory.horizontal(8);
-        JButton cancel = new SecondaryButton("撤销选中登记");
-        cancel.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { cancel(); }
-        });
-        line.add(cancel);
-        card.setContent(line);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
-    }
-
     private void clearForm() {
         visitorName.setText("");
         visitorIdCard.setText("");
         visitorPhone.setText("");
         visitReason.setText("");
-        startAt.setText("");
-        endAt.setText("");
+        startAt.clear();
+        endAt.clear();
     }
 
     private void submit() {
@@ -144,8 +162,8 @@ public final class DormExtVisitorPanel extends JPanel {
                     RealUi.required(visitorIdCard.getText(), "来访人证件号"),
                     RealUi.optional(visitorPhone.getText()),
                     RealUi.required(visitReason.getText(), "来访事由"),
-                    DormExtVisitorLabels.dateTime(startAt.getText(), "来访时间"),
-                    DormExtVisitorLabels.dateTime(endAt.getText(), "离开时间"));
+                    startAt.required("来访时间"),
+                    endAt.required("离开时间"));
         } catch (IllegalArgumentException ex) {
             page.showWarning(ex.getMessage());
             return;

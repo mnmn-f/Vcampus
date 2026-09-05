@@ -21,12 +21,19 @@ final class DormExtSettingsAccessPanel extends JPanel {
 
     DormExtSettingsAccessPanel(BasePage page, DormExtClientService service) {
         this.page = page; this.service = service; setOpaque(false);
+        // JPanel 默认是居中的 FlowLayout，直接 add 会把整块设置推到页面中间。
+        setLayout(new java.awt.BorderLayout());
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
-        fields.add(UiFactory.labelledField("落锁时间（HH:mm）", curfew));
-        fields.add(UiFactory.labelledField("开门时间（HH:mm）", dawn));
-        add(DormExtSettingsSupport.wrap(new SectionCard("门禁时段", "改动即时生效。"), fields,
+        // 标签只留四个字：这一栏宽 290px，两列平分之后「落锁时间（HH:mm）」放不下，
+        // JLabel 不会折行，只会截成「落锁时间（HH:...」。格式说明挪进上面那句话里。
+        fields.add(UiFactory.labelledField("落锁时间", curfew));
+        fields.add(UiFactory.labelledField("开门时间", dawn));
+        add(DormExtSettingsSupport.wrap(new SectionCard("门禁时段",
+                        DormExtSettingsSupport.wrapText(
+                                "填 HH:mm。落锁到次日开门之间归宿记晚归；改动即时生效，历史记录按新时段重新判定。",
+                                210)), fields,
                 DormExtSettingsSupport.button("保存门禁时段", true, this::save),
-                DormExtSettingsSupport.button("重新读取", false, this::reload)));
+                DormExtSettingsSupport.button("重新读取", false, this::reload)), java.awt.BorderLayout.CENTER);
         reload();
     }
 

@@ -43,11 +43,15 @@ final class InMemoryStoreAccountRepository implements StoreAccountRepository {
                     }
                 }
             }
+            // 时间相同时再按流水号倒序，和 MySQL 那边的 ORDER BY created_at DESC, id DESC 一致。
+            // 只比时间的话，同一毫秒内连着写的两条（例如下单扣款紧接着退款）比较结果为 0，
+            // 稳定排序会保留插入顺序，最新一条反而排在后面——机器越快越容易命中。
             Collections.sort(found, new Comparator<AccountTransactionDto>() {
                 @Override public int compare(AccountTransactionDto a, AccountTransactionDto b) {
                     LocalDateTime at = a.getCreatedAt();
                     LocalDateTime bt = b.getCreatedAt();
-                    return bt.compareTo(at);
+                    int byTime = bt.compareTo(at);
+                    return byTime != 0 ? byTime : Long.compare(b.getId(), a.getId());
                 }
             });
             int from = Math.min(q.getOffset(), found.size());

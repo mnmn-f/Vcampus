@@ -1,9 +1,8 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
-import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
-import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -12,10 +11,8 @@ import edu.seu.vcampus.common.dto.dorm.ext.StayStatusDto;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -33,10 +30,7 @@ public final class DormExtStayPanel extends JPanel {
     private final DormExtClientService service;
     private final AsyncPagedTable<AccessRecordExtDto> records;
 
-    private final JLabel status = UiFactory.body("—");
-    private final JLabel room = UiFactory.body("—");
-    private final JLabel lastExit = UiFactory.body("—");
-    private final JLabel lastEntry = UiFactory.body("—");
+    private final JPanel statsRow = new JPanel(new BorderLayout());
 
     public DormExtStayPanel(BasePage page, DormExtClientService service) {
         super();
@@ -44,6 +38,8 @@ public final class DormExtStayPanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.page = page;
         this.service = service;
+        statsRow.setOpaque(false);
+        renderStats("加载中…", "—", "—", "—");
         this.records = recordTable();
         add(summary());
         add(records);
@@ -55,32 +51,42 @@ public final class DormExtStayPanel extends JPanel {
         records.reload();
     }
 
+    /**
+     * 顶部一行基本信息，按设计稿排成并列的统计位。
+     *
+     * <p>四个值都是一眼扫过去的东西，用两列表单的形式写会把「当前状态」这种一个词
+     * 的值配上半屏宽的空白。并列 + 竖分隔线的密度才对得上它们的信息量。</p>
+     */
     private JPanel summary() {
-        SectionCard card = new SectionCard("我的在宿状态",
-                "按最近一次进出记录实时判定；已批准的离校请假期间显示为离校登记中。");
-        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
-        fields.setOpaque(false);
-        fields.add(UiFactory.labelledField("当前状态", status));
-        fields.add(UiFactory.labelledField("宿舍", room));
-        fields.add(UiFactory.labelledField("最近离宿", lastExit));
-        fields.add(UiFactory.labelledField("最近归宿", lastEntry));
-
-        JPanel line = UiFactory.horizontal(8);
         JButton refresh = new SecondaryButton("刷新状态");
         refresh.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { reload(); }
         });
-        line.add(refresh);
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.add(DormUi.header("我的在宿状态",
+                "按最近一次进出记录实时判定，不是库里存的字段；已批准的离校请假期间显示为离校登记中。",
+                DormUi.actions(refresh), false));
+        column.add(statsRow);
+        column.add(javax.swing.Box.createVerticalStrut(22));
+        return column;
+    }
 
-        JPanel content = new JPanel(new BorderLayout(0, 10));
-        content.setOpaque(false);
-        content.add(fields, BorderLayout.CENTER);
-        content.add(line, BorderLayout.SOUTH);
-        card.setContent(content);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+    /** 把四个值刷进统计条；状态本身用语义色，一眼看出在不在宿。 */
+    private void renderStats(String statusText, String roomText, String exitText, String entryText) {
+        statsRow.removeAll();
+        java.awt.Color tone = "离宿".equals(statusText) ? DesignTokens.WARNING
+                : "在宿".equals(statusText) ? DesignTokens.SUCCESS
+                : "离校登记中".equals(statusText) ? DesignTokens.INFO : null;
+        JPanel stats = DormUi.stats(new java.awt.Color[]{tone, null, null, null},
+                "当前状态", statusText, "",
+                "宿舍", roomText, "",
+                "最近离宿", exitText, "",
+                "最近归宿", entryText, "");
+        statsRow.add(stats, BorderLayout.CENTER);
+        statsRow.revalidate();
+        statsRow.repaint();
     }
 
     private AsyncPagedTable<AccessRecordExtDto> recordTable() {
@@ -119,16 +125,13 @@ public final class DormExtStayPanel extends JPanel {
 
     private void show(StayStatusDto value) {
         if (value == null) {
-            status.setText("无在住记录");
-            room.setText("—");
-            lastExit.setText("—");
-            lastEntry.setText("—");
+            renderStats("无在住记录", "—", "—", "—");
             return;
         }
-        status.setText(StayStatusDto.statusName(value.getStatus()));
-        room.setText(RealUi.text(value.getBuildingCode()) + " " + RealUi.text(value.getRoomNo()));
-        lastExit.setText(RealUi.dateTime(value.getLastExitAt()));
-        lastEntry.setText(RealUi.dateTime(value.getLastEntryAt()));
+        renderStats(StayStatusDto.statusName(value.getStatus()),
+                RealUi.text(value.getBuildingCode()) + " " + RealUi.text(value.getRoomNo()),
+                RealUi.dateTime(value.getLastExitAt()),
+                RealUi.dateTime(value.getLastEntryAt()));
     }
 
     private static String typeCode(String filter) {

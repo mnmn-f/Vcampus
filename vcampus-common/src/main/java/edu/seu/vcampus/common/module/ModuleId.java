@@ -12,7 +12,7 @@ public enum ModuleId {
     ACADEMIC("虚拟教务", Permission.COURSE_READ, Permission.COURSE_MANAGE, Permission.COURSE_TEACH),
     LIBRARY("图书馆", Permission.LIBRARY_READ, Permission.LIBRARY_MANAGE),
     STORE("校园商店", Permission.STORE_READ, Permission.STORE_MANAGE),
-    DORMITORY("宿舍服务", Permission.DORM_SELF_READ, Permission.DORM_MANAGE),
+    DORMITORY("宿舍服务", Permission.DORM_SELF_READ, Permission.DORM_MANAGE, Permission.DORM_REPAIR_WORK),
     AI_ASSISTANT("校园助手", Permission.AI_QUERY, Permission.AI_KNOWLEDGE_MANAGE),
     USER_ADMIN("用户与权限", Permission.USER_MANAGE),
     SYSTEM("系统运行", Permission.SYSTEM_MONITOR);

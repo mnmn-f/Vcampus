@@ -4,7 +4,6 @@ import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
-import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -50,8 +49,10 @@ public final class DormExtBillingPanel extends JPanel {
         readings.getTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         readings.addAction(billSelected());
         readings.addAction(billPeriod());
-        add(readings);
-        add(form());
+        // 录入表单挪到右栏：抄表是「在表里挑到房间，再在右边填这个月的数」，
+        // 表单压在表格下面会让人每填一行都要上下翻。
+        setLayout(new BorderLayout());
+        add(DormUi.split(readings, form(), 440), BorderLayout.CENTER);
         resetForm();
     }
     public void reload() { readings.reload(); }
@@ -82,9 +83,7 @@ public final class DormExtBillingPanel extends JPanel {
         return button;
     }
     private JPanel form() {
-        SectionCard card = new SectionCard("登记抄表读数",
-                "只负责录入；出账在上面的表格里选行执行。选中一条待出账的读数可以直接改。");
-        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
+        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 10));
         fields.setOpaque(false);
         fields.add(UiFactory.labelledField("房间编号", room));
         fields.add(UiFactory.labelledField("账期开始（yyyy-MM-dd）", periodStart));
@@ -100,15 +99,21 @@ public final class DormExtBillingPanel extends JPanel {
         save.addActionListener(e -> saveReading());
         actions.add(reset);
         actions.add(save);
-        JPanel content = new JPanel(new BorderLayout(0, 10));
-        content.setOpaque(false);
-        content.add(fields, BorderLayout.CENTER);
-        content.add(actions, BorderLayout.SOUTH);
-        card.setContent(content);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+        JPanel rows = new JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
+        rows.add(fields);
+        rows.add(javax.swing.Box.createVerticalStrut(14));
+        rows.add(actions);
+        JPanel box = DormUi.panel();
+        box.add(rows, BorderLayout.CENTER);
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.add(DormUi.header("登记抄表读数",
+                "只负责录入；出账在左边的表格里选行执行。选中一条待出账的读数可以直接改。", null, false));
+        column.add(box);
+        return column;
     }
     private void showReading(MeterReadingDto value) {
         if (value == null) { resetForm(); return; }

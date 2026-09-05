@@ -54,7 +54,19 @@ if ([string]::IsNullOrWhiteSpace($env:VCAMPUS_AI_API_KEY)) {
     Write-Host "AI Responses API configured: $aiModel at $aiEndpoint" -ForegroundColor Green
 }
 
-& java "-Dvcampus.server.port=$portValue" `
-    "-Dvcampus.server.max-connections=$maxValue" `
-    "-Dvcampus.server.client-read-timeout=$timeoutValue" -jar $jar
+$arguments = @(
+    "-Dvcampus.server.port=$portValue",
+    "-Dvcampus.server.max-connections=$maxValue",
+    "-Dvcampus.server.client-read-timeout=$timeoutValue"
+)
+
+# 宿舍的月度出账任务要在账单上记「是谁出的账」，拿不到这个用户号它就整月跳过不执行。
+# 填宿管员账号的用户号——登录客户端后右上角「用户编号」那一栏就是，演示库里是 7。
+# 例：$env:VCAMPUS_DORM_SCHEDULER_OPERATOR = '7'
+if (-not [string]::IsNullOrWhiteSpace($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)) {
+    $arguments += "-Dvcampus.dorm.scheduler.operator=$($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)"
+}
+
+$arguments += @('-jar', $jar)
+& java @arguments
 exit $LASTEXITCODE

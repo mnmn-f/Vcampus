@@ -35,6 +35,7 @@ public enum Permission {
     DORM_MANAGE,
     DORM_APPROVE,
     DORM_GOVERN,
+    DORM_REPAIR_WORK,
     AI_QUERY,
     AI_KNOWLEDGE_MANAGE,
     USER_MANAGE,
