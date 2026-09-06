@@ -3,6 +3,7 @@ package edu.seu.vcampus.server.ai.tool;
 import org.junit.Test;
 
 import java.util.Arrays;
+import org.threeten.bp.LocalDateTime;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -15,6 +16,18 @@ public final class ToolResultFormatterTest {
         assertTrue(text.contains("课程编号：CS101"));
         assertTrue(text.contains("课程：程序设计"));
         assertFalse(text.contains("Course"));
+    }
+
+    @Test public void formatsStudyRoomTimesWithoutReflectingChronology() {
+        String text = new ToolResultFormatter().format(new Reservation(2L, 1L,
+                "图书馆 研习室A", LocalDateTime.of(2026, 11, 11, 9, 0),
+                LocalDateTime.of(2026, 11, 11, 12, 0), "RESERVED"));
+        assertTrue(text.contains("开始时间：2026-11-11 09:00"));
+        assertTrue(text.contains("结束时间：2026-11-11 12:00"));
+        assertTrue(text.contains("自习室：图书馆 研习室A"));
+        assertFalse(text.contains("chronology"));
+        assertFalse(text.contains("availableChronologies"));
+        assertFalse(text.contains("- "));
     }
 
     public static final class Page {
@@ -31,5 +44,22 @@ public final class ToolResultFormatterTest {
         }
         public String getCourseCode() { return courseCode; }
         public String getCourseName() { return courseName; }
+    }
+
+    public static final class Reservation {
+        private final long id; private final long roomId; private final String roomName;
+        private final LocalDateTime startAt; private final LocalDateTime endAt;
+        private final String status;
+        Reservation(long id, long roomId, String roomName, LocalDateTime startAt,
+                LocalDateTime endAt, String status) {
+            this.id = id; this.roomId = roomId; this.roomName = roomName;
+            this.startAt = startAt; this.endAt = endAt; this.status = status;
+        }
+        public long getId() { return id; }
+        public long getRoomId() { return roomId; }
+        public String getRoomName() { return roomName; }
+        public LocalDateTime getStartAt() { return startAt; }
+        public LocalDateTime getEndAt() { return endAt; }
+        public String getStatus() { return status; }
     }
 }

@@ -9,6 +9,7 @@ import edu.seu.vcampus.client.view.PersonalCenterPage;
 import edu.seu.vcampus.client.view.WorkbenchPanel;
 import edu.seu.vcampus.client.view.modules.AiAssistantPage;
 import edu.seu.vcampus.client.view.modules.ModulePages;
+import edu.seu.vcampus.client.view.pet.PetActivityListener;
 import edu.seu.vcampus.common.module.ModuleId;
 
 /** 工作区控制器：统一执行导航授权检查并创建页面。 */
@@ -17,6 +18,7 @@ public final class WorkspaceController {
     private final AiAssistantPage.Factory aiFactory;
     private final ClientBusinessServices businessServices;
     private final Runnable passwordChanged;
+    private final PetActivityListener petActivity;
 
     public WorkspaceController(ClientSession session, AiAssistantPage.Factory aiFactory) {
         this(session, aiFactory, null);
@@ -29,6 +31,12 @@ public final class WorkspaceController {
 
     public WorkspaceController(ClientSession session, AiAssistantPage.Factory aiFactory,
                                ClientBusinessServices businessServices, Runnable passwordChanged) {
+        this(session, aiFactory, businessServices, passwordChanged, null);
+    }
+
+    public WorkspaceController(ClientSession session, AiAssistantPage.Factory aiFactory,
+                               ClientBusinessServices businessServices, Runnable passwordChanged,
+                               PetActivityListener petActivity) {
         if (session == null) {
             throw new IllegalArgumentException("session 不能为空");
         }
@@ -40,6 +48,7 @@ public final class WorkspaceController {
         } : aiFactory;
         this.businessServices = businessServices;
         this.passwordChanged = passwordChanged;
+        this.petActivity = petActivity == null ? PetActivityListener.NONE : petActivity;
     }
 
     public boolean canOpen(ModuleId module) {
@@ -57,6 +66,6 @@ public final class WorkspaceController {
         if (module == ModuleId.PROFILE) {
             return new PersonalCenterPage(session, businessServices, passwordChanged);
         }
-        return ModulePages.forModule(module, session, aiFactory, businessServices);
+        return ModulePages.forModule(module, session, aiFactory, businessServices, petActivity);
     }
 }
