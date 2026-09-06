@@ -14,6 +14,11 @@ public final class AcademicCommands {
     public static final String STUDENT_ENROLLMENTS = "academic.student.enrollments";
     public static final String TEACHER_COURSES = "academic.teacher.courses";
     public static final String COURSE_ROSTER = "academic.course.roster";
+    public static final String SCHEDULING_OVERVIEW = "academic.scheduling.overview";
+    public static final String SCHEDULING_PREFERENCE_SAVE = "academic.scheduling.preference.save";
+    public static final String SCHEDULING_PREFERENCE_DELETE = "academic.scheduling.preference.delete";
+    public static final String AUTO_SCHEDULE_PREVIEW = "academic.scheduling.preview";
+    public static final String AUTO_SCHEDULE_CONFIRM = "academic.scheduling.confirm";
 
     public static final String COURSE_NOT_FOUND = "ACADEMIC.COURSE_NOT_FOUND";
     public static final String SCHEDULE_NOT_FOUND = "ACADEMIC.SCHEDULE_NOT_FOUND";
@@ -32,6 +37,8 @@ public final class AcademicCommands {
     public static final String INVALID_COURSE = "ACADEMIC.INVALID_COURSE";
     public static final String INVALID_SCHEDULE = "ACADEMIC.INVALID_SCHEDULE";
     public static final String COURSE_HAS_ENROLLMENTS = "ACADEMIC.COURSE_HAS_ENROLLMENTS";
+    public static final String SCHEDULING_NO_SOLUTION = "ACADEMIC.SCHEDULING_NO_SOLUTION";
+    public static final String SCHEDULING_STALE_PREVIEW = "ACADEMIC.SCHEDULING_STALE_PREVIEW";
 
     /* Compatibility aliases kept as names, not duplicate wire values. */
     public static final String COURSE_QUERY = COURSE_LIST;
