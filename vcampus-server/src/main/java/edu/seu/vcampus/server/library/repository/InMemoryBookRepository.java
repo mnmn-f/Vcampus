@@ -60,7 +60,7 @@ public final class InMemoryBookRepository implements BookRepository {
         BookDetail value = new BookDetail(id, r.getIsbn(), r.getTitle(), r.getAuthor(),
                 r.getPublisher(), r.getCategory(), r.getTotalCopies().intValue(),
                 r.getAvailableCopies().intValue(), r.getLocation(), r.getDescription(),
-                r.getStatus(), old == null ? now : old.getCreatedAt(), now);
+                r.getStatus(), old == null ? now : old.getCreatedAt(), now, r.getPublicationYear(), r.getCoverImage());
         books.put(id, value);
         return value;
     }
@@ -84,7 +84,7 @@ public final class InMemoryBookRepository implements BookRepository {
     private static BookDetail copy(BookDetail b, int available) {
         return new BookDetail(b.getId(), b.getIsbn(), b.getTitle(), b.getAuthor(), b.getPublisher(),
                 b.getCategory(), b.getTotalCopies(), available, b.getLocation(), b.getDescription(),
-                b.getStatus(), b.getCreatedAt(), LocalDateTime.now());
+                b.getStatus(), b.getCreatedAt(), LocalDateTime.now(), b.getPublicationYear(), b.getCoverImage());
     }
 
 }

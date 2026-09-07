@@ -19,6 +19,7 @@ import edu.seu.vcampus.server.dorm.registry.DormCommandRegistry;
 import edu.seu.vcampus.server.dorm.service.DormExtService;
 import edu.seu.vcampus.server.dorm.service.DormService;
 import edu.seu.vcampus.server.library.registry.LibraryCommandRegistry;
+import edu.seu.vcampus.server.library.bootstrap.LibrarySchemaBootstrap;
 import edu.seu.vcampus.server.library.service.LibraryService;
 import edu.seu.vcampus.server.identity.registry.IdentityCommandRegistry;
 import edu.seu.vcampus.server.identity.repository.mysql.MySqlLoginAuditSink;
@@ -43,6 +44,7 @@ public final class ServerMain {
     public static void main(String[] args) throws Exception {
         final SessionManager sessionManager = new SessionManager();
         JdbcConnectionFactory connections = new JdbcConnectionFactory();
+        LibrarySchemaBootstrap.initialize(connections);
         UserRepository repository = new MySqlUserRepository(connections);
         final ProductionRuntime runtime = createProductionRuntime(repository,
                 new PasswordHasher(), sessionManager, connections, true);

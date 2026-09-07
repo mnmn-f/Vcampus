@@ -10,9 +10,6 @@ final class DormExtPayloads {
     static BillGenerateRequest bill(Object value) { return cast(value, BillGenerateRequest.class); }
     static AccessPolicyRequest policy(Object value) { return cast(value, AccessPolicyRequest.class); }
     static RepairEntryPermitRequest permit(Object value) { return cast(value, RepairEntryPermitRequest.class); }
-    static RepairWorkRequest work(Object value) { return cast(value, RepairWorkRequest.class); }
-    static RepairAssignRequest assign(Object value) { return cast(value, RepairAssignRequest.class); }
-    static Long orderId(Object value) { return value == null ? null : cast(value, Long.class); }
     static String taskName(Object value) { return value == null ? null : cast(value, String.class); }
     static NoticeExtraRequest notice(Object value) { return cast(value, NoticeExtraRequest.class); }
     static RoomDeleteRequest room(Object value) { return cast(value, RoomDeleteRequest.class); }

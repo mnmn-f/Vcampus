@@ -19,7 +19,6 @@ import java.util.List;
 
 /** 订单、明细和库存的 MySQL DAO。 */
 public final class MySqlStoreOrderRepository implements StoreOrderRepository {
-    private final MySqlStoreShippingWriter shipping = new MySqlStoreShippingWriter();
     @Override
     public long insertOrder(Connection c, long buyerId, String orderNo, BigDecimal total) {
         String sql = "INSERT INTO store_orders (order_no, buyer_id, total_amount, original_amount, "
@@ -73,7 +72,7 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
 
     @Override
     public OrderDto findOrder(Connection c, long id, boolean forUpdate) {
-        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, shipping_status, tracking_no, shipping_remark, created_at, "
+        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, created_at, "
                 + "paid_at, cancelled_at, completed_at FROM store_orders WHERE id = ?"
                 + (forUpdate ? " FOR UPDATE" : "");
         try (PreparedStatement ps = c.prepareStatement(sql)) {
@@ -96,7 +95,7 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
         if (q.getStatus() != null) { where.append(" AND status = ?"); args.add(q.getStatus()); }
         String base = " FROM store_orders" + where;
         List<OrderDto> items = new ArrayList<OrderDto>();
-        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, shipping_status, tracking_no, shipping_remark, created_at, paid_at, "
+        String sql = "SELECT id, order_no, buyer_id, total_amount, original_amount, discount_amount, promotion_code, coupon_code, payment_mode, status, created_at, paid_at, "
                 + "cancelled_at, completed_at" + base + " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             int i = bind(ps, args, 1);
@@ -157,9 +156,6 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
         }
     }
 
-    @Override public boolean updateOrderShipping(Connection c, long id, String status,
-            String trackingNo, String remark) { return shipping.update(c, id, status, trackingNo, remark); }
-
     private static OrderDto readOrder(Connection c, ResultSet rs) throws SQLException {
         List<OrderItemDto> items = new ArrayList<OrderItemDto>();
         String sql = "SELECT product_id, product_name_snapshot, unit_price_snapshot, quantity, line_amount "
@@ -176,7 +172,6 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
                 rs.getBigDecimal("total_amount"), rs.getBigDecimal("original_amount"),
                 rs.getBigDecimal("discount_amount"), rs.getString("promotion_code"),
                 rs.getString("coupon_code"), rs.getString("payment_mode"), rs.getString("status"),
-                rs.getString("shipping_status"), rs.getString("tracking_no"), rs.getString("shipping_remark"),
                 MySqlStoreProductRepository.time(rs.getTimestamp("created_at")),
                 MySqlStoreProductRepository.time(rs.getTimestamp("paid_at")),
                 MySqlStoreProductRepository.time(rs.getTimestamp("cancelled_at")),
@@ -185,7 +180,9 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
 
     private static long count(Connection c, String base, List<Object> args) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*)" + base)) {
-            bind(ps, args, 1); try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); } }
+            bind(ps, args, 1);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); }
+        }
     }
 
     private static int bind(PreparedStatement ps, List<Object> args, int index)
@@ -196,5 +193,8 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
         }
         return index;
     }
-    private static StoreRepositoryException fail(String message, Throwable cause) { return new StoreRepositoryException(message, cause); }
+
+    private static StoreRepositoryException fail(String message, Throwable cause) {
+        return new StoreRepositoryException(message, cause);
+    }
 }

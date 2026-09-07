@@ -1,7 +1,5 @@
 package edu.seu.vcampus.server.ai.model;
 
-import edu.seu.vcampus.common.ai.AiAttachment;
-
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -11,7 +9,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -53,24 +50,6 @@ public final class ResponsesAiModelTest {
                 "https://api.example.com/v1/responses", "", "test-model", 1000, 1000));
         assertFalse(model.isConfigured());
         assertTrue(model.getModelName().contains("未配置"));
-    }
-
-    @Test public void imageAttachmentUsesVisionModelAndDataUrl() throws Exception {
-        String events = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"看到了\"}\n\n"
-                + "data: {\"type\":\"response.completed\"}\n\n";
-        FakeResponsesApi fake = new FakeResponsesApi(events);
-        try {
-            ResponsesAiModel model = new ResponsesAiModel(new AiModelConfig(
-                    "http://127.0.0.1:" + fake.port() + "/responses", "key",
-                    "text-model", "vision-model", 2000, 2000));
-            model.generate("image-request", "描述图片", Arrays.asList(
-                    new AiAttachment("photo.png", "image/png", new byte[] {1, 2, 3})),
-                    value -> { });
-            fake.await();
-            assertTrue(fake.request().contains("\"model\":\"vision-model\""));
-            assertTrue(fake.request().contains("data:image/png;base64,AQID"));
-            assertTrue(fake.request().contains("\"type\":\"input_image\""));
-        } finally { fake.close(); }
     }
 
     @Test public void rejectsOversizedStreamingOutput() throws Exception {

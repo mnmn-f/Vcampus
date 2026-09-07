@@ -15,7 +15,9 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -43,13 +45,13 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private final RowMapper<T> mapper;
     private final SelectionListener<T> selectionListener;
     private List<T> items = Collections.emptyList();
+    private java.util.function.Function<T, Object> itemKey;
+    public void setItemKey(java.util.function.Function<T, Object> key) { this.itemKey = key; }
+    private boolean checkboxSelection;
     private int page = 1;
     private int requestSerial;
     private boolean hasNext;
     private FilterCondition additionalCondition;
-    private boolean columnsFill;
-    /** 上次按哪个宽度排的列；窗口没变宽就不重排，免得和滚动条显隐来回打架。 */
-    private int lastFitWidth = -1;
 
     public AsyncPagedTable(String title, String subtitle, String searchHint, String[] filters,
                            String[] columns, Loader<T> loader, RowMapper<T> mapper,
@@ -90,43 +92,25 @@ public final class AsyncPagedTable<T> extends SectionCard {
         actions.add(retry); actions.add(previous); actions.add(next); footer.add(actions, BorderLayout.EAST);
         JPanel content = new JPanel(new BorderLayout(0, DesignTokens.SPACE_8)); content.setOpaque(false);
         content.add(toolbar, BorderLayout.NORTH); viewport = new TableViewport(table);
-        content.add(viewport, BorderLayout.CENTER); content.add(footer, BorderLayout.SOUTH); setContent(content);
-        // 首次布局时 viewport 宽度还是 0，那一遍列宽只能按内容定；等它真正拿到宽度
-        // （以及之后每次窗口变宽变窄）再重排一次，否则窄栏里的表永远是按内容那份宽度。
-        viewport.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override public void componentResized(java.awt.event.ComponentEvent event) { refitColumns(); }
-        });
-        load(1);
-    }
-
-    private void refitColumns() {
-        if (items.isEmpty()) return;
-        int available = viewport.tableWidth();
-        if (available <= 0 || available == lastFitWidth) return;
-        lastFitWidth = available;
-        if (columnsFill) DormTables.fitColumnsWithin(table, available);
-        else DormTables.fitColumns(table, available);
+        content.add(viewport, BorderLayout.CENTER); content.add(footer, BorderLayout.SOUTH); setContent(content); load(1);
     }
 
     public void addAction(JButton button) { toolbar.addAction(button); }
-
-    /** 表格最少占几行高，数据不足时用空行补足；见 {@link TableViewport#setMinVisibleRows(int)}。 */
-    public void setMinVisibleRows(int rows) { viewport.setMinVisibleRows(rows); }
-
-    /**
-     * 列宽装不下时按比例压缩，而不是横向滚动。
-     *
-     * <p>默认是按内容定宽、装不下就横向滚动——列多的台账表这样最好读。但放在窄栏里的
-     * 表格另说：{@code BasePage} 的滚动面板禁了横向滚动条，超出的列不是「滚一下能看到」，
-     * 而是直接被裁掉。宿舍模块的表统一走这一档，由 {@code DormUi.flatten} 一次性打开。</p>
-     */
-    public void setColumnsFill(boolean fill) {
-        columnsFill = fill;
-        refitColumns();
-    }
     public void setAdditionalFilters(JComponent filters, FilterCondition condition) {
         toolbar.setAdditionalFilters(filters);
         additionalCondition = condition;
+    }
+    public void refreshCurrentPage() { load(page); }
+    public void enableCheckboxSelection() { checkboxSelection = true; table.getColumnModel().getColumn(0).setPreferredWidth(45); }
+    public List<T> checkedItems() {
+        java.util.ArrayList<T> result = new java.util.ArrayList<T>();
+        for (int i = 0; i < items.size(); i++) if (Boolean.TRUE.equals(model.getValueAt(i, 0))) result.add(items.get(i));
+        return result;
+    }
+    public List<T> selectedItems() {
+        java.util.ArrayList<T> result = new java.util.ArrayList<T>();
+        for (int row : table.getSelectedRows()) { int index = table.convertRowIndexToModel(row); if (index >= 0 && index < items.size()) result.add(items.get(index)); }
+        return result;
     }
     public void reload() { load(1); }
     public void resetFilters() {
@@ -153,11 +137,24 @@ public final class AsyncPagedTable<T> extends SectionCard {
             @Override protected void done() {
                 if (serial != requestSerial) return;
                 try {
-                    PageSlice<T> result = get(); items = result.getItems(); page = result.getPage(); hasNext = result.hasNext();
-                    model.setRowCount(0); for (T item : items) model.addRow(mapper.values(item));
+                    PageSlice<T> result = get();
+                    java.util.Set<Object> selectedKeys = new java.util.HashSet<Object>();
+                    java.util.Set<Object> checkedKeys = new java.util.HashSet<Object>();
+                    if (itemKey != null) {
+                        for (T item : selectedItems()) selectedKeys.add(itemKey.apply(item));
+                        for (T item : checkedItems()) checkedKeys.add(itemKey.apply(item));
+                    }
+                    items = result.getItems(); page = result.getPage(); hasNext = result.hasNext();
+                    model.setRowCount(0);
+                    for (T item : items) {
+                        Object[] values = mapper.values(item);
+                        if (checkboxSelection && itemKey != null) values[0] = checkedKeys.contains(itemKey.apply(item));
+                        model.addRow(values);
+                        if (itemKey != null && selectedKeys.contains(itemKey.apply(item))) table.addRowSelectionInterval(model.getRowCount() - 1, model.getRowCount() - 1);
+                    }
                     toolbar.setResultHint("共 " + result.getTotal() + " 条");
                     if (items.isEmpty()) viewport.showEmpty(hasCondition(keyword, filter) ? "没有找到匹配记录" : "暂无记录", "");
-                    else { viewport.showRows(items.size()); lastFitWidth = -1; refitColumns(); }
+                    else viewport.showRows(items.size());
                     retry.setText("刷新"); setBusy(false, items.isEmpty() ? "当前页无记录" : "第 " + page + " 页");
                 } catch (Exception ex) { viewport.showError(); retry.setText("重试"); setBusy(false, "暂时无法更新"); }
             }
@@ -176,13 +173,21 @@ public final class AsyncPagedTable<T> extends SectionCard {
     }
     private DefaultTableModel model(String[] columns) {
         final String[] safe = columns == null ? new String[0] : columns.clone();
-        return new DefaultTableModel(safe, 0) { @Override public boolean isCellEditable(int row, int column) { return false; } };
+        return new DefaultTableModel(safe, 0) { @Override public boolean isCellEditable(int row, int column) { return checkboxSelection && column == 0; }
+            @Override public Class<?> getColumnClass(int column) { return checkboxSelection && column == 0 ? Boolean.class : Object.class; } };
     }
     private void configureTable() {
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setFillsViewportHeight(false);
-        table.setFont(DesignTokens.regular(14));
-        table.setSelectionBackground(DesignTokens.PRIMARY_LIGHT); table.setSelectionForeground(DesignTokens.TEXT_PRIMARY);
-        DormTables.style(table);
-        table.setDefaultRenderer(Object.class, DormTables.cellRenderer());
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setRowHeight(38); table.setFillsViewportHeight(false);
+        table.setShowGrid(false); table.setIntercellSpacing(new Dimension(0, 1)); table.setFont(DesignTokens.regular(13));
+        table.setForeground(DesignTokens.TEXT_PRIMARY); table.setBackground(Color.WHITE); table.setSelectionBackground(DesignTokens.PRIMARY_LIGHT);
+        table.setSelectionForeground(DesignTokens.TEXT_PRIMARY); JTableHeader header = table.getTableHeader();
+        header.setFont(DesignTokens.medium(13)); header.setForeground(DesignTokens.TEXT_PRIMARY); header.setBackground(new Color(0xF0, 0xF4, 0xF2));
+        header.setPreferredSize(new Dimension(0, 36)); header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, DesignTokens.BORDER));
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public java.awt.Component getTableCellRendererComponent(JTable t, Object v, boolean selected, boolean focus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(t, v, selected, focus, row, column);
+                setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8)); if (!selected) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(0xFA, 0xFC, 0xFB)); return c;
+            }
+        });
     }
 }

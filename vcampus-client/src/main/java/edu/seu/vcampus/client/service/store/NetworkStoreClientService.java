@@ -25,7 +25,6 @@ import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderPage;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.OrderStatusUpdateRequest;
-import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
 import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.ProductPage;
@@ -63,6 +62,7 @@ public final class NetworkStoreClientService implements StoreClientService {
         this.network = network;
         this.session = session;
     }
+
     public NetworkStoreClientService(ClientGateway gateway, ClientSession session) {
         this(new NetworkClientService(gateway), session);
     }
@@ -130,9 +130,6 @@ public final class NetworkStoreClientService implements StoreClientService {
     }
     @Override public OrderDto updateOrderStatus(OrderStatusUpdateRequest r) throws NetworkClientException {
         return payload(StoreCommands.ORDER_STATUS_UPDATE, r, OrderDto.class);
-    }
-    @Override public OrderDto updateOrderShipping(OrderShippingUpdateRequest r) throws NetworkClientException {
-        return payload(StoreCommands.ORDER_SHIPPING_UPDATE, r, OrderDto.class);
     }
     @Override public StoreSalesPage salesReport(StoreSalesQuery q) throws NetworkClientException {
         return payload(StoreCommands.SALES_REPORT, q, StoreSalesPage.class);

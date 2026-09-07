@@ -18,8 +18,6 @@ public final class MySqlDormExtRepository implements DormExtRepository {
     private final MySqlDormExtHygieneRepository hygiene = new MySqlDormExtHygieneRepository();
     private final MySqlDormExtAccessRepository access = new MySqlDormExtAccessRepository();
     private final MySqlDormNoticeRepository notice = new MySqlDormNoticeRepository();
-    private final MySqlDormHomeRepository home = new MySqlDormHomeRepository();
-    private final MySqlDormRepairWorkRepository repairWork = new MySqlDormRepairWorkRepository();
 
     @Override public DormPage<MeterReadingDto> listMeterReadings(Connection c, DormPageQuery q) throws SQLException { return meter.list(c, q); }
     @Override public MeterReadingDto saveMeterReading(Connection c, MeterReadingRequest r, long actor) throws SQLException { return meter.save(c, r, actor); }
@@ -54,17 +52,6 @@ public final class MySqlDormExtRepository implements DormExtRepository {
     @Override public int markTasksDone(Connection c, long room, LocalDate before, long inspection) throws SQLException { return hygiene.markTasksDone(c, room, before, inspection); }
     @Override public DormPage<HygieneTaskDto> listTasks(Connection c, DormPageQuery q) throws SQLException { return hygiene.listTasks(c, q); }
 
-    @Override public DormHomeSummaryDto homeSummary(Connection c, long student) throws SQLException { return home.summary(c, student); }
-    @Override public DormPage<RepairWorkOrderDto> repairQueue(Connection c, DormPageQuery q) throws SQLException { return repairWork.queue(c, q); }
-    @Override public DormPage<RepairWorkOrderDto> repairAssigned(Connection c, long handler, DormPageQuery q, boolean active) throws SQLException { return repairWork.assigned(c, handler, q, active); }
-    @Override public RepairWorkOrderDto findRepairWork(Connection c, long order, long handler) throws SQLException { return repairWork.find(c, order, handler); }
-    @Override public int claimRepair(Connection c, long order, long handler) throws SQLException { return repairWork.claim(c, order, handler); }
-    @Override public int startRepair(Connection c, long order, long handler) throws SQLException { return repairWork.start(c, order, handler); }
-    @Override public int finishRepair(Connection c, long order, long handler) throws SQLException { return repairWork.finish(c, order, handler); }
-    @Override public List<RepairWorkerDto> repairWorkers(Connection c) throws SQLException { return repairWork.workers(c); }
-    @Override public int assignRepair(Connection c, long order, long worker) throws SQLException { return repairWork.assign(c, order, worker); }
-    @Override public int reviewRepair(Connection c, long order, boolean approved) throws SQLException { return repairWork.review(c, order, approved); }
-    @Override public RepairWorkOrderDto findRepairForManager(Connection c, long order) throws SQLException { return repairWork.findForManager(c, order); }
     @Override public List<StayStatusDto> stayStatusRows(Connection c, Long student) throws SQLException { return access.stayRows(c, student); }
     @Override public AccessPolicyDto loadAccessPolicy(Connection c) throws SQLException { return access.policy(c); }
     @Override public AccessPolicyDto saveAccessPolicy(Connection c, AccessPolicyRequest r, long actor) throws SQLException { return access.savePolicy(c, r, actor); }

@@ -95,15 +95,9 @@
 | 验收项 | 状态 | 证据 |
 |---|---|---|
 | 会话、消息、流式片段、取消和本地知识检索 | [x] | AiAssistantService、AiConversationService、AiKnowledgeService、KnowledgeRanker、AiChatPanel |
-| DeepSeek Responses API、聊天图片/PDF/Office/文本附件、纯文本输出；未配置密钥时离线降级 | [x] | AiAttachment、AiAttachmentLoader、ResponsesAiModel、AiPlainTextFilter、ToolResultFormatter 及对应测试 |
-| 47 个白名单业务工具、结构化参数、缺参澄清、20 个写操作二次确认和并发防重 | [x] | AiToolRegistry、CampusCommandTool、ModelToolIntentResolver、AiToolService、AiToolRepository.claim、AiToolClaimMySqlIntegrationTest |
-| 公寓管理、违纪处分、系统操作和代办指南知识 | [x] | V10__ai_assistant_knowledge.sql、V11__ai_knowledge_and_tools.sql、KnowledgeRanker |
-| 学生失败重试、附件管理、回答反馈和会话搜索/重命名/归档/导出 | [x] | AiChatPanel、AiFeedbackService、AiFeedbackRepository、V12__ai_quality_workbench.sql |
-| 消息气泡、业务结果卡、代办参数卡、回答依据折叠区和可折叠会话侧栏 | [x] | AiMessageCard、AiAnswerEvidence、AiStreamChunk、AiChatPanel |
-| AI 知识管理员批量导入、发布前测试、版本回滚、脱敏反馈、工具状态和增强监控 | [x] | AiKnowledgePanel、AiKnowledgeTestPanel、AiFeedbackPanel、AiToolStatusPanel、AiMonitorPanel |
-| 学生问答与 AI 知识管理员工作台按角色显示 | [x] | RolePolicy、RoleWorkspace、AiAssistantPage |
-| 小松鼠多动作桌宠、喂食抚摸、AI 状态联动、最小化收束、拖动恢复和权限生命周期 | [x] | squirrel-actions.png、SquirrelPetController、SquirrelPetWidget、PetStateModel、AiChatPanelPetStateTest、PetInteractionMathTest、SquirrelPetWidgetTest |
-| AI 服务离线探测与桌宠 OFFLINE 状态 | [x] | ai.ping、AiChatPanel、PetStateModel、SquirrelPetWidget |
+| 可选 Responses API；未配置密钥时离线降级 | [x] | ResponsesAiModel、AiModelConfig、ResponsesAiModelTest |
+| 白名单业务工具、写操作二次确认和并发防重 | [x] | AiToolRegistry、AiToolService、AiToolRepository.claim、AiToolClaimMySqlIntegrationTest |
+| 学生问答与 AI 知识管理员维护/监控按角色显示 | [x] | RolePolicy、RoleWorkspace、AiAssistantPage、AiKnowledgePanel、AiMonitorPanel |
 
 ## 明确延期或不纳入本版本
 

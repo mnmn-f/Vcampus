@@ -15,7 +15,6 @@ final class RealUiLabels {
         put("STUDENT", "学生"); put("TEACHER", "任课教师"); put("REGISTRAR", "学籍管理员");
         put("ACADEMIC_ADMIN", "教务老师"); put("LIBRARIAN", "图书管理员");
         put("STORE_MANAGER", "商店管理员"); put("DORM_MANAGER", "宿管员");
-        put("REPAIR_WORKER", "维修员");
         put("AI_KNOWLEDGE_ADMIN", "AI知识管理员"); put("SYSTEM_ADMIN", "系统管理员");
         put("REQUIRED", "必修"); put("ELECTIVE", "选修"); put("PUBLIC", "公共"); put("PRACTICE", "实践"); put("OK", "成功");
         put("SUCCESS", "成功"); put("FAILURE", "失败"); put("ERROR", "失败");
@@ -25,8 +24,6 @@ final class RealUiLabels {
         put("CANCELLED", "已取消"); put("CONFIRMED", "已确认"); put("IGNORED", "已忽略");
         put("ENROLLED", "在读"); put("DROPPED", "已退选"); put("SUSPENDED", "休学"); put("GRADUATED", "毕业");
         put("WITHDRAWN", "退学"); put("ENDED", "已结束"); put("PUBLISHED", "已发布"); put("DRAFT", "草稿");
-        put("PREPARING", "备货中"); put("SHIPPED", "已发货"); put("IN_TRANSIT", "运输中");
-        put("READY_FOR_PICKUP", "待取货"); put("DELIVERED", "已送达");
         put("SCHEDULED", "定时发布"); put("REVOKED", "已撤回"); put("EXPIRED", "已过期");
         put("ROLE", "指定角色"); put("ARCHIVED", "已归档"); put("MAINTENANCE", "维护中");
         put("ON_SALE", "在售"); put("OFF_SALE", "已下架"); put("RECHARGE", "充值");
@@ -45,8 +42,7 @@ final class RealUiLabels {
         put("ELECTRIC", "电气"); put("ELECTRICAL", "电气"); put("NETWORK", "网络");
         put("FURNITURE", "家具"); put("APPLIANCE", "家电"); put("AIR_CONDITIONING", "空调");
         put("EQUIPMENT", "设备"); put("DOOR_WINDOW", "门窗");
-        put("SUBMITTED", "待派单"); put("ACCEPTED", "已派单"); put("IN_PROGRESS", "处理中");
-        put("PENDING_REVIEW", "待宿管审核");
+        put("SUBMITTED", "已提交"); put("ACCEPTED", "已受理"); put("IN_PROGRESS", "处理中");
         put("CHECK_IN", "入住"); put("TRANSFER", "调宿"); put("CHECK_OUT", "退宿");
         put("UNPAID", "待缴费"); put("WAIVED", "已减免"); put("HIGH", "高");
         put("LOW", "低"); put("NORMAL", "正常"); put("URGENT", "紧急"); put("RECTIFICATION_REQUIRED", "待整改");

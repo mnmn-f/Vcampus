@@ -74,23 +74,6 @@
 
 侧栏分为“我的工作台”“校园业务”“系统管理”三组。主页快捷卡片只链接到当前职责可用的任务，不展示其他角色的操作。
 
-### 小松鼠桌宠
-
-- 仅当当前职责可进入 `AI_ASSISTANT` 时显示；正常展开时默认悬浮在主界面右下角，可在分层面板内自由拖动并保存位置，不挤压聊天框或其他页面布局。
-- 形象使用透明背景的软萌 3D 松鼠：橘红毛色、超大黑眼睛、蓝色上衣、红色书本和大尾巴；基础图位于 `vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel.png`，六姿势动作表位于同目录的 `squirrel-actions.png`。
-- 动作包括待机呼吸、悬停招手、思考歪头、回答摆手、待确认提醒、成功跳跃和失败低落；回答与悬停使用循环切帧，其余姿势使用平滑位移、缩放、倾斜和阴影补间。
-- 正常界面单击松鼠进入校园助手；若已经位于 AI 页面，只播放短回应动画。
-- 最小化后隐藏主窗口并显示置顶桌面松鼠；拖动超过 5 像素只移动，单击恢复原页面和原窗口状态。主窗口和桌面形态右键均可喂松果、抚摸；桌面形态另提供“展开主界面”和“打开校园助手”。
-- 气泡使用固定短文案，不显示用户问题、模型回答或敏感业务内容。颜色继续使用橄榄绿主色、金色点缀和现有成功/警告/错误语义色。
-- 不支持逐像素透明的桌面环境降级为普通无边框小窗；`vcampus.pet.animation=false` 时关闭循环切帧和补间动画，但保留状态姿势及全部入口行为。
-
-### AI 对话输入区
-
-- 会话工具栏下方保留原对话记录；输入区上方按问答、聊天、代办模式显示可横向滚动的示例按钮，点击后立即发送。
-- Enter 发送，Shift+Enter 换行。聊天模式输入框左侧显示“+”，可添加最多 3 个图片、PDF、DOCX、PPTX、XLS/XLSX、CSV、文本或代码附件；办公文档在客户端提取文字，切换到问答或代办模式会清空附件。
-- 模型回答按纯文本展示，过滤 Markdown 星号、方框、反引号和数字引用标记；业务查询结果使用中文字段、简短日期时间和分段条目，不展开 Java 内部对象。
-- 代办参数不足时先显示结构化澄清问题，不弹业务确认；参数齐全后才进入二次确认。
-
 ## 页面结构
 
 真实模块页统一由 `BasePage`、`TaskTabs` 和 `SectionCard` 组合：
@@ -120,8 +103,6 @@
 - 二级任务页签：[TaskTabs.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/components/TaskTabs.java)
 - 页面职责与命令边界：[PAGE_MAP.md](PAGE_MAP.md)
 - 视觉截图索引：[UI_PREVIEW_GALLERY.md](UI_PREVIEW_GALLERY.md)
-- AI 桌宠控制器：[SquirrelPetController.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetController.java)
-- 桌宠状态与渲染：[PetStateModel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/PetStateModel.java)、[SquirrelPetWidget.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetWidget.java)
 
 ## 验收清单
 
@@ -130,4 +111,3 @@
 - 在 1100×720 与 1280×820 预览中检查无标题遮挡、控件重叠、横向溢出和不可见的主要操作。
 - 检查成功、空结果、输入错误、权限错误、超时和高风险确认均在当前任务区表达。
 - 对照 [UI_PREVIEW_GALLERY.md](UI_PREVIEW_GALLERY.md) 和 [PAGE_MAP.md](PAGE_MAP.md) 验证截图入口与实际职责一致。
-- 验证有/无 AI 权限职责的桌宠可见性；检查窗口内拖动阈值、边界校正和位置持久化；分别从正常和最大化状态最小化，检查桌面位置独立保存、右键入口、跨屏校正、页面保留和恢复状态。

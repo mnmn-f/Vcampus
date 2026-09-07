@@ -12,7 +12,6 @@ import edu.seu.vcampus.server.security.SessionContext;
 
 import java.sql.Connection;
 import java.util.List;
-import edu.seu.vcampus.common.ai.AiKnowledgeVersion;
 
 /** 知识库查询、维护和混合检索。 */
 public final class AiKnowledgeService {
@@ -65,25 +64,6 @@ public final class AiKnowledgeService {
                 return Long.valueOf(repository.activeCount(c));
             }
         }).longValue();
-    }
-
-    public List<AiKnowledgeVersion> versions(final long chunkId) {
-        if (chunkId <= 0) throw invalid("知识片段编号不正确");
-        return tx(new Work<List<AiKnowledgeVersion>>() {
-            public List<AiKnowledgeVersion> run(Connection c) throws Exception {
-                return repository.versions(c, chunkId);
-            }
-        });
-    }
-
-    public AiKnowledgeChunk rollback(final SessionContext session, final long chunkId,
-            final long versionId) {
-        if (chunkId <= 0 || versionId <= 0) throw invalid("知识版本参数不正确");
-        return tx(new Work<AiKnowledgeChunk>() {
-            public AiKnowledgeChunk run(Connection c) throws Exception {
-                return repository.rollback(c, chunkId, versionId, session.getUserId());
-            }
-        });
     }
 
     private void validate(AiKnowledgeSaveRequest r) {

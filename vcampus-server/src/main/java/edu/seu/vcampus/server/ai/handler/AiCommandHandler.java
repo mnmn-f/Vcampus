@@ -8,7 +8,6 @@ import edu.seu.vcampus.common.security.Permission;
 import edu.seu.vcampus.server.ai.service.AiAssistantService;
 import edu.seu.vcampus.server.ai.service.AiConversationService;
 import edu.seu.vcampus.server.ai.service.AiKnowledgeService;
-import edu.seu.vcampus.server.ai.service.AiFeedbackService;
 import edu.seu.vcampus.server.ai.service.AiServiceException;
 import edu.seu.vcampus.server.router.CommandHandler;
 import edu.seu.vcampus.server.security.SessionContext;
@@ -23,18 +22,11 @@ public final class AiCommandHandler implements CommandHandler {
     private final AiAssistantService assistant;
     private final AiConversationService conversations;
     private final AiKnowledgeService knowledge;
-    private final AiFeedbackService feedback;
 
     public AiCommandHandler(String command, Permission permission, AiAssistantService assistant,
             AiConversationService conversations, AiKnowledgeService knowledge) {
-        this(command, permission, assistant, conversations, knowledge, null);
-    }
-
-    public AiCommandHandler(String command, Permission permission, AiAssistantService assistant,
-            AiConversationService conversations, AiKnowledgeService knowledge,
-            AiFeedbackService feedback) {
         this.command = command; this.permission = permission; this.assistant = assistant;
-        this.conversations = conversations; this.knowledge = knowledge; this.feedback = feedback;
+        this.conversations = conversations; this.knowledge = knowledge;
     }
 
     public Message handle(Message request, SessionContext session) {
@@ -44,7 +36,6 @@ public final class AiCommandHandler implements CommandHandler {
     }
 
     private Serializable execute(Serializable payload, SessionContext session) {
-        if (AiCommands.PING.equals(command)) return Boolean.TRUE;
         if (AiCommands.CANCEL.equals(command)) {
             return Boolean.valueOf(assistant.cancel(session,
                     required(payload, AiCancelRequest.class).getRequestId()));
@@ -64,11 +55,6 @@ public final class AiCommandHandler implements CommandHandler {
             conversations.clear(session, required(payload, AiSessionRequest.class).getSessionId());
             return Boolean.TRUE;
         }
-        if (AiCommands.SESSION_RENAME.equals(command)) {
-            AiSessionRenameRequest value = required(payload, AiSessionRenameRequest.class);
-            conversations.rename(session, value.getSessionId(), value.getTitle());
-            return Boolean.TRUE;
-        }
         if (AiCommands.KNOWLEDGE_LIST.equals(command)) {
             return knowledge.search(payload == null ? new AiKnowledgeQuery()
                     : required(payload, AiKnowledgeQuery.class));
@@ -80,35 +66,8 @@ public final class AiCommandHandler implements CommandHandler {
             knowledge.delete(session, required(payload, AiKnowledgeDeleteRequest.class).getChunkId());
             return Boolean.TRUE;
         }
-        if (AiCommands.KNOWLEDGE_TEST.equals(command)) {
-            return assistant.testKnowledge(required(payload, AiKnowledgeTestRequest.class).getQuestion());
-        }
-        if (AiCommands.KNOWLEDGE_VERSIONS.equals(command)) {
-            return new ArrayList<AiKnowledgeVersion>(knowledge.versions(
-                    required(payload, AiKnowledgeVersionRequest.class).getChunkId()));
-        }
-        if (AiCommands.KNOWLEDGE_ROLLBACK.equals(command)) {
-            AiKnowledgeVersionRequest value = required(payload, AiKnowledgeVersionRequest.class);
-            if (value.getVersionId() == null) throw new IllegalArgumentException("version required");
-            return knowledge.rollback(session, value.getChunkId(), value.getVersionId().longValue());
-        }
-        if (AiCommands.FEEDBACK_SAVE.equals(command)) {
-            requireFeedback().save(session, required(payload, AiFeedbackRequest.class));
-            return Boolean.TRUE;
-        }
-        if (AiCommands.FEEDBACK_LIST.equals(command)) {
-            return new ArrayList<AiFeedbackEntry>(requireFeedback().latest());
-        }
-        if (AiCommands.TOOL_STATUS.equals(command)) {
-            return new ArrayList<AiToolStatus>(assistant.toolStatuses());
-        }
         if (AiCommands.MONITOR.equals(command)) return assistant.monitor();
         throw new IllegalArgumentException("unsupported AI command");
-    }
-
-    private AiFeedbackService requireFeedback() {
-        if (feedback == null) throw new IllegalStateException("feedback service unavailable");
-        return feedback;
     }
 
     private <T> T required(Serializable payload, Class<T> type) {

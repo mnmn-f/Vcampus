@@ -21,22 +21,16 @@ public final class RealStorePage extends BasePage {
 
     private void buildStudent(ClientBusinessServices services) {
         TaskTabs tabs = new TaskTabs();
-        final StoreReviewPanel reviews = new StoreReviewPanel(this, services.store());
-        final StoreAccountPanel account = new StoreAccountPanel(this, services.store());
-        final StoreOrdersPanel orders = new StoreOrdersPanel(this, services.store(), Role.STUDENT, new Runnable() {
-            @Override public void run() { account.reload(); reviews.reloadCandidates(); }
-        });
-        final StoreCartPanel cart = new StoreCartPanel(this, services.store(), new Runnable() {
+        final StoreOrdersPanel orders = new StoreOrdersPanel(this, services.store(), Role.STUDENT);
+        tabs.addTask("选购商品", new StoreProductsPanel(this, services.store(), Role.STUDENT));
+        tabs.addTask("购物车", new StoreCartPanel(this, services.store(), new Runnable() {
             @Override public void run() { orders.reload(); }
-        });
-        tabs.addTask("选购商品", new StoreProductsPanel(this, services.store(), Role.STUDENT, new Runnable() {
-            @Override public void run() { cart.reload(); }
         }));
-        tabs.addTask("购物车", cart);
         tabs.addTask("我的订单", orders);
-        tabs.addTask("商品评价", reviews);
+        tabs.addTask("商品评价", new StoreReviewPanel(this, services.store()));
+        tabs.addTask("好友代付", new StoreFriendPaymentPanel(this, services.store()));
         tabs.addTask("优惠券", new StoreCouponPanel(this, services.store()));
-        tabs.addTask("校园账户", account);
+        tabs.addTask("校园账户", new StoreAccountPanel(this, services.store()));
         addBlock(tabs);
     }
 

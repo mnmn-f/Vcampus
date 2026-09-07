@@ -31,9 +31,9 @@ public final class RealStoreDormFeatureTest {
         assertFalse(hasText(studentStore, "销售统计"));
         assertTrue(hasButton(studentStore, "取消订单"));
         assertFalse(hasText(studentDorm, "空间维护"));
-        assertFalse(hasText(studentDorm, "待我处理的申请"));
-        assertTrue(hasText(studentDorm, "离校请假"));
-        assertTrue(hasText(studentDorm, "我的报修工单"));
+        assertFalse(hasText(studentDorm, "请假审批筛选"));
+        assertTrue(hasText(studentDorm, "学生请假"));
+        assertTrue(hasText(studentDorm, "报修评价"));
         assertTrue(hasButton(studentDorm, "缴纳选中账单"));
 
         ClientBusinessServices managerServices = services();
@@ -41,9 +41,9 @@ public final class RealStoreDormFeatureTest {
         BasePage managerDorm = new RealDormPage(session(Role.DORM_MANAGER), managerServices);
         assertTrue(hasText(managerStore, "销售统计"));
         assertTrue(hasText(managerDorm, "空间维护"));
-        assertTrue(hasText(managerDorm, "待我处理的申请"));
-        assertFalse(hasText(managerDorm, "离校请假"));
-        assertFalse(hasText(managerDorm, "我的报修工单"));
+        assertTrue(hasText(managerDorm, "请假审批筛选"));
+        assertFalse(hasText(managerDorm, "学生请假"));
+        assertFalse(hasText(managerDorm, "报修评价"));
         assertFalse(hasButton(managerDorm, "缴纳选中账单"));
         assertFalse(hasButton(managerDorm, "提交评价"));
     }

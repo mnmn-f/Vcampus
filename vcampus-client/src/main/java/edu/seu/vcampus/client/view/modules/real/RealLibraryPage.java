@@ -31,7 +31,8 @@ public final class RealLibraryPage extends BasePage {
         super(session, RoleWorkspace.navigationLabel(session.getActiveRole(), ModuleId.LIBRARY),
                 "图书查询与借阅、自习室预约、公告和线上资源服务。");
         Role role = session.getActiveRole(); setHeaderContext(role.getDisplayName());
-        LibraryTaskTabs tabs = new LibraryTaskTabs(role == Role.LIBRARIAN);
+        final LibraryTaskTabs tabs = new LibraryTaskTabs(role == Role.LIBRARIAN);
+        tabs.setDisplayName(session.getDisplayName());
         if (role == Role.LIBRARIAN) {
             tabs.addTask("公告管理", LineIcon.Kind.SYSTEM,
                     new CampusAnnouncementsPanel(this, campus, role,
@@ -43,25 +44,36 @@ public final class RealLibraryPage extends BasePage {
             tabs.addTask("自习室管理", LineIcon.Kind.PROFILE,
                     new LibraryRoomsPanel(this, library, role));
             tabs.addTask("线上资源管理", LineIcon.Kind.SYSTEM,
-                    new LibraryResourcesPanel(this, library, role));
+                    new LibraryOnlinePanel(this, library, session));
+        } else if (role == Role.STUDENT) {
+            final LibraryCatalogPanel catalog = new LibraryCatalogPanel(this, library, role);
+            final LibraryRoomBookingPanel rooms = new LibraryRoomBookingPanel(this, library);
+            final StudentLibraryOnlinePanel online = new StudentLibraryOnlinePanel(this, library, session);
+            LibraryHomePanel home = new LibraryHomePanel(session, library, campus,
+                    value -> { catalog.searchFor(value); tabs.selectTask(1); },
+                    () -> { catalog.showBorrowings(); tabs.selectTask(1); },
+                    () -> tabs.selectTask(2));
+            tabs.addTask("首页", LineIcon.Kind.DASHBOARD, home);
+            tabs.addTask("图书查阅", LineIcon.Kind.LIBRARY, catalog);
+            tabs.addTask("自习室预约", LineIcon.Kind.ACADEMIC, rooms);
+            tabs.addTask("线上资源", LineIcon.Kind.STUDENT_RECORD, online);
         } else {
             tabs.addTask("首页", LineIcon.Kind.DASHBOARD,
                     new CampusAnnouncementsPanel(this, campus, role,
                             "LIBRARY", "公告栏", Role.LIBRARIAN));
-            if (role == Role.STUDENT) {
-                tabs.addTask("图书查阅", LineIcon.Kind.LIBRARY,
-                        new LibraryBooksPanel(this, library, role),
-                        new LibraryBorrowingsPanel(this, library));
-            } else {
+            {
                 tabs.addTask("图书查阅", LineIcon.Kind.LIBRARY,
                         new LibraryBooksPanel(this, library, role));
             }
             tabs.addTask("自习室预约", LineIcon.Kind.ACADEMIC,
                     new LibraryRoomsPanel(this, library, role));
             tabs.addTask("线上资源", LineIcon.Kind.STUDENT_RECORD,
-                    new LibraryResourcesPanel(this, library, role));
+                    new LibraryOnlinePanel(this, library, session));
         }
-        addBlock(tabs);
+        removeAll();
+        setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        add(feedback, java.awt.BorderLayout.NORTH);
+        add(tabs, java.awt.BorderLayout.CENTER);
     }
 
     static boolean showsBorrowingLedger(Role role) { return role == Role.LIBRARIAN; }

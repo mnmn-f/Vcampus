@@ -9,19 +9,10 @@ public final class AiCommands {
     public static final String SESSION_CREATE = "ai.session.create";
     public static final String SESSION_HISTORY = "ai.session.history";
     public static final String SESSION_CLEAR = "ai.session.clear";
-    public static final String SESSION_RENAME = "ai.session.rename";
     public static final String KNOWLEDGE_LIST = "ai.knowledge.list";
     public static final String KNOWLEDGE_SAVE = "ai.knowledge.save";
     public static final String KNOWLEDGE_DELETE = "ai.knowledge.delete";
-    public static final String KNOWLEDGE_TEST = "ai.knowledge.test";
-    public static final String KNOWLEDGE_VERSIONS = "ai.knowledge.versions";
-    public static final String KNOWLEDGE_ROLLBACK = "ai.knowledge.rollback";
-    public static final String FEEDBACK_SAVE = "ai.feedback.save";
-    public static final String FEEDBACK_LIST = "ai.feedback.list";
-    public static final String TOOL_STATUS = "ai.tool.status";
-    public static final String PING = "ai.ping";
     public static final String MONITOR = "ai.monitor";
-    public static final String LIVE_COMPETITIONS_MINE = "ai.live.competitions.mine";
 
     private AiCommands() { }
 }

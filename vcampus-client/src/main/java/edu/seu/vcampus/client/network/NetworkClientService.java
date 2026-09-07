@@ -19,7 +19,12 @@ public final class NetworkClientService {
 
     public Message request(String command, java.io.Serializable payload)
             throws NetworkClientException {
-        Message request = Message.request(command, sessionToken, payload);
+        return requestWithToken(command, payload, sessionToken);
+    }
+
+    public Message requestWithToken(String command, java.io.Serializable payload, String token)
+            throws NetworkClientException {
+        Message request = Message.request(command, token, payload);
         try {
             Message response = gateway.send(request);
             if (response == null) {

@@ -101,7 +101,9 @@ final class DemoBookService {
                 request.getPublisher(), request.getCategory(), total, available,
                 request.getLocation(), request.getDescription(),
                 DemoLibrarySupport.text(request.getStatus(), "ON_SHELF"),
-                old == null ? now : old.getCreatedAt(), now);
+                old == null ? now : old.getCreatedAt(), now,
+                request.getPublicationYear() == null && old != null ? old.getPublicationYear() : request.getPublicationYear(),
+                request.getCoverImage() == null && old != null ? old.getCoverImage() : request.getCoverImage());
         replaceBook(value);
         return value;
     }
@@ -151,7 +153,7 @@ final class DemoBookService {
         return new BookDetail(book.getId(), book.getIsbn(), book.getTitle(), book.getAuthor(),
                 book.getPublisher(), book.getCategory(), book.getTotalCopies(), available,
                 book.getLocation(), book.getDescription(), book.getStatus(), book.getCreatedAt(),
-                LocalDateTime.now());
+                LocalDateTime.now(), book.getPublicationYear(), book.getCoverImage());
     }
 
     private static BorrowRecordView copyBorrow(BorrowRecordView value, String status,

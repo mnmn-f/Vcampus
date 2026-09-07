@@ -96,17 +96,6 @@ final class CampusCompetitionService extends CampusServiceSupport {
         });
     }
 
-    CampusPage<CompetitionRegistrationDto> mine(final SessionContext session, CampusPageQuery query) {
-        require(session, Permission.COMPETITION_ENROLL);
-        final CampusPageQuery q = query == null ? CampusPageQuery.all() : query;
-        page(q.getPage(), q.getPageSize());
-        return execute(new Work<CampusPage<CompetitionRegistrationDto>>() {
-            @Override public CampusPage<CompetitionRegistrationDto> run(java.sql.Connection c) throws Exception {
-                return repository.registrationsForStudent(c, session.getUserId(), q);
-            }
-        });
-    }
-
     private static void validate(CompetitionSaveRequest request) {
         if (request == null) throw new CampusException(CampusCommands.INVALID_INPUT, "比赛参数不能为空");
         text(request.getTitle(), "比赛标题");

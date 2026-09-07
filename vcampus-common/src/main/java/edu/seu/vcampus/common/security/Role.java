@@ -9,7 +9,6 @@ public enum Role {
     LIBRARIAN("图书管理员"),
     STORE_MANAGER("商店管理员"),
     DORM_MANAGER("宿管员"),
-    REPAIR_WORKER("维修员"),
     AI_KNOWLEDGE_ADMIN("AI知识管理员"),
     SYSTEM_ADMIN("系统管理员");
 

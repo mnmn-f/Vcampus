@@ -18,8 +18,6 @@
 项目按 Java 17 构建，并使用支持 MySQL 8.0 默认认证方式的 Connector/J 9.5.0。数据库账号认证插件
 属于部署配置；不要通过降低业务用户密码哈希或把数据库密码写入代码来规避连接问题。
 
-聊天模型默认使用 DeepSeek Responses API。仅在服务端设置 `DEEPSEEK_API_KEY`（或优先级更高的 `VCAMPUS_AI_API_KEY`）；不要把密钥放入客户端或仓库。可选覆盖项为 `VCAMPUS_AI_ENDPOINT`、`VCAMPUS_AI_MODEL` 和 `VCAMPUS_AI_VISION_MODEL`。未配置密钥时服务端仍可启动，校园实时工具和本地知识库降级仍可使用，但通用聊天和图片理解不可用。
-
 ## 2. 两台电脑启动
 
 在电脑 A（数据库所在或可访问数据库的服务端电脑）执行：
@@ -37,15 +35,6 @@
 ```powershell
 .\scripts\start-client.ps1 -ServerHost 192.168.1.20 -ServerPort 8888
 ```
-
-拥有校园助手权限的账号登录后会启用小松鼠桌宠。桌宠动画只在可见时运行；远程桌面、自动化测试或低性能终端可直接启动客户端 JAR 并增加 `-Dvcampus.pet.animation=false`：
-
-```powershell
-java -Dvcampus.pet.animation=false -Dvcampus.server.host=192.168.1.20 `
-  -Dvcampus.server.port=8888 -jar .\vcampus-client\target\vCampusClient.jar
-```
-
-该属性只关闭呼吸、摇摆和状态动画，不影响点击入口、最小化收束、拖动恢复、AI 对话或业务功能。
 
 把 `192.168.1.20` 换成电脑 A 在局域网中的 IPv4 地址，不要使用客户端自己的 `127.0.0.1`。
 客户端可用 `VCAMPUS_SERVER_HOST`、`VCAMPUS_SERVER_PORT`、`VCAMPUS_CLIENT_CONNECT_TIMEOUT`、

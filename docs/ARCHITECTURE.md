@@ -78,9 +78,7 @@ SafeObjectInputStream 只允许 common DTO/协议、必要的数值/时间/枚�
 
 ## 8. AI 边界
 
-校园助手通过独立流式 Socket 复用当前登录会话，支持会话历史、取消、MySQL 知识片段检索和 DeepSeek Responses API；图片附件自动选择视觉模型，PDF/DOCX/PPTX/XLS/XLSX 在客户端通过 PDFBox/Apache POI 提取有界文字，附件不持久化。服务端以纯文本提示和流式清洗器约束模型输出，业务 DTO 对日期时间及状态做专用格式化。未配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY` 时只使用本地知识检索，不影响服务端启动。工具仅能调用 `AiToolRegistry` 白名单中的现有业务命令；每个工具公开结构化参数说明，模型输出只允许白名单字段，明确写动作不会被查询工具替代，缺参时先澄清。所有写操作必须由当前用户二次确认，并由数据库原子领取确认记录以防并发重复执行。学生拥有问答入口，AI 知识管理员拥有知识维护和监控入口，最终权限仍由业务命令和当前 `SessionContext` 校验。
-
-小松鼠桌宠只位于客户端表现层：`AppFrame` 使用 `SquirrelPetController` 在 `AppShell` 上方增加不占布局空间的分层组件，最小化时切换为独立 `JWindow`。`AiChatPanel` 只通过 `PetActivityListener` 发布无业务数据的状态枚举，桌宠不持有 token、不读取回答正文、不调用网络服务，也不能绕过 AI 工具确认或业务权限。桌宠是否可见复用 `WorkspaceController.canOpen(ModuleId.AI_ASSISTANT)`，退出登录和窗口销毁时随客户端生命周期一并释放。
+校园助手通过独立流式 Socket 复用当前登录会话，支持会话历史、取消、MySQL 知识片段检索和可选 Responses API。未配置 `VCAMPUS_AI_API_KEY` 时只使用本地知识检索，不影响服务端启动。工具仅能调用 `AiToolRegistry` 白名单中的现有业务命令；模型文本不能自行选择命令，所有写操作必须由当前用户二次确认，并由数据库原子领取确认记录以防并发重复执行。学生拥有问答入口，AI 知识管理员拥有知识维护和监控入口，最终权限仍由业务命令和当前 `SessionContext` 校验。
 
 ## 9. 当前诚实边界
 

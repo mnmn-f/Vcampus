@@ -32,8 +32,7 @@ public final class DormSpaceEditorPanel extends SectionCard {
     private final JTextField buildingCode = field();
     private final JTextField buildingName = field();
     private final JTextField buildingAddress = field();
-    // 本校没有混住楼栋，所以不给这个选项。服务端仍然接受 MIXED，历史数据照常显示。
-    private final JComboBox<RealUi.CodeOption> buildingGender = choices("MALE", "FEMALE");
+    private final JComboBox<RealUi.CodeOption> buildingGender = choices("MIXED", "MALE", "FEMALE");
     private final JComboBox<RealUi.CodeOption> buildingStatus = choices("OPEN", "MAINTENANCE", "CLOSED");
     private final JLabel buildingError = UiFactory.muted(" ");
     private final JTextField roomId = idField();
@@ -124,27 +123,9 @@ public final class DormSpaceEditorPanel extends SectionCard {
         return tab(fields, actions);
     }
 
-    /**
-     * 表单和按钮贴着排，不把按钮压到底边。
-     *
-     * <p>之前用 {@code BorderLayout} 的 NORTH/SOUTH：标签页被外层拉高之后，按钮跟着
-     * 沉到最下面，中间空出一大片——就是「新建楼栋和上面差出去那么大空」的来源。
-     * 改成纵向堆叠再整体顶到上边，两者之间只留一个固定间距。</p>
-     */
     private static JPanel tab(JPanel fields, JPanel actions) {
-        JPanel stack = new JPanel();
-        stack.setOpaque(false);
-        stack.setLayout(new javax.swing.BoxLayout(stack, javax.swing.BoxLayout.Y_AXIS));
-        fields.setAlignmentX(LEFT_ALIGNMENT);
-        actions.setAlignmentX(LEFT_ALIGNMENT);
-        stack.add(fields);
-        stack.add(javax.swing.Box.createVerticalStrut(14));
-        stack.add(actions);
-        JPanel content = new JPanel(new BorderLayout());
-        content.setOpaque(false);
-        content.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 2, 4, 2));
-        content.add(stack, BorderLayout.NORTH);
-        return content;
+        JPanel content = new JPanel(new BorderLayout(0, 10)); content.setOpaque(false);
+        content.add(fields, BorderLayout.NORTH); content.add(actions, BorderLayout.SOUTH); return content;
     }
 
     private JPanel actions(String fresh, String save, java.awt.event.ActionListener newAction,
@@ -153,7 +134,7 @@ public final class DormSpaceEditorPanel extends SectionCard {
         JButton submit = new PrimaryButton(save); submit.addActionListener(saveAction); actions.add(clear); actions.add(submit); actions.add(error); return actions;
     }
 
-    private void startBuilding() { buildingId.setText(""); buildingCode.setText(""); buildingName.setText(""); buildingAddress.setText(""); buildingGender.setSelectedItem(RealUi.option("MALE")); buildingStatus.setSelectedItem(RealUi.option("OPEN")); buildingError.setText(" "); }
+    private void startBuilding() { buildingId.setText(""); buildingCode.setText(""); buildingName.setText(""); buildingAddress.setText(""); buildingGender.setSelectedItem(RealUi.option("MIXED")); buildingStatus.setSelectedItem(RealUi.option("OPEN")); buildingError.setText(" "); }
     private void startRoom() { roomId.setText(""); roomBuildingId.setText(""); roomNo.setText(""); roomFloor.setText("1"); roomCapacity.setText("4"); roomType.setSelectedItem(RealUi.option("STANDARD")); roomStatus.setSelectedItem(RealUi.option("AVAILABLE")); roomDescription.setText(""); roomError.setText(" "); }
     private void startBed() { bedId.setText(""); bedRoomId.setText(""); bedNo.setText(""); bedStatus.setSelectedItem(RealUi.option("AVAILABLE")); bedError.setText(" "); }
 

@@ -5,6 +5,8 @@ import java.io.Serializable;
 /** 图书管理员新增或维护图书的请求。id 为 0 表示新增。 */
 public final class BookUpsertRequest implements Serializable {
     private static final long serialVersionUID = 1L;
+    private final Integer publicationYear;
+    private final byte[] coverImage;
     private final long id;
     private final String isbn;
     private final String title;
@@ -21,6 +23,15 @@ public final class BookUpsertRequest implements Serializable {
                              String publisher, String category, Integer totalCopies,
                              Integer availableCopies, String location,
                              String description, String status) {
+        this(id, isbn, title, author, publisher, category, totalCopies, availableCopies, location, description, status, null, null);
+    }
+
+    public BookUpsertRequest(long id, String isbn, String title, String author,
+                             String publisher, String category, Integer totalCopies,
+                             Integer availableCopies, String location,
+                             String description, String status, Integer publicationYear, byte[] coverImage) {
+        this.publicationYear = publicationYear;
+        this.coverImage = coverImage == null ? null : coverImage.clone();
         this.id = id;
         this.isbn = isbn;
         this.title = title;
@@ -41,6 +52,9 @@ public final class BookUpsertRequest implements Serializable {
         this(0L, isbn, title, author, publisher, category, Integer.valueOf(totalCopies),
                 Integer.valueOf(availableCopies), location, description, "ON_SHELF");
     }
+
+    public Integer getPublicationYear() { return publicationYear; }
+    public byte[] getCoverImage() { return coverImage == null ? null : coverImage.clone(); }
 
     public long getId() { return id; }
     public String getIsbn() { return isbn; }

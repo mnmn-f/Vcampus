@@ -32,6 +32,15 @@ import edu.seu.vcampus.server.security.SessionContext;
 
 /** 图书馆纵向门面；具体规则分布在图书、借阅、自习室和资源服务中。 */
 public final class LibraryService {
+    private PdfLibraryService pdfService;
+    public LibraryService withPdf(PdfLibraryService service) { this.pdfService = service; return this; }
+    public PdfLibraryService pdf() {
+        if (pdfService == null) {
+            pdfService = new PdfLibraryService(new edu.seu.vcampus.server.library.repository.InMemoryPdfRepository(),
+                    new edu.seu.vcampus.common.library.PdfFileStore(java.nio.file.Paths.get("data", "library-pdf-test")), null);
+        }
+        return pdfService;
+    }
     private final BookService bookService;
     private final BorrowService borrowService;
     private final StudyRoomService studyRoomService;

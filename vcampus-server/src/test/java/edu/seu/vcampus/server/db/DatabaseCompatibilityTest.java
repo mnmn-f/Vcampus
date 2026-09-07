@@ -152,18 +152,6 @@ public final class DatabaseCompatibilityTest {
         assertTrue(migration.contains("INSERT IGNORE INTO `dorm_access_policies`"));
     }
 
-    @Test
-    public void schedulingMigrationOnlyAddsTeacherTimePreferences() throws Exception {
-        String migration = resource("/db/migration/V6__teacher_time_preferences.sql");
-        assertTrue(migration.contains("CREATE TABLE IF NOT EXISTS `teacher_time_preferences`"));
-        assertTrue(migration.contains("'UNAVAILABLE', 'AVOID', 'PREFERRED'"));
-        assertTrue(migration.contains("FOREIGN KEY (`teacher_user_id`) REFERENCES `users` (`id`)"));
-        assertFalse(migration.contains("DROP TABLE"));
-        assertFalse(migration.contains("TRUNCATE TABLE"));
-        assertFalse(migration.contains("ALTER TABLE"));
-        assertFalse(migration.contains("INSERT INTO"));
-    }
-
     private static String tableBlock(String schema, String table) {
         String marker = "CREATE TABLE IF NOT EXISTS `" + table + "` (";
         int start = schema.indexOf(marker);

@@ -43,32 +43,18 @@ $timeoutValue = Read-Setting $ClientReadTimeoutMillis `
     $env:VCAMPUS_SERVER_CLIENT_READ_TIMEOUT '1800000' 'ClientReadTimeoutMillis' 1 2147483647
 
 $aiModel = $env:VCAMPUS_AI_MODEL
-if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'deepseek-v4-flash' }
+if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'gpt-4.1-mini' }
 $aiEndpoint = $env:VCAMPUS_AI_ENDPOINT
 if ([string]::IsNullOrWhiteSpace($aiEndpoint)) {
-    $aiEndpoint = 'https://api.deepseek.com/responses'
+    $aiEndpoint = 'https://api.openai.com/v1/responses'
 }
-$aiKey = $env:VCAMPUS_AI_API_KEY
-if ([string]::IsNullOrWhiteSpace($aiKey)) { $aiKey = $env:DEEPSEEK_API_KEY }
-if ([string]::IsNullOrWhiteSpace($aiKey)) {
-    Write-Warning 'VCAMPUS_AI_API_KEY/DEEPSEEK_API_KEY is not set. VCampus will use knowledge-base fallback.'
+if ([string]::IsNullOrWhiteSpace($env:VCAMPUS_AI_API_KEY)) {
+    Write-Warning 'VCAMPUS_AI_API_KEY is not set. VCampus will use knowledge-base fallback.'
 } else {
     Write-Host "AI Responses API configured: $aiModel at $aiEndpoint" -ForegroundColor Green
 }
 
-$arguments = @(
-    "-Dvcampus.server.port=$portValue",
-    "-Dvcampus.server.max-connections=$maxValue",
-    "-Dvcampus.server.client-read-timeout=$timeoutValue"
-)
-
-# 宿舍的月度出账任务要在账单上记「是谁出的账」，拿不到这个用户号它就整月跳过不执行。
-# 填宿管员账号的用户号——登录客户端后右上角「用户编号」那一栏就是，演示库里是 7。
-# 例：$env:VCAMPUS_DORM_SCHEDULER_OPERATOR = '7'
-if (-not [string]::IsNullOrWhiteSpace($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)) {
-    $arguments += "-Dvcampus.dorm.scheduler.operator=$($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)"
-}
-
-$arguments += @('-jar', $jar)
-& java @arguments
+& java "-Dvcampus.server.port=$portValue" `
+    "-Dvcampus.server.max-connections=$maxValue" `
+    "-Dvcampus.server.client-read-timeout=$timeoutValue" -jar $jar
 exit $LASTEXITCODE

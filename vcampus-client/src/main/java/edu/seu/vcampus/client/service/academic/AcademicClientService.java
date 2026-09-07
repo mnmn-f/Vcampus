@@ -17,12 +17,6 @@ import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.dto.academic.StudentEnrollmentListDto;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleConfirmRequest;
-import edu.seu.vcampus.common.dto.academic.AutoSchedulePreviewDto;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleRequest;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleSaveResult;
-import edu.seu.vcampus.common.dto.academic.SchedulingOverviewDto;
-import edu.seu.vcampus.common.dto.academic.TeacherTimePreferenceDto;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
@@ -115,22 +109,6 @@ public final class AcademicClientService {
     public CourseRosterDto courseRoster(long courseId) throws NetworkClientException {
         return payload(AcademicCommands.COURSE_ROSTER, new CourseRosterRequest(courseId),
                 CourseRosterDto.class);
-    }
-
-    public SchedulingOverviewDto schedulingOverview() throws NetworkClientException {
-        return payload(AcademicCommands.SCHEDULING_OVERVIEW, null, SchedulingOverviewDto.class);
-    }
-    public TeacherTimePreferenceDto saveTimePreference(TeacherTimePreferenceDto value) throws NetworkClientException {
-        return payload(AcademicCommands.SCHEDULING_PREFERENCE_SAVE, value, TeacherTimePreferenceDto.class);
-    }
-    public void deleteTimePreference(long id) throws NetworkClientException {
-        request(AcademicCommands.SCHEDULING_PREFERENCE_DELETE, new ScheduleIdRequest(id));
-    }
-    public AutoSchedulePreviewDto previewAutoSchedule(int timeLimitMillis) throws NetworkClientException {
-        return payload(AcademicCommands.AUTO_SCHEDULE_PREVIEW, new AutoScheduleRequest(timeLimitMillis), AutoSchedulePreviewDto.class);
-    }
-    public AutoScheduleSaveResult confirmAutoSchedule(AutoScheduleConfirmRequest request) throws NetworkClientException {
-        return payload(AcademicCommands.AUTO_SCHEDULE_CONFIRM, request, AutoScheduleSaveResult.class);
     }
 
     private <T> T payload(String command, java.io.Serializable body, Class<T> type)

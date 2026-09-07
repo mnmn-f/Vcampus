@@ -12,12 +12,8 @@ public final class ToolBridge {
 
     public ToolBridge(CommandRouter router) { this.router = router; }
 
-    public boolean isAvailable(AiTool tool) {
-        return tool != null && router.isRegistered(tool.getTargetCommand());
-    }
-
     public Object execute(AiTool tool, String argumentsJson, SessionContext session) {
-        if (!isAvailable(tool)) {
+        if (tool == null || !router.isRegistered(tool.getTargetCommand())) {
             throw new AiServiceException(ResultCodes.NOT_FOUND,
                     "对应业务模块尚未接入，当前工具不可用");
         }

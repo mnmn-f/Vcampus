@@ -6,8 +6,6 @@ import java.io.Serializable;
 public interface AiTool {
     String getName();
     String getDescription();
-    default String getParameterGuide() { return "{}（无参数）"; }
-    default String clarificationFor(String argumentsJson) { return null; }
     String getTargetCommand();
     boolean isWriteOperation();
     Serializable payload(String argumentsJson);

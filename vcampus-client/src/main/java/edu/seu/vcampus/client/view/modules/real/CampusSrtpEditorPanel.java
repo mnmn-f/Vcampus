@@ -34,7 +34,7 @@ public final class CampusSrtpEditorPanel extends SectionCard {
         this.admin = admin; this.listener = listener; status.setFont(DesignTokens.regular(13));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         add(fields, "项目编号", code); if (admin) add(fields, "学生编号", student);
-        add(fields, "项目名称", title); if (admin) add(fields, "学分", credits); add(fields, "状态", status);
+        add(fields, "项目名称", title); add(fields, "学分", credits); add(fields, "状态", status);
         JPanel body = new JPanel(new BorderLayout(0, 10)); body.setOpaque(false);
         body.add(fields, BorderLayout.NORTH); body.add(UiFactory.labelledField("项目说明", description), BorderLayout.CENTER);
         JPanel actions = UiFactory.horizontal(8); JButton clear = new SecondaryButton("新建"); clear.addActionListener(new java.awt.event.ActionListener() {
@@ -60,8 +60,7 @@ public final class CampusSrtpEditorPanel extends SectionCard {
 
     private void save() {
         try {
-            BigDecimal credit = !admin || credits.getText().trim().isEmpty()
-                    ? null : new BigDecimal(credits.getText().trim());
+            BigDecimal credit = credits.getText().trim().isEmpty() ? null : new BigDecimal(credits.getText().trim());
             SrtpSaveRequest request;
             if (admin) {
                 Long studentId = RealUi.number(student.getText()); if (studentId == null || studentId.longValue() <= 0L) throw new IllegalArgumentException("学生编号必须是正整数");

@@ -78,7 +78,7 @@ public final class StoreAccountPanel extends JPanel {
         try {
             final BigDecimal value = new BigDecimal(RealUi.required(amount.getText(), "充值金额"));
             if (value.signum() <= 0) throw new IllegalArgumentException("充值金额必须大于 0");
-            if (!StoreRechargeQrDialog.show(this, value)) return;
+            if (!RealUi.confirm(this, "确认充值 ¥" + moneyValue(value) + "？")) return;
             if (rechargeKey == null) rechargeKey = "desktop-recharge-" + System.currentTimeMillis();
             final AccountRechargeRequest request = new AccountRechargeRequest(value, rechargeKey, RealUi.optional(remark.getText()));
             AsyncTask.run(new AsyncTask.Work<AccountDto>() {

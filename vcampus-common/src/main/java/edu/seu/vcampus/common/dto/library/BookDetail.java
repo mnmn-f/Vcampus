@@ -6,6 +6,8 @@ import org.threeten.bp.LocalDateTime;
 /** 图书详情和库存快照。 */
 public final class BookDetail implements Serializable {
     private static final long serialVersionUID = 1L;
+    private final Integer publicationYear;
+    private final byte[] coverImage;
     private final long id;
     private final String isbn;
     private final String title;
@@ -25,6 +27,16 @@ public final class BookDetail implements Serializable {
                       int availableCopies, String location, String description,
                       String status, LocalDateTime createdAt,
                       LocalDateTime updatedAt) {
+        this(id, isbn, title, author, publisher, category, totalCopies, availableCopies, location, description, status, createdAt, updatedAt, null, null);
+    }
+
+    public BookDetail(long id, String isbn, String title, String author,
+                      String publisher, String category, int totalCopies,
+                      int availableCopies, String location, String description,
+                      String status, LocalDateTime createdAt,
+                      LocalDateTime updatedAt, Integer publicationYear, byte[] coverImage) {
+        this.publicationYear = publicationYear;
+        this.coverImage = coverImage == null ? null : coverImage.clone();
         this.id = id;
         this.isbn = isbn;
         this.title = title;
@@ -38,6 +50,14 @@ public final class BookDetail implements Serializable {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getPublicationYear() { return publicationYear; }
+    public byte[] getCoverImage() { return coverImage == null ? null : coverImage.clone(); }
+
+    public BookDetail withoutCover() {
+        return new BookDetail(id, isbn, title, author, publisher, category, totalCopies,
+                availableCopies, location, description, status, createdAt, updatedAt, publicationYear, null);
     }
 
     public long getId() { return id; }

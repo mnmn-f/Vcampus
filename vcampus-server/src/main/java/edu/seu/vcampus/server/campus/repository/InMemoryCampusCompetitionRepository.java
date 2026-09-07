@@ -98,16 +98,6 @@ final class InMemoryCampusCompetitionRepository implements CampusCompetitionRepo
         return InMemoryCampusSupport.page(rows, q);
     }
 
-    @Override public synchronized CampusPage<CompetitionRegistrationDto> registrationsForStudent(
-            Connection c, long studentId, CampusPageQuery q) {
-        List<CompetitionRegistrationDto> rows = new ArrayList<CompetitionRegistrationDto>();
-        for (CompetitionRegistrationDto value : state.registrations.values()) {
-            if (value.getStudentUserId() == studentId
-                    && InMemoryCampusSupport.matches(q, value.getStatus(), String.valueOf(value.getCompetitionId()))) rows.add(value);
-        }
-        return InMemoryCampusSupport.page(rows, q);
-    }
-
     private CompetitionDto withCount(CompetitionDto value) {
         return new CompetitionDto(value.getId(), value.getTitle(), value.getDescription(),
                 value.getOrganizerId(), value.getStartAt(), value.getEndAt(),

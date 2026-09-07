@@ -112,15 +112,6 @@ public final class AiConversationRepository {
         finally { ps.close(); }
     }
 
-    public void rename(Connection c, String sessionId, long userId, String title) throws Exception {
-        PreparedStatement ps = c.prepareStatement(
-                "UPDATE ai_chat_sessions SET title=? WHERE id=? AND user_id=? AND status='ACTIVE'");
-        try {
-            ps.setString(1, title); ps.setLong(2, requireId(sessionId)); ps.setLong(3, userId);
-            if (ps.executeUpdate() != 1) throw new IllegalArgumentException("invalid AI session id");
-        } finally { ps.close(); }
-    }
-
     private long requireId(String value) {
         Long parsed = id(value);
         if (parsed == null) throw new IllegalArgumentException("invalid AI session id");

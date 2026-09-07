@@ -26,19 +26,10 @@
         <threetenbp.version>1.5.2</threetenbp.version>
         <mysql.connector.version>9.5.0</mysql.connector.version>
         <jbcrypt.version>0.4</jbcrypt.version>
-        <flatlaf.version>3.7.2</flatlaf.version>
-        <pdfbox.version>3.0.8</pdfbox.version>
-        <poi.version>5.5.1</poi.version>
-        <log4j.version>2.24.3</log4j.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>com.formdev</groupId>
-                <artifactId>flatlaf</artifactId>
-                <version>${flatlaf.version}</version>
-            </dependency>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
@@ -59,21 +50,6 @@
                 <groupId>org.mindrot</groupId>
                 <artifactId>jbcrypt</artifactId>
                 <version>${jbcrypt.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.pdfbox</groupId>
-                <artifactId>pdfbox</artifactId>
-                <version>${pdfbox.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi-ooxml</artifactId>
-                <version>${poi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-to-jul</artifactId>
-                <version>${log4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -12,7 +12,6 @@ import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderPage;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.OrderStatusUpdateRequest;
-import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
 import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.ProductPage;
@@ -56,7 +55,6 @@ public final class StoreService {
     private final StoreCartService cart;
     private final StoreOrderService orders;
     private final StoreOrderStatusService orderStatuses;
-    private final StoreShippingService shipping;
     private final StorePaymentService payments;
     private final StoreAccountService accounts;
     private final StoreSalesService sales;
@@ -84,7 +82,6 @@ public final class StoreService {
         cart = new StoreCartService(repository, safeTransactions);
         orders = new StoreOrderService(repository, safeTransactions);
         orderStatuses = new StoreOrderStatusService(repository, safeTransactions);
-        shipping = new StoreShippingService(repository, safeTransactions);
         payments = new StorePaymentService(repository, safeTransactions);
         accounts = new StoreAccountService(repository, safeTransactions);
         sales = new StoreSalesService(repository, safeTransactions);
@@ -137,8 +134,6 @@ public final class StoreService {
             throws StoreServiceException {
         return orderStatuses.update(s, r);
     }
-    public OrderDto updateOrderShipping(SessionContext s, OrderShippingUpdateRequest r)
-            throws StoreServiceException { return shipping.update(s, r); }
 
     public AccountDto getAccount(SessionContext s) throws StoreServiceException { return accounts.get(s); }
     public AccountLedgerPage getAccountLedger(SessionContext s, AccountLedgerQuery q)

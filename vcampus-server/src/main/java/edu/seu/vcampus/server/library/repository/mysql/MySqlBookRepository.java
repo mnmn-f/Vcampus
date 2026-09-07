@@ -16,7 +16,7 @@ import java.util.List;
 /** MySQL 图书仓储；所有 SQL 使用参数绑定。 */
 public final class MySqlBookRepository implements BookRepository {
     private static final String COLUMNS = "id,isbn,title,author,publisher,category,"
-            + "total_copies,available_copies,location,description,status,created_at,updated_at";
+            + "total_copies,available_copies,location,description,status,created_at,updated_at,publication_year,cover_image";
 
     @Override
     public PageResult<BookDetail> search(Connection connection, BookSearchRequest request)
@@ -58,8 +58,8 @@ public final class MySqlBookRepository implements BookRepository {
         long id = request.getId();
         if (id <= 0) {
             String sql = "INSERT INTO books (isbn,title,author,publisher,category,"
-                    + "total_copies,available_copies,location,description,status,created_by)"
-                    + " VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+                    + "total_copies,available_copies,location,description,status,publication_year,cover_image,created_by)"
+                    + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try (PreparedStatement statement = connection.prepareStatement(sql,
                     Statement.RETURN_GENERATED_KEYS)) {
                 bindBook(statement, request, operatorId, false);
@@ -73,11 +73,11 @@ public final class MySqlBookRepository implements BookRepository {
             }
         } else {
             String sql = "UPDATE books SET isbn=?,title=?,author=?,publisher=?,category=?,"
-                    + "total_copies=?,available_copies=?,location=?,description=?,status=?"
+                    + "total_copies=?,available_copies=?,location=?,description=?,status=?,publication_year=?,cover_image=?"
                     + " WHERE id=?";
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 bindBook(statement, request, operatorId, true);
-                statement.setLong(11, id);
+                statement.setLong(13, id);
                 if (statement.executeUpdate() == 0) {
                     throw new java.sql.SQLException("book does not exist: " + id);
                 }
@@ -99,8 +99,10 @@ public final class MySqlBookRepository implements BookRepository {
         statement.setString(8, request.getLocation());
         statement.setString(9, request.getDescription());
         statement.setString(10, request.getStatus());
+        statement.setObject(11, request.getPublicationYear());
+        statement.setBytes(12, request.getCoverImage());
         if (!update) {
-            statement.setLong(11, operatorId);
+            statement.setLong(13, operatorId);
         }
     }
 

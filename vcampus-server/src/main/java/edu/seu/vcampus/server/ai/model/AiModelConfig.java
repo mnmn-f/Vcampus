@@ -2,29 +2,21 @@ package edu.seu.vcampus.server.ai.model;
 
 import java.net.URI;
 
-/** DeepSeek Responses API 的服务端配置；密钥只从环境变量读取。 */
+/** Responses API 的服务端配置；密钥只从环境变量读取。 */
 public final class AiModelConfig {
-    static final String DEFAULT_ENDPOINT = "https://api.deepseek.com/responses";
-    static final String DEFAULT_MODEL = "deepseek-v4-flash";
-    static final String DEFAULT_VISION_MODEL = "deepseek-v4-flash-vision-exp";
+    static final String DEFAULT_ENDPOINT = "https://api.openai.com/v1/responses";
+    static final String DEFAULT_MODEL = "gpt-4.1-mini";
     private final String endpoint;
     private final String apiKey;
     private final String model;
-    private final String visionModel;
     private final int connectTimeout;
     private final int readTimeout;
 
     AiModelConfig(String endpoint, String apiKey, String model,
             int connectTimeout, int readTimeout) {
-        this(endpoint, apiKey, model, DEFAULT_VISION_MODEL, connectTimeout, readTimeout);
-    }
-
-    AiModelConfig(String endpoint, String apiKey, String model, String visionModel,
-            int connectTimeout, int readTimeout) {
         this.endpoint = apiEndpoint(endpoint);
         this.apiKey = trim(apiKey);
         this.model = requireText(model, "model");
-        this.visionModel = requireText(visionModel, "vision model");
         this.connectTimeout = positive(connectTimeout, "connect timeout");
         this.readTimeout = positive(readTimeout, "read timeout");
     }
@@ -32,9 +24,8 @@ public final class AiModelConfig {
     public static AiModelConfig load() {
         return new AiModelConfig(
                 config("vcampus.ai.endpoint", "VCAMPUS_AI_ENDPOINT", DEFAULT_ENDPOINT),
-                firstPresent(System.getenv("VCAMPUS_AI_API_KEY"), System.getenv("DEEPSEEK_API_KEY")),
+                System.getenv("VCAMPUS_AI_API_KEY"),
                 config("vcampus.ai.model", "VCAMPUS_AI_MODEL", DEFAULT_MODEL),
-                config("vcampus.ai.vision-model", "VCAMPUS_AI_VISION_MODEL", DEFAULT_VISION_MODEL),
                 propertyInt("vcampus.ai.connect-timeout", 10000),
                 propertyInt("vcampus.ai.read-timeout", 120000));
     }
@@ -42,7 +33,6 @@ public final class AiModelConfig {
     public String getEndpoint() { return endpoint; }
     String getApiKey() { return apiKey; }
     public String getModel() { return model; }
-    public String getVisionModel() { return visionModel; }
     public int getConnectTimeout() { return connectTimeout; }
     public int getReadTimeout() { return readTimeout; }
     public boolean isConfigured() { return !blank(apiKey); }
@@ -91,9 +81,6 @@ public final class AiModelConfig {
     }
 
     private static String trim(String value) { return value == null ? "" : value.trim(); }
-    private static String firstPresent(String first, String second) {
-        return blank(first) ? second : first;
-    }
     private static boolean blank(String value) {
         return value == null || value.trim().isEmpty();
     }

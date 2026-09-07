@@ -106,20 +106,9 @@ final class KnowledgeRanker {
         if (contains(value, "校纪", "校规", "纪律", "规定")) {
             out.append(" 校纪校规 校园规定 纪律 规范");
         }
-        if (contains(value, "处分", "作弊", "打架", "申诉", "违纪")) {
-            out.append(" 学生违纪 处分 条例 调查 告知 申辩 申诉");
-        }
-        if (contains(value, "电器", "电池", "充电", "消防", "大功率")) {
-            out.append(" 公寓 宿舍 用电 安全 禁用电器 800瓦 电池充电 消防");
-        }
-        if (contains(value, "访客", "晚归", "夜不归宿", "门禁")) {
-            out.append(" 学生公寓 访客 会客 门禁 请假 秩序");
-        }
         if (contains(value, "借书", "借阅", "图书")) out.append(" 图书馆 借阅 归还");
-        if (contains(value, "宿舍", "水电", "报修", "请假")) out.append(" 宿舍 住宿 水电 报修 请假");
-        if (contains(value, "商店", "商品", "购物", "买过", "订单", "付款")) out.append(" 商店 商品 购物车 订单 支付 优惠券");
-        if (contains(value, "自习室", "研讨室")) out.append(" 图书馆 自习室 预约 时段");
-        if (contains(value, "教室", "场地")) out.append(" 校园 教室 申请 预约 时段");
+        if (contains(value, "宿舍", "水电", "报修")) out.append(" 宿舍 住宿 水电 报修");
+        if (contains(value, "商店", "商品", "购物")) out.append(" 商店 商品 购物车 订单");
         return out.toString();
     }
 

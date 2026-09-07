@@ -15,21 +15,12 @@ import edu.seu.vcampus.common.dto.academic.ScheduleSaveRequest;
 import edu.seu.vcampus.server.academic.repository.AcademicRepository;
 import edu.seu.vcampus.server.db.TransactionManager;
 import edu.seu.vcampus.server.security.SessionContext;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleConfirmRequest;
-import edu.seu.vcampus.common.dto.academic.AutoSchedulePreviewDto;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleRequest;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleSaveResult;
-import edu.seu.vcampus.common.dto.academic.SchedulingOverviewDto;
-import edu.seu.vcampus.common.dto.academic.TeacherTimePreferenceDto;
-import edu.seu.vcampus.server.academic.scheduling.AutoSchedulingService;
-import edu.seu.vcampus.server.academic.scheduling.MySqlSchedulingRepository;
 
 /** 教务服务门面；业务规则按课程、排课、选课职责拆分到专责服务。 */
 public final class AcademicService {
     private final AcademicCourseService courses;
     private final AcademicScheduleService schedules;
     private final AcademicEnrollmentService enrollments;
-    private final AutoSchedulingService autoScheduling;
 
     /** 生产环境使用 TransactionManager，保证 MySQL 业务写操作有统一事务。 */
     public AcademicService(AcademicRepository repository, TransactionManager transactions) {
@@ -40,8 +31,6 @@ public final class AcademicService {
         this.courses = new AcademicCourseService(support);
         this.schedules = new AcademicScheduleService(support);
         this.enrollments = new AcademicEnrollmentService(support);
-        this.autoScheduling = transactions == null ? null
-                : new AutoSchedulingService(new MySqlSchedulingRepository(), transactions);
     }
 
     /** 测试和离线演示使用内存仓储，不需要 JDBC 连接。 */
@@ -133,26 +122,5 @@ public final class AcademicService {
                                         CourseRosterRequest request)
             throws AcademicException {
         return courses.courseRoster(session, request);
-    }
-
-    public SchedulingOverviewDto schedulingOverview(SessionContext session) throws AcademicException {
-        return scheduling().overview(session);
-    }
-    public TeacherTimePreferenceDto saveTimePreference(SessionContext session, TeacherTimePreferenceDto value) throws AcademicException {
-        return scheduling().savePreference(session, value);
-    }
-    public void deleteTimePreference(SessionContext session, long id) throws AcademicException {
-        scheduling().deletePreference(session, id);
-    }
-    public AutoSchedulePreviewDto previewAutoSchedule(SessionContext session, AutoScheduleRequest request) throws AcademicException {
-        return scheduling().preview(session, request);
-    }
-    public AutoScheduleSaveResult confirmAutoSchedule(SessionContext session, AutoScheduleConfirmRequest request) throws AcademicException {
-        return scheduling().confirm(session, request);
-    }
-    private AutoSchedulingService scheduling() throws AcademicException {
-        if (autoScheduling == null) throw new AcademicException(edu.seu.vcampus.common.protocol.ResultCodes.INTERNAL_ERROR,
-                "当前运行模式未配置自动排课仓储");
-        return autoScheduling;
     }
 }

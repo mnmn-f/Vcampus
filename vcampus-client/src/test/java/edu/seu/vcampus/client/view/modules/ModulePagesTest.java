@@ -56,8 +56,10 @@ public final class ModulePagesTest {
             BasePage page = ModulePages.forModule(ModuleId.LIBRARY,
                     session(Role.STUDENT), null);
             assertTrue(page instanceof RealLibraryPage);
-            assertTrue(visibleText(page).contains("借阅此书"));
-            assertTrue(visibleText(page).contains("提交预约"));
+            String text = visibleText(page);
+            assertTrue(text.contains("图书查阅"));
+            assertTrue(text.contains("自习室预约"));
+            assertTrue(text.contains("确认预约"));
         } finally {
             if (old == null) System.clearProperty("vcampus.client.mode");
             else System.setProperty("vcampus.client.mode", old);

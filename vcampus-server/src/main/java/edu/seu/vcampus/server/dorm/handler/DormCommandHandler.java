@@ -33,8 +33,6 @@ import edu.seu.vcampus.server.security.SessionContext;
 
 /** 宿舍命令统一适配器，业务规则留在服务层。 */
 public final class DormCommandHandler implements CommandHandler {
-    private static final java.util.logging.Logger LOGGER =
-            java.util.logging.Logger.getLogger(DormCommandHandler.class.getName());
     private final String command;
     private final DormService service;
 
@@ -92,9 +90,6 @@ public final class DormCommandHandler implements CommandHandler {
         } catch (IllegalArgumentException ex) {
             return Message.failure(request, DormCommands.INVALID_INPUT, "请求参数格式不正确");
         } catch (RuntimeException ex) {
-            // 这一档兜的是服务层之外的意外（路由、序列化…）。不记日志的话，界面上那句
-            // 「暂时不可用」就是唯一的线索，谁也查不出真正坏在哪儿。
-            LOGGER.log(java.util.logging.Level.SEVERE, command + " unexpected failure", ex);
             return Message.failure(request, DormCommands.INTERNAL_ERROR, "宿舍服务暂时不可用");
         }
     }

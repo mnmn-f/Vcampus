@@ -23,18 +23,14 @@ final class DormExtSettingsWarningPanel extends JPanel {
 
     DormExtSettingsWarningPanel(BasePage page, DormExtClientService service) {
         this.page = page; this.service = service; setOpaque(false);
-        setLayout(new java.awt.BorderLayout());
-        exempt.setFont(DesignTokens.regular(15));
+        exempt.setFont(DesignTokens.regular(13));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         fields.add(UiFactory.labelledField("预警天数", warnDays));
         fields.add(UiFactory.labelledField("通知天数", notifyDays));
         fields.add(UiFactory.labelledField("请假期间", exempt));
-        add(DormExtSettingsSupport.wrap(new SectionCard("未归预警阈值",
-                        DormExtSettingsSupport.wrapText(
-                                "达到预警天数记「一般」，达到通知天数升「严重」；每日 08:00 的自动扫描用这组阈值。",
-                                240)), fields,
+        add(DormExtSettingsSupport.wrap(new SectionCard("未归预警阈值", "每日扫描使用此阈值。"), fields,
                 DormExtSettingsSupport.button("保存阈值", true, this::save),
-                DormExtSettingsSupport.button("重新读取", false, this::reload)), java.awt.BorderLayout.CENTER);
+                DormExtSettingsSupport.button("重新读取", false, this::reload)));
         reload();
     }
 

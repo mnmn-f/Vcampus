@@ -1,17 +1,12 @@
 package edu.seu.vcampus.server.ai.service;
 
 import edu.seu.vcampus.common.ai.AiActionConfirmation;
-import edu.seu.vcampus.common.ai.AiAnswerEvidence;
-import edu.seu.vcampus.common.ai.AiAttachment;
 import edu.seu.vcampus.common.ai.AiConfirmResult;
 import edu.seu.vcampus.common.ai.AiKnowledgeChunk;
-import edu.seu.vcampus.common.ai.AiKnowledgeTestResult;
-import edu.seu.vcampus.common.ai.AiMode;
 import edu.seu.vcampus.common.ai.AiMonitorSnapshot;
 import edu.seu.vcampus.common.ai.AiPendingAction;
 import edu.seu.vcampus.common.ai.AiQuery;
 import edu.seu.vcampus.common.ai.AiStreamChunk;
-import edu.seu.vcampus.common.ai.AiToolStatus;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.server.ai.model.AiModel;
@@ -23,15 +18,10 @@ import edu.seu.vcampus.server.ai.tool.AiToolRegistry;
 import edu.seu.vcampus.server.ai.tool.ToolBridge;
 import edu.seu.vcampus.server.ai.tool.ToolIntentParser;
 import edu.seu.vcampus.server.ai.tool.ToolResultFormatter;
-import edu.seu.vcampus.server.ai.tool.ModelToolIntentResolver;
-import edu.seu.vcampus.server.ai.tool.NamedEntityResolver;
 import edu.seu.vcampus.server.router.StreamWriter;
 import edu.seu.vcampus.server.security.SessionContext;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 /** AI 问答、RAG、工具确认和降级策略的编排入口。 */
 public final class AiAssistantService {
@@ -44,16 +34,12 @@ public final class AiAssistantService {
     private final ToolResultFormatter formatter = new ToolResultFormatter();
     private final AiPromptBuilder prompts = new AiPromptBuilder();
     private final AiModel model;
-    private final ModelToolIntentResolver modelIntents;
-    private final NamedEntityResolver entities;
     private final AiQueryLimiter limiter = new AiQueryLimiter();
 
     public AiAssistantService(AiConversationService conversations, AiKnowledgeService knowledge,
             AiToolService toolLogs, AiToolRegistry tools, ToolBridge bridge, AiModel model) {
         this.conversations = conversations; this.knowledge = knowledge; this.toolLogs = toolLogs;
         this.tools = tools; this.bridge = bridge; this.model = model;
-        this.modelIntents = new ModelToolIntentResolver(model, tools);
-        this.entities = new NamedEntityResolver(tools, bridge);
     }
 
     public void query(final Message envelope, final AiQuery query,
@@ -67,47 +53,11 @@ public final class AiAssistantService {
             registered = true;
             sessionId = conversations.beginQuery(session, query.getSessionId(),
                     query.getRequestId(), query.getText());
-            String history = conversations.recentContext(session, sessionId);
-            if (query.getMode() == AiMode.CHAT) {
-                answerChat(envelope, query, sessionId, writer, history);
-                return;
-            }
             AiToolInvocation invocation = intents.parse(query.getText());
-            if (invocation == null) {
-                invocation = modelIntents.resolve(query.getRequestId(), query.getText(),
-                        history, query.getMode());
-            } else {
-                AiTool parsedTool = tools.get(invocation.getToolName());
-                if (parsedTool != null && parsedTool.clarificationFor(
-                        invocation.getArgumentsJson()) != null) {
-                    AiToolInvocation enriched = modelIntents.resolve(query.getRequestId(),
-                            query.getText(), history, query.getMode());
-                    if (enriched != null && invocation.getToolName().equals(enriched.getToolName())) {
-                        invocation = enriched;
-                    }
-                }
-            }
             if (invocation != null) {
-                AiTool selected = tools.get(invocation.getToolName());
-                if (query.getMode() == AiMode.QA && selected != null
-                        && selected.isWriteOperation()) {
-                    String hint = "这是会修改数据的操作。请切换到“代办模式”后重试，系统仍会在执行前请你确认。";
-                    conversations.saveAssistant(sessionId, query.getRequestId(), hint, "COMPLETED");
-                    streamText(envelope, query, sessionId, writer, hint);
-                    complete(envelope, query, sessionId, writer); return;
-                }
-                invocation = entities.resolve(invocation, session);
-                String clarification = selected == null ? null
-                        : selected.clarificationFor(invocation.getArgumentsJson());
-                if (clarification != null) {
-                    String text = "【还需要一点信息】\n" + clarification;
-                    conversations.saveAssistant(sessionId, query.getRequestId(), text, "COMPLETED");
-                    streamText(envelope, query, sessionId, writer, text);
-                    complete(envelope, query, sessionId, writer); return;
-                }
                 handleTool(envelope, query, sessionId, session, writer, invocation);
             } else {
-                answer(envelope, query, sessionId, writer, history);
+                answer(envelope, query, sessionId, writer);
             }
         } catch (AiServiceException ex) {
             writer.write(Message.failure(envelope, ex.getResultCode(), ex.getMessage()));
@@ -141,8 +91,7 @@ public final class AiAssistantService {
         }
         AiTool tool = tools.get(record.getToolName());
         try {
-            String result = formatToolResult(tool,
-                    bridge.execute(tool, record.getArgumentsJson(), session));
+            String result = formatter.format(bridge.execute(tool, record.getArgumentsJson(), session));
             toolLogs.finish(record.getId(), "SUCCEEDED", result, Long.valueOf(session.getUserId()));
             conversations.saveAssistant(record.getSessionId(), record.getRequestId(), result, "COMPLETED");
             return new AiConfirmResult(record.getSessionId(), result);
@@ -154,42 +103,6 @@ public final class AiAssistantService {
 
     public AiMonitorSnapshot monitor() {
         return toolLogs.monitor(model.isConfigured(), model.getModelName(), knowledge.activeCount());
-    }
-
-    /** 在不写入学生会话的情况下预览知识检索与最终答案。 */
-    public AiKnowledgeTestResult testKnowledge(String question) {
-        if (blank(question) || question.trim().length() > 4000) {
-            throw new AiServiceException(ResultCodes.INVALID_INPUT, "测试问题不能为空且不能超过 4000 字");
-        }
-        List<AiKnowledgeChunk> chunks = knowledge.retrieve(question.trim(), 5);
-        if (!model.isConfigured()) {
-            return new AiKnowledgeTestResult(prompts.fallback(question, chunks), chunks, false);
-        }
-        final StringBuilder answer = new StringBuilder();
-        try {
-            AiPlainTextFilter filter = new AiPlainTextFilter(new AiTextSink() {
-                public void onText(String text) { answer.append(text); }
-            });
-            model.generate("knowledge-test-" + UUID.randomUUID().toString(),
-                    prompts.build(question.trim(), chunks, ""), filter);
-            filter.finish();
-            return new AiKnowledgeTestResult(answer.toString(), chunks, true);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new AiServiceException(ResultCodes.CONFLICT, "知识测试已取消");
-        } catch (Exception ex) {
-            return new AiKnowledgeTestResult(prompts.fallback(question, chunks), chunks, false);
-        }
-    }
-
-    public List<AiToolStatus> toolStatuses() {
-        List<AiToolStatus> result = new ArrayList<AiToolStatus>();
-        for (Map.Entry<String, AiTool> entry : tools.all().entrySet()) {
-            AiTool tool = entry.getValue();
-            result.add(new AiToolStatus(tool.getName(), tool.getDescription(),
-                    tool.getParameterGuide(), tool.isWriteOperation(), bridge.isAvailable(tool)));
-        }
-        return result;
     }
 
     private void handleTool(Message envelope, AiQuery query, String sessionId,
@@ -207,8 +120,7 @@ public final class AiAssistantService {
             complete(envelope, query, sessionId, writer); return;
         }
         try {
-            String result = formatToolResult(tool,
-                    bridge.execute(tool, invocation.getArgumentsJson(), session));
+            String result = formatter.format(bridge.execute(tool, invocation.getArgumentsJson(), session));
             toolLogs.finish(logId, "SUCCEEDED", result, null);
             conversations.saveAssistant(sessionId, query.getRequestId(), result, "COMPLETED");
             streamText(envelope, query, sessionId, writer, result); complete(envelope, query, sessionId, writer);
@@ -218,21 +130,18 @@ public final class AiAssistantService {
     }
 
     private void answer(final Message envelope, final AiQuery query,
-                        final String sessionId, final StreamWriter writer,
-                        final String history) throws Exception {
+                        final String sessionId, final StreamWriter writer) throws Exception {
         final List<AiKnowledgeChunk> chunks = knowledge.retrieve(query.getText(), 5);
         final StringBuilder answer = new StringBuilder();
         if (model.isConfigured()) {
             try {
-                AiPlainTextFilter filter = new AiPlainTextFilter(new AiTextSink() {
+                model.generate(query.getRequestId(), prompts.build(query.getText(), chunks),
+                        new AiTextSink() {
                             public void onText(String text) {
                                 answer.append(text); writer.write(Message.stream(envelope,
                                         new AiStreamChunk(query.getRequestId(), sessionId, text, false)));
                             }
                         });
-                model.generate(query.getRequestId(), prompts.build(query.getText(), chunks, history),
-                        filter);
-                filter.finish();
             } catch (InterruptedException ex) { throw ex; }
             catch (Exception ex) {
                 String fallback = prompts.fallback(query.getText(), chunks);
@@ -244,32 +153,7 @@ public final class AiAssistantService {
             answer.append(fallback); streamText(envelope, query, sessionId, writer, fallback);
         }
         conversations.saveAssistant(sessionId, query.getRequestId(), answer.toString(), "COMPLETED");
-        complete(envelope, query, sessionId, writer, evidence(chunks));
-    }
-
-    private void answerChat(final Message envelope, final AiQuery query,
-            final String sessionId, final StreamWriter writer, final String history) throws Exception {
-        final StringBuilder answer = new StringBuilder();
-        if (!model.isConfigured()) {
-            String fallback = "聊天模式需要配置大模型 API。校园实时查询仍可在问答模式使用，业务操作可在代办模式使用。";
-            answer.append(fallback); streamText(envelope, query, sessionId, writer, fallback);
-        } else {
-            AiPlainTextFilter filter = new AiPlainTextFilter(new AiTextSink() {
-                        public void onText(String text) {
-                            answer.append(text); writer.write(Message.stream(envelope,
-                                    new AiStreamChunk(query.getRequestId(), sessionId, text, false)));
-                        }
-                    });
-            model.generate(query.getRequestId(), prompts.chat(query.getText(), history),
-                    query.getAttachments(), filter);
-            filter.finish();
-        }
-        conversations.saveAssistant(sessionId, query.getRequestId(), answer.toString(), "COMPLETED");
         complete(envelope, query, sessionId, writer);
-    }
-
-    private String formatToolResult(AiTool tool, Object value) {
-        return "【实时数据｜" + tool.getDescription() + "】\n" + formatter.format(value);
     }
 
     private void streamText(Message envelope, AiQuery query, String sessionId,
@@ -282,55 +166,14 @@ public final class AiAssistantService {
     }
 
     private void complete(Message envelope, AiQuery query, String sessionId, StreamWriter writer) {
-        complete(envelope, query, sessionId, writer, null);
-    }
-
-    private void complete(Message envelope, AiQuery query, String sessionId, StreamWriter writer,
-            List<AiAnswerEvidence> evidence) {
         writer.write(Message.stream(envelope,
-                new AiStreamChunk(query.getRequestId(), sessionId, "", true, evidence)));
-    }
-
-    private List<AiAnswerEvidence> evidence(List<AiKnowledgeChunk> chunks) {
-        List<AiAnswerEvidence> result = new ArrayList<AiAnswerEvidence>();
-        for (AiKnowledgeChunk chunk : chunks) {
-            String excerpt = chunk.getContent() == null ? "" : chunk.getContent().trim();
-            if (excerpt.length() > 180) excerpt = excerpt.substring(0, 180) + "…";
-            result.add(new AiAnswerEvidence(chunk.getChunkId(), chunk.getTitle(),
-                    chunk.getSourceType(), excerpt, chunk.getUpdatedAt()));
-        }
-        return result;
+                new AiStreamChunk(query.getRequestId(), sessionId, "", true)));
     }
 
     private void validate(AiQuery query) {
         if (query == null || blank(query.getRequestId()) || blank(query.getText())
                 || query.getText().trim().length() > 4000) {
             throw new AiServiceException(ResultCodes.INVALID_INPUT, "问题不能为空且不能超过 4000 字");
-        }
-        List<AiAttachment> attachments = query.getAttachments();
-        if (!attachments.isEmpty() && query.getMode() != AiMode.CHAT) {
-            throw new AiServiceException(ResultCodes.INVALID_INPUT, "附件仅可在聊天模式使用");
-        }
-        if (attachments.size() > 3) {
-            throw new AiServiceException(ResultCodes.INVALID_INPUT, "一次最多上传 3 个附件");
-        }
-        long total = 0L;
-        for (AiAttachment attachment : attachments) {
-            if (attachment == null || blank(attachment.getFileName())
-                    || (!attachment.isImage() && !attachment.isText())) {
-                throw new AiServiceException(ResultCodes.INVALID_INPUT,
-                        "仅支持常见图片和文本/代码文件");
-            }
-            int size = attachment.getContent().length;
-            if (size <= 0 || (attachment.isImage() && size > 2 * 1024 * 1024)
-                    || (attachment.isText() && size > 256 * 1024)) {
-                throw new AiServiceException(ResultCodes.INVALID_INPUT,
-                        "图片不能超过 2 MB，文本文件不能超过 256 KB");
-            }
-            total += size;
-        }
-        if (total > 5 * 1024 * 1024L) {
-            throw new AiServiceException(ResultCodes.INVALID_INPUT, "附件总大小不能超过 5 MB");
         }
     }
 

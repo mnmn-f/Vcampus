@@ -26,6 +26,4 @@ public interface CampusCompetitionRepository {
     void cancelRegistration(Connection connection, long competitionId, long studentId) throws SQLException;
     CampusPage<CompetitionRegistrationDto> roster(Connection connection, long competitionId,
                                                   CampusPageQuery query) throws SQLException;
-    CampusPage<CompetitionRegistrationDto> registrationsForStudent(Connection connection,
-            long studentId, CampusPageQuery query) throws SQLException;
 }

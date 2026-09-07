@@ -51,7 +51,9 @@ public final class CampusSrtpPanel extends JPanel {
                 }, new AsyncPagedTable.SelectionListener<SrtpRecordDto>() {
                     @Override public void onSelected(SrtpRecordDto row) { select(row); }
                 });
-        return value;
+        JButton create = new PrimaryButton("新建项目"); create.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
+        }); value.addAction(create); return value;
     }
 
     private JPanel reviewCard() {
@@ -78,11 +80,7 @@ public final class CampusSrtpPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<SrtpRecordDto>() {
             @Override public SrtpRecordDto run() throws Exception { return service.saveSrtp(finalRequest); }
         }, new AsyncTask.Callback<SrtpRecordDto>() {
-            @Override public void onSuccess(SrtpRecordDto value) {
-                page.showSuccess("SRTP 项目已保存。"); editor.showRecord(value);
-                detail.setText("详情：" + RealUi.text(value.getTitle()) + "　" + RealUi.text(value.getDescription()));
-                table.reload();
-            }
+            @Override public void onSuccess(SrtpRecordDto value) { page.showSuccess("SRTP 项目已保存。"); table.reload(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }

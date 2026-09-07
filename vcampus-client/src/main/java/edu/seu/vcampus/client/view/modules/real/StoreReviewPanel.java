@@ -5,91 +5,27 @@ import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
-import edu.seu.vcampus.common.dto.store.OrderDto;
-import edu.seu.vcampus.common.dto.store.OrderItemDto;
-import edu.seu.vcampus.common.dto.store.OrderPage;
-import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.ProductReviewDto;
 import edu.seu.vcampus.common.dto.store.ProductReviewPage;
 import edu.seu.vcampus.common.dto.store.ProductReviewQuery;
 import edu.seu.vcampus.common.dto.store.ProductReviewWriteRequest;
-
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.SpinnerNumberModel;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import javax.swing.JButton;
+import javax.swing.JSpinner;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 
-/** 从本人已完成订单中选择商品并提交一次评价。 */
+/** 学生提交已完成订单的商品评价并查看评分记录。 */
 public final class StoreReviewPanel extends SectionCard {
-    private final BasePage page;
-    private final StoreClientService service;
-    private final JComboBox<Candidate> candidates = new JComboBox<Candidate>();
-    private final JSpinner score = new JSpinner(new SpinnerNumberModel(5, 1, 5, 1));
-    private final JTextArea content = UiFactory.textArea(3, 30);
-    private final JLabel state = UiFactory.muted("正在加载可评价商品…");
-    private final AsyncPagedTable<ProductReviewDto> reviews;
-
-    public StoreReviewPanel(BasePage page, StoreClientService service) {
-        super("商品评价", "从已完成订单中选择商品，无需填写订单或商品编号。");
-        this.page = page; this.service = service; reviews = reviewTable();
-        candidates.addActionListener(e -> reviews.reload());
-        JPanel form = new JPanel(new GridLayout(1, 3, 8, 8)); form.setOpaque(false);
-        form.add(UiFactory.labelledField("已购买商品", candidates));
-        form.add(UiFactory.labelledField("评分（1–5）", score));
-        PrimaryButton submit = new PrimaryButton("提交评价"); submit.addActionListener(e -> save()); form.add(submit);
-        JPanel editor = new JPanel(new BorderLayout(0, 8)); editor.setOpaque(false);
-        editor.add(form, BorderLayout.NORTH); editor.add(UiFactory.labelledField("评价内容", content), BorderLayout.CENTER);
-        editor.add(state, BorderLayout.SOUTH);
-        JPanel body = UiFactory.vertical(10); body.add(editor); body.add(reviews); setContent(body); reloadCandidates();
-    }
-
-    public void reloadCandidates() {
-        state.setText("正在加载可评价商品…");
-        AsyncTask.run(() -> service.getOwnOrders(new OrderQuery(null, null, "COMPLETED", 1, 100)),
-                new AsyncTask.Callback<OrderPage>() {
-                    @Override public void onSuccess(OrderPage value) {
-                        candidates.removeAllItems();
-                        for (OrderDto order : value.getItems())
-                            for (OrderItemDto item : order.getItems()) candidates.addItem(new Candidate(order, item));
-                        state.setText(candidates.getItemCount() == 0 ? "暂无已完成订单商品。" : "请选择商品后评价。");
-                        reviews.reload();
-                    }
-                    @Override public void onFailure(Throwable error) { state.setText("加载失败：" + AsyncTask.message(error)); }
-                });
-    }
-
-    private AsyncPagedTable<ProductReviewDto> reviewTable() {
-        return new AsyncPagedTable<ProductReviewDto>("商品评价记录", "显示当前所选商品的公开评价。", "", new String[0],
-                new String[]{"商品", "评分", "内容", "时间"},
-                (p, k, f) -> {
-                    Candidate selected = (Candidate) candidates.getSelectedItem();
-                    if (selected == null) return new PageSlice<ProductReviewDto>(null, 0, 1, 20);
-                    ProductReviewPage value = service.listReviews(new ProductReviewQuery(selected.item.getProductId(), p, 20));
-                    return new PageSlice<ProductReviewDto>(value.getItems(), value.getTotal(), p, 20);
-                }, value -> new Object[]{value.getProductName(), value.getScore(), RealUi.text(value.getContent()),
-                        RealUi.dateTime(value.getCreatedAt())}, null);
-    }
-
-    private void save() {
-        final Candidate selected = (Candidate) candidates.getSelectedItem();
-        if (selected == null) { page.showWarning("暂无可评价商品。"); return; }
-        ProductReviewWriteRequest request = new ProductReviewWriteRequest(selected.order.getId(), selected.item.getProductId(),
-                ((Number) score.getValue()).intValue(), RealUi.optional(content.getText()));
-        AsyncTask.run(() -> service.addReview(request), new AsyncTask.Callback<ProductReviewDto>() {
-            @Override public void onSuccess(ProductReviewDto value) {
-                page.showSuccess("评价已提交。"); content.setText(""); reviews.reload(); reloadCandidates();
-            }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
-        });
-    }
-
-    private static final class Candidate {
-        private final OrderDto order; private final OrderItemDto item;
-        private Candidate(OrderDto order, OrderItemDto item) { this.order = order; this.item = item; }
-        @Override public String toString() { return order.getOrderNo() + " · " + item.getProductName(); }
-    }
+    private final BasePage page; private final StoreClientService service;
+    private final JTextField order=UiFactory.textField(7), product=UiFactory.textField(7);
+    private final JSpinner score=new JSpinner(new SpinnerNumberModel(5,1,5,1));
+    private final JTextArea content=UiFactory.textArea(2,30); private final JLabel state=UiFactory.muted(" ");
+    private final AsyncPagedTable<ProductReviewDto> table;
+    public StoreReviewPanel(BasePage page,StoreClientService service){super("商品评价","仅本人已完成订单的明细可以评价一次。");this.page=page;this.service=service;table=new AsyncPagedTable<ProductReviewDto>("评价记录","输入商品编号查看评价。","商品编号",new String[0],new String[]{"商品","评分","内容","时间"},new AsyncPagedTable.Loader<ProductReviewDto>(){@Override public PageSlice<ProductReviewDto> load(int p,String k,String f)throws Exception{Long id=RealUi.number(k);if(id==null)return new PageSlice<ProductReviewDto>(null,0,1,20);ProductReviewPage v=StoreReviewPanel.this.service.listReviews(new ProductReviewQuery(id.longValue(),p,20));return new PageSlice<ProductReviewDto>(v.getItems(),v.getTotal(),p,20);}},new AsyncPagedTable.RowMapper<ProductReviewDto>(){@Override public Object[] values(ProductReviewDto v){return new Object[]{v.getProductName(),v.getScore(),RealUi.text(v.getContent()),RealUi.dateTime(v.getCreatedAt())};}},null);JPanel fields=new JPanel(new GridLayout(0,4,8,8));fields.setOpaque(false);fields.add(UiFactory.labelledField("订单编号",order));fields.add(UiFactory.labelledField("商品编号",product));fields.add(UiFactory.labelledField("评分",score));JButton save=new PrimaryButton("提交评价");save.addActionListener(new java.awt.event.ActionListener(){@Override public void actionPerformed(java.awt.event.ActionEvent e){save();}});fields.add(save);JPanel body=new JPanel(new BorderLayout(0,8));body.setOpaque(false);body.add(fields,BorderLayout.NORTH);body.add(UiFactory.labelledField("评价内容",content),BorderLayout.CENTER);body.add(state,BorderLayout.SOUTH);JPanel contentPanel=UiFactory.vertical(10);contentPanel.add(table);contentPanel.add(body);setContent(contentPanel);}
+    private void save(){try{final ProductReviewWriteRequest r=new ProductReviewWriteRequest(Long.parseLong(RealUi.required(order.getText(),"订单编号")),Long.parseLong(RealUi.required(product.getText(),"商品编号")),((Number)score.getValue()).intValue(),RealUi.optional(content.getText()));AsyncTask.run(new AsyncTask.Work<ProductReviewDto>(){@Override public ProductReviewDto run()throws Exception{return service.addReview(r);}},new AsyncTask.Callback<ProductReviewDto>(){@Override public void onSuccess(ProductReviewDto v){state.setText("评价已提交");table.reload();}@Override public void onFailure(Throwable e){state.setText(AsyncTask.message(e));page.showError(AsyncTask.message(e));}});}catch(Exception e){state.setText("订单和商品编号必须是整数");}}
 }

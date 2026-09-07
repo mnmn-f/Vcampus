@@ -21,7 +21,6 @@ import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderPage;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.OrderStatusUpdateRequest;
-import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
 import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.ProductPage;
@@ -67,7 +66,6 @@ public interface StoreClientService {
     OrderDto getOrderDetail(long orderId) throws NetworkClientException;
     OrderPage searchOrders(OrderQuery query) throws NetworkClientException;
     OrderDto updateOrderStatus(OrderStatusUpdateRequest request) throws NetworkClientException;
-    OrderDto updateOrderShipping(OrderShippingUpdateRequest request) throws NetworkClientException;
     StoreSalesPage salesReport(StoreSalesQuery query) throws NetworkClientException;
     StoreSalesTrendPage salesTrend(StoreSalesTrendQuery query) throws NetworkClientException;
     PromotionPage listPromotions() throws NetworkClientException;

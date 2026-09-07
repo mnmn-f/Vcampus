@@ -31,6 +31,7 @@ import edu.seu.vcampus.common.protocol.command.LibraryCommands;
 
 /** 真实网络客户端实现；页面只依赖 LibraryClientService。 */
 public final class NetworkLibraryClientService implements LibraryClientService {
+    @Override public PdfClientService pdf(edu.seu.vcampus.client.session.ClientSession session) { return new NetworkPdfClientService(network, session); }
     private final NetworkClientService network;
     private final ClientSession session;
 

@@ -12,9 +12,6 @@ import edu.seu.vcampus.common.dto.academic.StudentScheduleDto;
 import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CourseScheduleDto;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleConfirmRequest;
-import edu.seu.vcampus.common.dto.academic.AutoScheduleRequest;
-import edu.seu.vcampus.common.dto.academic.TeacherTimePreferenceDto;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.protocol.command.AcademicCommands;
@@ -98,26 +95,6 @@ public final class AcademicCommandHandler implements CommandHandler {
                 return Message.success(request, service.courseRoster(session,
                         require(payload, CourseRosterRequest.class)));
             }
-            if (AcademicCommands.SCHEDULING_OVERVIEW.equals(command)) {
-                return Message.success(request, service.schedulingOverview(session));
-            }
-            if (AcademicCommands.SCHEDULING_PREFERENCE_SAVE.equals(command)) {
-                return Message.success(request, service.saveTimePreference(session,
-                        require(payload, TeacherTimePreferenceDto.class)));
-            }
-            if (AcademicCommands.SCHEDULING_PREFERENCE_DELETE.equals(command)) {
-                ScheduleIdRequest value = require(payload, ScheduleIdRequest.class);
-                service.deleteTimePreference(session, value.getScheduleId());
-                return Message.success(request, null);
-            }
-            if (AcademicCommands.AUTO_SCHEDULE_PREVIEW.equals(command)) {
-                return Message.success(request, service.previewAutoSchedule(session,
-                        payload == null ? AutoScheduleRequest.defaults() : require(payload, AutoScheduleRequest.class)));
-            }
-            if (AcademicCommands.AUTO_SCHEDULE_CONFIRM.equals(command)) {
-                return Message.success(request, service.confirmAutoSchedule(session,
-                        require(payload, AutoScheduleConfirmRequest.class)));
-            }
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的教务操作");
         } catch (AcademicException ex) {
             if (ResultCodes.INTERNAL_ERROR.equals(ex.getResultCode())) {
@@ -142,11 +119,6 @@ public final class AcademicCommandHandler implements CommandHandler {
                 || AcademicCommands.SCHEDULE_DELETE.equals(command)) {
             return Permission.COURSE_MANAGE;
         }
-        if (AcademicCommands.SCHEDULING_OVERVIEW.equals(command)
-                || AcademicCommands.SCHEDULING_PREFERENCE_SAVE.equals(command)
-                || AcademicCommands.SCHEDULING_PREFERENCE_DELETE.equals(command)
-                || AcademicCommands.AUTO_SCHEDULE_PREVIEW.equals(command)
-                || AcademicCommands.AUTO_SCHEDULE_CONFIRM.equals(command)) return Permission.COURSE_MANAGE;
         if (AcademicCommands.TEACHER_COURSES.equals(command)
                 || AcademicCommands.COURSE_ROSTER.equals(command)) {
             return Permission.COURSE_TEACH;

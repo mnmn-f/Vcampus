@@ -11,7 +11,6 @@ import edu.seu.vcampus.common.dto.store.FriendPaymentQuery;
 import edu.seu.vcampus.common.dto.store.FriendPaymentRequest;
 import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.common.dto.store.OrderStatusUpdateRequest;
-import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
 import edu.seu.vcampus.common.dto.store.ProductQuery;
 import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
@@ -115,8 +114,6 @@ public final class StoreCommandHandler implements CommandHandler {
                 return Message.success(request, service.updateOrderStatus(session,
                         require(payload, OrderStatusUpdateRequest.class)));
             }
-            if (StoreCommands.ORDER_SHIPPING_UPDATE.equals(command)) return Message.success(request,
-                    service.updateOrderShipping(session, require(payload, OrderShippingUpdateRequest.class)));
             if (StoreCommands.ACCOUNT_GET.equals(command)) return Message.success(request, service.getAccount(session));
             if (StoreCommands.ACCOUNT_LEDGER.equals(command)) {
                 return Message.success(request, service.getAccountLedger(session,
@@ -163,7 +160,6 @@ public final class StoreCommandHandler implements CommandHandler {
         if (StoreCommands.CATEGORY_SAVE.equals(command) || StoreCommands.PROMOTION_LIST.equals(command)
                 || StoreCommands.PROMOTION_SAVE.equals(command)) return Permission.STORE_MANAGE;
         if (StoreCommands.ORDER_MANAGER_SEARCH.equals(command)) return Permission.STORE_SALES_READ;
-        if (StoreCommands.ORDER_SHIPPING_UPDATE.equals(command)) return Permission.STORE_MANAGE;
         if (StoreCommands.SALES_REPORT.equals(command)) return Permission.STORE_SALES_READ;
         if (StoreCommands.SALES_TREND.equals(command)) return Permission.STORE_SALES_READ;
         if (StoreCommands.REVIEW_LIST.equals(command)) return Permission.STORE_READ;

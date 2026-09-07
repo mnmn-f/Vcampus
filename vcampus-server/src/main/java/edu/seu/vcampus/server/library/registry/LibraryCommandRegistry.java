@@ -42,12 +42,15 @@ public final class LibraryCommandRegistry {
         return new LibraryService(new MySqlBookRepository(), new MySqlBorrowRepository(),
                 new MySqlStudyRoomRepository(), new MySqlStudyRoomReservationRepository(),
                 new MySqlOnlineResourceRepository(), new MySqlOnlineResourceAccessLogRepository(),
-                transactions);
+                transactions).withPdf(new edu.seu.vcampus.server.library.service.PdfLibraryService(
+                        new edu.seu.vcampus.server.library.repository.mysql.MySqlPdfRepository(),
+                        new edu.seu.vcampus.common.library.PdfFileStore(java.nio.file.Paths.get(
+                                System.getProperty("vcampus.library.files", "data/library-pdf"))), transactions));
     }
 
     public static CommandRouter register(CommandRouter router, final LibraryService service) {
         if (router == null || service == null) throw new IllegalArgumentException("library dependencies required");
-        return router
+        router
                 .register(LibraryCommands.BOOK_SEARCH, handler(Permission.LIBRARY_READ,
                         new ServiceAction(service, LibraryCommands.BOOK_SEARCH)))
                 .register(LibraryCommands.BOOK_DETAIL, handler(Permission.LIBRARY_READ,
@@ -80,6 +83,7 @@ public final class LibraryCommandRegistry {
                         new ServiceAction(service, LibraryCommands.RESOURCE_ACCESS)))
                 .register(LibraryCommands.RESOURCE_ACCESS_LOGS, handler(Permission.LIBRARY_MANAGE,
                         new ServiceAction(service, LibraryCommands.RESOURCE_ACCESS_LOGS)));
+        return PdfCommandRegistry.register(router, service.pdf());
     }
 
     public static CommandRouter registerAll(CommandRouter router, LibraryService service) {

@@ -15,18 +15,17 @@ import edu.seu.vcampus.common.dto.library.StudyRoomView;
 import edu.seu.vcampus.common.security.Role;
 
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 
 /** 自习室查询、学生预约取消和管理员开放状态维护。 */
 public final class LibraryRoomsPanel extends JPanel {
     private final BasePage page; private final LibraryClientService service; private final Role role;
-    private final AsyncPagedTable<StudyRoomView> rooms; private final JLabel detail = UiFactory.muted("选择自习室查看详情。");
+    private final AsyncPagedTable<StudyRoomView> rooms; private final javax.swing.JTextArea detail = UiFactory.textArea(2, 20);
     private final LibraryRoomEditorPanel editor; private final ReservationFormPanel reservation; private final AsyncPagedTable<StudyRoomReservationView> reservations;
 
     public LibraryRoomsPanel(BasePage page, LibraryClientService service, Role role) {
-        super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)); this.page = page; this.service = service; this.role = role; rooms = roomTable(); add(rooms);
+        super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)); this.page = page; this.service = service; this.role = role; detail.setEditable(false); detail.setText("选择自习室查看详情。"); rooms = roomTable(); add(rooms);
         JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
         if (role == Role.STUDENT) { reservation = new ReservationFormPanel(new ReservationFormPanel.Listener() {
             @Override public void onReserve(StudyRoomReservationRequest request) { reserve(request); }

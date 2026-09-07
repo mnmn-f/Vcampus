@@ -28,7 +28,6 @@ public interface CampusClientService {
     CompetitionRegistrationDto registerCompetition(long id) throws NetworkClientException;
     void cancelCompetition(long id) throws NetworkClientException;
     CampusPage<CompetitionRegistrationDto> competitionRoster(long id, CampusPageQuery query) throws NetworkClientException;
-    CampusPage<CompetitionRegistrationDto> myCompetitionRegistrations(CampusPageQuery query) throws NetworkClientException;
     CampusPage<SrtpRecordDto> mySrtp(CampusPageQuery query) throws NetworkClientException;
     CampusPage<SrtpRecordDto> listSrtp(CampusPageQuery query) throws NetworkClientException;
     SrtpRecordDto saveSrtp(SrtpSaveRequest request) throws NetworkClientException;

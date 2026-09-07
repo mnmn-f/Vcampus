@@ -75,17 +75,7 @@ public final class AiToolService {
                         repository.tableCount(c, "ai_chat_sessions", "WHERE status='ACTIVE'"),
                         repository.tableCount(c, "ai_chat_messages", ""), knowledgeCount,
                         repository.count(c, "CONFIRM_REQUIRED"), repository.count(c, "SUCCEEDED"),
-                        repository.count(c, "FAILED"),
-                        repository.tableCount(c, "ai_chat_messages",
-                                "WHERE created_at>=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)"),
-                        repository.tableCount(c, "ai_tool_call_logs",
-                                "WHERE created_at>=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)"),
-                        repository.tableCount(c, "ai_tool_call_logs",
-                                "WHERE status='FAILED' AND created_at>=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)"),
-                        repository.tableCount(c, "ai_tool_call_logs",
-                                "WHERE status='CONFIRM_REQUIRED' AND created_at<DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)"),
-                        repository.tableCount(c, "ai_answer_feedback", ""),
-                        repository.tableCount(c, "ai_answer_feedback", "WHERE rating='UNHELPFUL'"));
+                        repository.count(c, "FAILED"));
             }
         });
     }

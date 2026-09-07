@@ -73,12 +73,6 @@ public final class RolePolicy {
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE, Permission.DORM_MANAGE,
                 Permission.DORM_APPROVE, Permission.DORM_GOVERN,
                 Permission.ANNOUNCEMENT_MANAGE));
-        // 维修员只拿到「干活」这一条宿舍权限：他要进学生宿舍，但不该顺带看到住宿
-        // 名册、水电账单和卫生检查。派单需要的房间号和联系方式随工单一起下发，
-        // 而不是让他自己去查全楼的花名册。
-        result.put(Role.REPAIR_WORKER, immutable(
-                Permission.PROFILE_READ, Permission.PROFILE_UPDATE,
-                Permission.DORM_REPAIR_WORK));
         result.put(Role.AI_KNOWLEDGE_ADMIN, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE,
                 Permission.AI_KNOWLEDGE_MANAGE, Permission.SYSTEM_MONITOR));

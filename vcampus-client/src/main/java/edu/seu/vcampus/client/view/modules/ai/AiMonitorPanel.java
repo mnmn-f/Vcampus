@@ -25,8 +25,6 @@ public final class AiMonitorPanel extends SectionCard {
     private final JLabel knowledge = UiFactory.body("—");
     private final JLabel pending = UiFactory.body("—");
     private final JLabel tools = UiFactory.body("—");
-    private final JLabel recent = UiFactory.body("—");
-    private final JLabel feedback = UiFactory.body("—");
 
     public AiMonitorPanel(AiAssistantClientService service) {
         super("AI 服务运行监控", "");
@@ -35,11 +33,10 @@ public final class AiMonitorPanel extends SectionCard {
 
     private JComponent content() {
         JPanel root = new JPanel(new BorderLayout(0, 12)); root.setOpaque(false);
-        JPanel grid = new JPanel(new GridLayout(4, 2, 16, 12)); grid.setOpaque(false);
+        JPanel grid = new JPanel(new GridLayout(3, 2, 16, 12)); grid.setOpaque(false);
         grid.add(item("模型状态", model)); grid.add(item("活跃会话", sessions));
         grid.add(item("消息总数", messages)); grid.add(item("有效知识片段", knowledge));
         grid.add(item("待确认操作", pending)); grid.add(item("工具执行", tools));
-        grid.add(item("最近 24 小时", recent)); grid.add(item("回答反馈", feedback));
         JButton refresh = new SecondaryButton("刷新运行状态");
         refresh.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) { refresh(); }
@@ -71,15 +68,9 @@ public final class AiMonitorPanel extends SectionCard {
                     sessions.setText(Long.toString(snapshot.getActiveSessions()));
                     messages.setText(Long.toString(snapshot.getMessages()));
                     knowledge.setText(Long.toString(snapshot.getKnowledgeChunks()));
-                    pending.setText(Long.toString(snapshot.getPendingActions())
-                            + (snapshot.getStalePendingActions() > 0
-                            ? "（超时未清理 " + snapshot.getStalePendingActions() + "）" : ""));
+                    pending.setText(Long.toString(snapshot.getPendingActions()));
                     tools.setText("成功 " + snapshot.getSucceededTools()
                             + " / 失败 " + snapshot.getFailedTools());
-                    recent.setText("消息 " + snapshot.getMessages24h() + " / 工具 "
-                            + snapshot.getToolCalls24h() + " / 失败 " + snapshot.getFailedTools24h());
-                    feedback.setText("共 " + snapshot.getFeedbackCount() + " / 需改进 "
-                            + snapshot.getNegativeFeedbackCount());
                 } catch (Exception ex) { model.setText("读取失败"); }
             }
         }.execute();

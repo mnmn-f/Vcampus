@@ -80,37 +80,21 @@ final class DormAccommodationService extends DormServiceSupport {
                 AccommodationRequestDto pending = repository.lockRequest(c, request.getRequestId());
                 if (pending == null) throw new DormRepositoryException(DormCommands.REQUEST_NOT_FOUND, "住宿申请不存在");
                 if (!"PENDING".equals(pending.getStatus())) throw new DormRepositoryException(DormCommands.REQUEST_INVALID_STATE, "申请已处理");
-                if (request.isApproved()) apply(c, pending, bedOf(request, pending), session.getUserId());
+                if (request.isApproved()) apply(c, pending, session.getUserId());
                 return repository.finishRequest(c, pending.getId(), session.getUserId(), request.isApproved(), request.getRemark());
             }
         });
     }
 
-    /**
-     * 这次审批要落到哪张床。
-     *
-     * <p>优先用宿管当场点的那张；学生提交时没有填床位，所以申请单上的
-     * {@code requestedBedId} 通常是空的，只有历史数据才有值，留作兜底。</p>
-     */
-    private static Long bedOf(DormApprovalRequest request, AccommodationRequestDto pending) {
-        if (request.getBedId() != null) return request.getBedId();
-        return pending.getRequestedBedId();
-    }
-
-    private void apply(java.sql.Connection c, AccommodationRequestDto request, Long bed, long actor)
+    private void apply(java.sql.Connection c, AccommodationRequestDto request, long actor)
             throws java.sql.SQLException {
         String type = request.getRequestType();
-        if (!"CHECK_OUT".equals(type) && bed == null) {
-            // 通过就得有床位。放行一条「已通过但没落实」的申请，学生那边会看到批准
-            // 却仍然没有住处，宿管这边也没有任何地方提醒他还欠一次分配。
-            throw new DormException(DormCommands.INVALID_INPUT, "请先为这条申请指定床位，再点通过");
-        }
         if ("CHECK_IN".equals(type)) {
-            repository.assign(c, request.getStudentUserId(), bed.longValue(),
+            repository.assign(c, request.getStudentUserId(), request.getRequestedBedId().longValue(),
                     LocalDate.now(), actor);
         } else if ("TRANSFER".equals(type)) {
             repository.transfer(c, request.getStudentUserId(), request.getCurrentRecordId().longValue(),
-                    bed.longValue(), LocalDate.now(), actor);
+                    request.getRequestedBedId().longValue(), LocalDate.now(), actor);
         } else if ("CHECK_OUT".equals(type)) {
             repository.checkout(c, request.getStudentUserId(), request.getCurrentRecordId().longValue(),
                     LocalDate.now(), actor);

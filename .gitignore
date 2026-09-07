@@ -7,3 +7,6 @@ manual-classes/
 application-local.properties
 .codex-doc-review/
 ~$*.docx
+
+# Uploaded library PDFs are runtime data, not source files.
+data/library-pdf*/

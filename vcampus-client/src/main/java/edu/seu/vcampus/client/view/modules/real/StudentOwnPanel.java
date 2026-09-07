@@ -92,11 +92,16 @@ public final class StudentOwnPanel extends JPanel {
                             @Override public void run() { showMetrics(report.getMetrics()); }
                         });
                         StudentGradePage result = report.getGrades();
-                        return StudentGradeTableSupport.slice(result);
+                        return new PageSlice<StudentGradeDto>(result.getItems(), result.getTotal(),
+                                result.getPage(), result.getPageSize());
                     }
                 }, new AsyncPagedTable.RowMapper<StudentGradeDto>() {
                     @Override public Object[] values(StudentGradeDto row) {
-                        return StudentGradeTableSupport.row(row);
+                        return new Object[]{RealUi.text(row.getSemesterCode()), row.getCourseCode(),
+                                row.getCourseName(), RealUi.text(row.getCredits()),
+                                 RealUi.text(row.getScore()), RealUi.text(row.getGradePoint()),
+                                 row.isGpaIncluded() ? RealUi.status(row.getEnrollmentStatus())
+                                         : "不计入指标"};
                     }
                 }, null);
         javax.swing.JButton export = new PrimaryButton("导出当前范围");

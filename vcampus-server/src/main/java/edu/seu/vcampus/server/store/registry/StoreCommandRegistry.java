@@ -38,7 +38,6 @@ public final class StoreCommandRegistry {
         register(router, StoreCommands.ORDER_DETAIL, service);
         register(router, StoreCommands.ORDER_MANAGER_SEARCH, service);
         register(router, StoreCommands.ORDER_STATUS_UPDATE, service);
-        register(router, StoreCommands.ORDER_SHIPPING_UPDATE, service);
         register(router, StoreCommands.SALES_REPORT, service);
         register(router, StoreCommands.SALES_TREND, service);
         register(router, StoreCommands.PROMOTION_LIST, service);

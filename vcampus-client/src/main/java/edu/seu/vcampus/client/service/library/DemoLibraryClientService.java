@@ -23,6 +23,7 @@ import edu.seu.vcampus.common.dto.library.StudyRoomView;
 
 /** Demo 模式图书馆服务门面；数据仅保存在当前客户端进程。 */
 public final class DemoLibraryClientService implements LibraryClientService {
+    @Override public PdfClientService pdf(edu.seu.vcampus.client.session.ClientSession session) { return new DemoPdfClientService(session); }
     private final DemoBookService books = new DemoBookService();
     private final DemoStudyRoomService rooms = new DemoStudyRoomService();
     private final DemoOnlineResourceService resources = new DemoOnlineResourceService();

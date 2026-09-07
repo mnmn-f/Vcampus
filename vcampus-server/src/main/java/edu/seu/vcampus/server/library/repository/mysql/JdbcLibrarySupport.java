@@ -94,7 +94,7 @@ final class JdbcLibrarySupport {
                 r.getInt("total_copies"), r.getInt("available_copies"),
                 r.getString("location"), r.getString("description"),
                 r.getString("status"), timestamp(r, "created_at"),
-                timestamp(r, "updated_at"));
+                timestamp(r, "updated_at"), (Integer) r.getObject("publication_year"), r.getBytes("cover_image"));
     }
 
     static BorrowRecordView borrow(ResultSet r) throws SQLException {

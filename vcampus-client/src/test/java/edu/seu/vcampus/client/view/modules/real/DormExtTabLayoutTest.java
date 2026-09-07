@@ -43,76 +43,29 @@ public final class DormExtTabLayoutTest {
                 "在宿门禁", "宿舍公告"), titles(studentPage()));
     }
 
-    /**
-     * 未归和卫生各自成页，两边的东西不互相串门。
-     *
-     * <p>原来是靠一个工具类把 main 的治理面板拆开重新挂载，改成两个各自成立的面板
-     * 之后这条断言仍然成立，而且不再依赖那个面板的内部结构。</p>
-     */
     @Test
-    public void absenceAndHygieneAreSeparatePages() {
-        JTabbedPane tabs = tabs(managerPage());
+    public void governancePanelIsSplitIntoAbsenceAndHygiene() {
+        BasePage page = managerPage();
+        JTabbedPane tabs = tabs(page);
         Component absence = tabs.getComponentAt(indexOf(tabs, "未归管理"));
         Component hygiene = tabs.getComponentAt(indexOf(tabs, "卫生管理"));
 
-        assertTrue("未归页要有连续未归预警", hasText(absence, "连续未归预警"));
-        assertTrue("以及晚归记录和它的处理动作", hasText(absence, "晚归记录"));
-        assertTrue(hasText(absence, "处理晚归"));
-        assertFalse("卫生的东西不该出现在未归页", hasText(absence, "分项打分"));
+        // main 的两块各自落到对应的一页，没有互相串门
+        assertTrue("未归页应当带着 main 的未归预警列表", hasText(absence, "未归预警"));
+        assertTrue("以及它的处理动作", hasText(absence, "处理未归"));
+        assertFalse("卫生的东西不该出现在未归页", hasText(absence, "卫生检查与整改"));
 
-        assertTrue("卫生页要有待检任务的分项打分", hasText(hygiene, "分项打分"));
-        assertTrue("以及历史检查记录", hasText(hygiene, "检查记录"));
-        assertFalse("未归的东西不该出现在卫生页", hasText(hygiene, "处理晚归"));
+        assertTrue("卫生页应当带着 main 的卫生检查列表", hasText(hygiene, "卫生检查"));
+        assertTrue("以及它的检查表单", hasText(hygiene, "卫生检查与整改"));
+        assertFalse("未归的东西不该出现在卫生页", hasText(hygiene, "处理未归"));
     }
 
     @Test
     public void bothHalvesKeepTheirOwnExtensionPanels() {
         JTabbedPane tabs = tabs(managerPage());
+        assertTrue(hasText(tabs.getComponentAt(indexOf(tabs, "未归管理")), "手动扫描"));
         assertTrue(hasText(tabs.getComponentAt(indexOf(tabs, "未归管理")), "在宿一览"));
-        assertTrue(hasText(tabs.getComponentAt(indexOf(tabs, "卫生管理")), "检查任务"));
-    }
-
-    /**
-     * 卫生检查记录是只读的。
-     *
-     * <p>原来右边挂着一个「修订记录」表单，可以直接改总分和整改状态——那等于在五项
-     * 分制旁边开了个能随手覆盖它的后门。这条断言钉住它不会被加回来。</p>
-     */
-    @Test
-    public void hygieneRecordsAreReadOnly() {
-        JTabbedPane tabs = tabs(managerPage());
-        Component hygiene = tabs.getComponentAt(indexOf(tabs, "卫生管理"));
-        assertFalse(hasText(hygiene, "修订记录"));
-        assertFalse(hasButton(hygiene, "保存记录"));
-    }
-
-    /**
-     * 分配床位只有「申请与审批」一个入口。
-     *
-     * <p>房间平面图跟着分配动作走。「住宿与空间」回答的是「有多少楼、多少房、多少床」，
-     * 摆一张平面图在那儿只会让人以为在那也能放人。</p>
-     */
-    @Test
-    public void bedAssignmentLivesOnlyWithApprovals() {
-        JTabbedPane tabs = tabs(managerPage());
-        assertFalse(hasText(tabs.getComponentAt(indexOf(tabs, "住宿与空间")), "房间平面"));
-        assertTrue(hasText(tabs.getComponentAt(indexOf(tabs, "申请与审批")), "住宿申请"));
-    }
-
-    /** 维修员只有两页：派单权在宿管手上，没有让人自己抢单的队列。 */
-    @Test
-    public void repairWorkerHasNoQueueTab() {
-        assertEquals(Arrays.asList("我的工单", "处理记录"),
-                titles(new RealDormPage(session(Role.REPAIR_WORKER), services())));
-    }
-
-    private static boolean hasButton(Component root, String text) {
-        if (root instanceof AbstractButton && text.equals(((AbstractButton) root).getText())) return true;
-        if (!(root instanceof Container)) return false;
-        for (Component child : ((Container) root).getComponents()) {
-            if (hasButton(child, text)) return true;
-        }
-        return false;
+        assertTrue(hasText(tabs.getComponentAt(indexOf(tabs, "卫生管理")), "卫生检查评分"));
     }
 
     @Test

@@ -1,3 +1,7 @@
+> 本文保留上一轮交付记录。本次 PDF 审核与自适应布局升级以
+> [LIBRARY_UPGRADE_GUIDE.md](LIBRARY_UPGRADE_GUIDE.md) 和 [LIBRARY_VALIDATION.md](LIBRARY_VALIDATION.md) 为准。
+> PDF 演示数据已增加本机持久化，其余原有 Demo 数据规则见新说明。
+
 # 图书馆模块交付说明
 
 ## 本次实现结果

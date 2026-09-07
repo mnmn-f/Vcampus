@@ -1,6 +1,5 @@
 package edu.seu.vcampus.server.dorm.ext.handler;
 
-import edu.seu.vcampus.common.dto.dorm.ext.RepairWorkRequest;
 import edu.seu.vcampus.common.protocol.*;
 import edu.seu.vcampus.common.protocol.command.DormExtCommands;
 import edu.seu.vcampus.common.security.Permission;
@@ -48,25 +47,6 @@ public final class DormExtCommandHandler implements CommandHandler {
         if (DormExtCommands.NOTICE_MINE.equals(command)) return Message.success(request, service.myNotices(s, DormExtPayloads.query(p)));
         if (DormExtCommands.NOTICE_LIST.equals(command)) return Message.success(request, service.notices(s, DormExtPayloads.query(p)));
         if (DormExtCommands.NOTICE_EXTRA_SET.equals(command)) return Message.success(request, service.saveNoticeExtra(s, DormExtPayloads.notice(p)));
-        if (DormExtCommands.HOME_SUMMARY.equals(command)) return Message.success(request, service.homeSummary(s));
-        if (DormExtCommands.REPAIR_QUEUE.equals(command)) return Message.success(request, service.repairQueue(s, DormExtPayloads.query(p)));
-        if (DormExtCommands.REPAIR_ASSIGNED.equals(command)) return Message.success(request, service.repairAssigned(s, DormExtPayloads.query(p)));
-        if (DormExtCommands.REPAIR_HISTORY.equals(command)) return Message.success(request, service.repairHistory(s, DormExtPayloads.query(p)));
-        // Message 的载荷要求 Serializable，而 List 是接口——装进 ArrayList 再发，
-        // 它本身可序列化，也在反序列化白名单里。
-        if (DormExtCommands.REPAIR_WORKERS.equals(command)) return Message.success(request, new java.util.ArrayList<edu.seu.vcampus.common.dto.dorm.ext.RepairWorkerDto>(service.repairWorkers(s)));
-        if (DormExtCommands.REPAIR_DETAIL.equals(command)) return Message.success(request, service.repairDetail(s, DormExtPayloads.orderId(p)));
-        if (DormExtCommands.REPAIR_ASSIGN.equals(command)) return Message.success(request, service.assignRepair(s, DormExtPayloads.assign(p)));
-        // 通过与打回共用一条命令，用 RepairWorkRequest 的 note 携带判定：note 为 "REJECT"
-        // 表示打回，其余表示通过。两个动作的入参完全一样，分成两条命令只是多一份登记。
-        if (DormExtCommands.REPAIR_REVIEW.equals(command)) {
-            RepairWorkRequest payload = DormExtPayloads.work(p);
-            boolean approved = payload == null || !"REJECT".equals(payload.getNote());
-            return Message.success(request, service.reviewRepair(s, payload, approved));
-        }
-        if (DormExtCommands.REPAIR_ACCEPT.equals(command)) return Message.success(request, service.acceptRepair(s, DormExtPayloads.work(p)));
-        if (DormExtCommands.REPAIR_START.equals(command)) return Message.success(request, service.startRepair(s, DormExtPayloads.work(p)));
-        if (DormExtCommands.REPAIR_FINISH.equals(command)) return Message.success(request, service.finishRepair(s, DormExtPayloads.work(p)));
         if (DormExtCommands.STAY_MINE.equals(command)) return Message.success(request, service.myStayStatus(s));
         if (DormExtCommands.STAY_LIST.equals(command)) return Message.success(request, service.stayStatuses(s));
         if (DormExtCommands.ACCESS_MINE.equals(command)) return Message.success(request, service.myAccessRecords(s, DormExtPayloads.query(p)));
@@ -79,17 +59,8 @@ public final class DormExtCommandHandler implements CommandHandler {
     }
     @Override public Permission requiredPermission() {
         if (DormExtCommands.VISITOR_SUBMIT.equals(command) || DormExtCommands.VISITOR_CANCEL.equals(command) || DormExtCommands.REPAIR_PERMIT_SET.equals(command)) return Permission.DORM_REQUEST;
-        if (DormExtCommands.VISITOR_MINE.equals(command) || DormExtCommands.STAY_MINE.equals(command) || DormExtCommands.HOME_SUMMARY.equals(command) || DormExtCommands.ACCESS_MINE.equals(command) || DormExtCommands.REPAIR_PERMIT_MINE.equals(command) || DormExtCommands.NOTICE_MINE.equals(command)) return Permission.DORM_SELF_READ;
+        if (DormExtCommands.VISITOR_MINE.equals(command) || DormExtCommands.STAY_MINE.equals(command) || DormExtCommands.ACCESS_MINE.equals(command) || DormExtCommands.REPAIR_PERMIT_MINE.equals(command) || DormExtCommands.NOTICE_MINE.equals(command)) return Permission.DORM_SELF_READ;
         if (DormExtCommands.ROOM_DELETE.equals(command)) return Permission.DORM_MANAGE;
-        // 维修员只有这一条宿舍权限，七个工单命令全归它管。
-        if (DormExtCommands.REPAIR_QUEUE.equals(command) || DormExtCommands.REPAIR_ASSIGNED.equals(command)
-                || DormExtCommands.REPAIR_HISTORY.equals(command)
-                || DormExtCommands.REPAIR_ACCEPT.equals(command) || DormExtCommands.REPAIR_START.equals(command)
-                || DormExtCommands.REPAIR_FINISH.equals(command)) return Permission.DORM_REPAIR_WORK;
-        // 派单是调度动作，归宿管；维修员只能接自己够得着的单。
-        if (DormExtCommands.REPAIR_WORKERS.equals(command) || DormExtCommands.REPAIR_ASSIGN.equals(command)
-                || DormExtCommands.REPAIR_REVIEW.equals(command)
-                || DormExtCommands.REPAIR_DETAIL.equals(command)) return Permission.DORM_GOVERN;
         if (DormExtCommands.VISITOR_LIST.equals(command) || DormExtCommands.VISITOR_AUDIT.equals(command)) return Permission.DORM_APPROVE;
         return Permission.DORM_GOVERN;
     }

@@ -20,7 +20,6 @@ public final class DormExtService extends DormServiceSupport {
     private final DormExtHygieneService hygiene;
     private final DormExtAccessService access;
     private final DormExtNoticeService notice;
-    private final DormExtRepairWorkService repairWork;
     private final DormSchedulerStatus schedulerStatus = new DormSchedulerStatus();
     private volatile DormTaskRunner taskRunner;
 
@@ -30,7 +29,6 @@ public final class DormExtService extends DormServiceSupport {
         meter = new DormExtMeterService(repository, transactions); warning = new DormExtWarningService(repository, transactions);
         visitor = new DormExtVisitorService(repository, transactions); hygiene = new DormExtHygieneService(repository, transactions);
         access = new DormExtAccessService(repository, transactions); notice = new DormExtNoticeService(repository, transactions);
-        repairWork = new DormExtRepairWorkService(repository, transactions);
     }
     public DormExtService(DormExtRepository repository) { this(repository, null); }
 
@@ -52,17 +50,6 @@ public final class DormExtService extends DormServiceSupport {
     public HygieneDetailDto hygieneDetail(SessionContext s, HygieneDetailRequest r) { return hygiene.detail(s, r); }
     public HygieneTaskGenerateResultDto generateHygieneTasks(SessionContext s, HygieneTaskGenerateRequest r) { return hygiene.generateTasks(s, r); }
     public DormPage<HygieneTaskDto> hygieneTasks(SessionContext s, DormPageQuery q) { return hygiene.tasks(s, q); }
-    public DormHomeSummaryDto homeSummary(SessionContext s) { return access.homeSummary(s); }
-    public DormPage<RepairWorkOrderDto> repairQueue(SessionContext s, DormPageQuery q) { return repairWork.queue(s, q); }
-    public DormPage<RepairWorkOrderDto> repairAssigned(SessionContext s, DormPageQuery q) { return repairWork.assigned(s, q, true); }
-    public DormPage<RepairWorkOrderDto> repairHistory(SessionContext s, DormPageQuery q) { return repairWork.assigned(s, q, false); }
-    public java.util.List<RepairWorkerDto> repairWorkers(SessionContext s) { return repairWork.workers(s); }
-    public RepairWorkOrderDto repairDetail(SessionContext s, Long orderId) { return repairWork.detail(s, orderId == null ? 0L : orderId.longValue()); }
-    public RepairWorkOrderDto assignRepair(SessionContext s, RepairAssignRequest r) { return repairWork.assign(s, r); }
-    public RepairWorkOrderDto reviewRepair(SessionContext s, RepairWorkRequest r, boolean approved) { return repairWork.review(s, r, approved); }
-    public RepairWorkOrderDto acceptRepair(SessionContext s, RepairWorkRequest r) { return repairWork.accept(s, r); }
-    public RepairWorkOrderDto startRepair(SessionContext s, RepairWorkRequest r) { return repairWork.start(s, r); }
-    public RepairWorkOrderDto finishRepair(SessionContext s, RepairWorkRequest r) { return repairWork.finish(s, r); }
     public StayStatusDto myStayStatus(SessionContext s) { return access.myStay(s); }
     public DormPage<StayStatusDto> stayStatuses(SessionContext s) { return access.stays(s); }
     public DormPage<AccessRecordExtDto> myAccessRecords(SessionContext s, DormPageQuery q) { return access.access(s, q); }

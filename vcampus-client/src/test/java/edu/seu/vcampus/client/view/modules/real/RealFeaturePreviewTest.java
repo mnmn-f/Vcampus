@@ -37,7 +37,9 @@ public final class RealFeaturePreviewTest {
     public void renderFeaturePreviews() throws Exception {
         renderStore(1100, 720); renderStore(1280, 820);
         renderLeave(1100, 720, true); renderLeave(1280, 820, true);
-        renderManager(1100, 720); renderManager(1280, 820);
+        renderLeave(1100, 720, false); renderLeave(1280, 820, false);
+        renderManager(1100, 720, true); renderManager(1280, 820, true);
+        renderManager(1100, 720, false); renderManager(1280, 820, false);
         renderSpaceEditor(1100, 720); renderSpaceEditor(1280, 820);
     }
 
@@ -48,36 +50,24 @@ public final class RealFeaturePreviewTest {
                 new ComponentFactory() { @Override public JComponent create(PreviewPage page) { return new StoreSalesPanel(page, service); } }, ready);
     }
 
-    /**
-     * 学生端请假页预览。
-     *
-     * <p>原来还画一张「报修评价」，那个面板已经并进新的报修服务页——评价、入内授权
-     * 和进度本来就是同一张工单的三个侧面，单独渲染一个已不存在的面板没有意义。</p>
-     */
     private static void renderLeave(final int width, final int height, final boolean student) throws Exception {
         CountDownLatch ready = new CountDownLatch(1);
         final DormClientService service = dormService(ready);
-        render("student-leave-" + width + "x" + height,
+        render((student ? "student-leave-" : "student-repair-evaluation-") + width + "x" + height,
                 width, height, Role.STUDENT, new ComponentFactory() {
                     @Override public JComponent create(PreviewPage page) {
-                        return new DormStudentLeavePanel(page, service);
+                        return student ? new DormStudentLeavePanel(page, service) : new DormStudentRepairEvaluationPanel(page, service);
                     }
                 }, ready);
     }
 
-    /**
-     * 宿管端住宿与空间预览。
-     *
-     * <p>原来还画一张「请假审批」，那三张审批表已经合并成「待我处理的申请」一张表，
-     * 而合并页要同时接宿舍和扩展两个服务，不适合放进这个只造一个假服务的预览夹具。</p>
-     */
-    private static void renderManager(final int width, final int height) throws Exception {
-        CountDownLatch ready = new CountDownLatch(3);
+    private static void renderManager(final int width, final int height, final boolean leave) throws Exception {
+        CountDownLatch ready = new CountDownLatch(leave ? 1 : 3);
         final DormClientService service = dormService(ready);
-        render("manager-space-" + width + "x" + height,
+        render((leave ? "manager-leave-" : "manager-space-") + width + "x" + height,
                 width, height, Role.DORM_MANAGER, new ComponentFactory() {
                     @Override public JComponent create(PreviewPage page) {
-                        return new DormManagerSpacePanel(page, service);
+                        return leave ? new DormManagerLeavePanel(page, service) : new DormManagerSpacePanel(page, service);
                     }
                 }, ready);
     }

@@ -17,7 +17,6 @@ import java.util.List;
 /** Read-only current and historical enrollment view for the authenticated student. */
 public final class StudentEnrollmentsPanel extends JPanel {
     private final AcademicClientService service;
-    private final AsyncPagedTable<StudentEnrollmentDto> enrollments;
 
     public StudentEnrollmentsPanel(BasePage page, AcademicClientService service) {
         super(new BorderLayout());
@@ -26,10 +25,8 @@ public final class StudentEnrollmentsPanel extends JPanel {
         }
         setOpaque(false);
         this.service = service;
-        enrollments = table(); add(enrollments, BorderLayout.CENTER);
+        add(table(), BorderLayout.CENTER);
     }
-
-    public void reload() { enrollments.reload(); }
 
     private AsyncPagedTable<StudentEnrollmentDto> table() {
         return new AsyncPagedTable<StudentEnrollmentDto>("我的选课记录",

@@ -21,6 +21,4 @@ public interface StoreOrderRepository {
     boolean decrementStock(Connection connection, long productId, int quantity);
     void incrementStock(Connection connection, long productId, int quantity);
     boolean updateOrderStatus(Connection connection, long orderId, String status);
-    boolean updateOrderShipping(Connection connection, long orderId, String shippingStatus,
-                                String trackingNo, String remark);
 }

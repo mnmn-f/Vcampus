@@ -27,8 +27,6 @@ public final class InMemoryDormExtRepository implements DormExtRepository {
     public synchronized void addApprovedLeave(long id, LocalDate date) { warning.addApprovedLeave(id, date); }
     public synchronized void addAccessRecord(long id, long student, String type, LocalDateTime at, String door) { access.addAccess(id, student, type, at, door); }
     public synchronized void addRepairOrder(long order, long reporter, long roomId, String category, String status) { access.addRepair(order, reporter, roomId, category, status); }
-    public synchronized void setRepairPriority(long order, String priority) { access.setPriority(order, priority); }
-    public synchronized void addRepairWorker(long userId, String displayName) { access.addRepairWorker(userId, displayName); }
     public synchronized void setPhone(long id, String phone) { access.setPhone(id, phone); }
     public synchronized void addAccommodation(long student, long roomId) { visitor.addAccommodation(student, roomId); }
     public synchronized void addTask(long id, long roomId, String type, LocalDate date, String status) { hygiene.addTask(id, roomId, type, date, status); }
@@ -69,30 +67,6 @@ public final class InMemoryDormExtRepository implements DormExtRepository {
     @Override public synchronized int markTasksDone(Connection c, long room, LocalDate before, long inspection) { return hygiene.markTasksDone(room, before, inspection); }
     @Override public synchronized DormPage<HygieneTaskDto> listTasks(Connection c, DormPageQuery q) { return hygiene.listTasks(q); }
 
-    /**
-     * 内存实现只回填住宿与同寝人数，账单和卫生留空。
-     *
-     * <p>首屏摘要要读的账单、卫生检查在内存实现里根本没有对应的存储——它们只在
-     * MySQL 那套里有表。与其为了这一个方法凭空造两套假数据，不如老实返回空值：
-     * 用到它的测试关心的是「有没有在住记录、同寝几个人」，那两格显示占位就对了。</p>
-     */
-    @Override public synchronized DormHomeSummaryDto homeSummary(Connection c, long student) {
-        Long room = visitor.activeRoom(student);
-        if (room == null) return DormHomeSummaryDto.empty();
-        int occupied = access.activeResidents(room.longValue());
-        return new DormHomeSummaryDto(true, room.longValue(), null, null, null, 0, occupied,
-                java.math.BigDecimal.ZERO, 0, null, null, null, null, null, 0);
-    }
-    @Override public synchronized DormPage<RepairWorkOrderDto> repairQueue(Connection c, DormPageQuery q) { return access.repairQueue(q); }
-    @Override public synchronized DormPage<RepairWorkOrderDto> repairAssigned(Connection c, long handler, DormPageQuery q, boolean active) { return access.repairAssigned(handler, q, active); }
-    @Override public synchronized RepairWorkOrderDto findRepairWork(Connection c, long order, long handler) { return access.findRepairWork(order, handler); }
-    @Override public synchronized int claimRepair(Connection c, long order, long handler) { return access.claimRepair(order, handler); }
-    @Override public synchronized int startRepair(Connection c, long order, long handler) { return access.startRepair(order, handler); }
-    @Override public synchronized int finishRepair(Connection c, long order, long handler) { return access.finishRepair(order, handler); }
-    @Override public synchronized List<RepairWorkerDto> repairWorkers(Connection c) { return access.repairWorkers(); }
-    @Override public synchronized int assignRepair(Connection c, long order, long worker) { return access.assignRepair(order, worker); }
-    @Override public synchronized int reviewRepair(Connection c, long order, boolean approved) { return access.reviewRepair(order, approved); }
-    @Override public synchronized RepairWorkOrderDto findRepairForManager(Connection c, long order) { return access.findRepairForManager(order); }
     @Override public synchronized List<StayStatusDto> stayStatusRows(Connection c, Long student) { return access.stayRows(student); }
     @Override public synchronized AccessPolicyDto loadAccessPolicy(Connection c) { return access.policy(); }
     @Override public synchronized AccessPolicyDto saveAccessPolicy(Connection c, AccessPolicyRequest r, long actor) { return access.savePolicy(r); }

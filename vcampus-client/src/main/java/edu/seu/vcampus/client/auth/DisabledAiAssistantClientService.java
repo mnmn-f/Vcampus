@@ -9,7 +9,7 @@ import java.util.UUID;
 /** 未接入模型时的明确降级实现，不伪造 AI 回答。 */
 public final class DisabledAiAssistantClientService implements AiAssistantClientService {
     @Override
-    public String query(String sessionId, String text, AiMode mode, AiStreamListener listener) {
+    public String query(String sessionId, String text, AiStreamListener listener) {
         String requestId = UUID.randomUUID().toString();
         if (listener == null) {
             return requestId;
@@ -22,8 +22,6 @@ public final class DisabledAiAssistantClientService implements AiAssistantClient
     public void cancel(String requestId) {
         // 接口阶段没有后台模型任务。
     }
-
-    public boolean ping() { return false; }
 
     public String newRequestId() {
         return UUID.randomUUID().toString();

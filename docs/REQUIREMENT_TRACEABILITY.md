@@ -98,9 +98,6 @@
 |---|---|---|---|---|---|---|
 | 会话、消息、流式响应、取消与可选模型 | AiCommands；AiQuery、AiStreamChunk、AiCancelRequest | AiAssistantService、AiConversationService、ResponsesAiModel；无密钥时本地降级 | ai_chat_sessions、ai_chat_messages | AiAssistantPage、AiChatPanel | ResponsesAiModelTest、AI 专项测试 | 完整闭环 |
 | 知识检索、维护、工具确认与并发防重 | AiKnowledge*、AiActionConfirmation、AiPendingAction | AiKnowledgeService、KnowledgeRanker、AiToolRegistry、AiToolService；写操作原子领取后复用业务路由 | ai_knowledge_chunks、ai_tool_call_logs | AiKnowledgePanel、AiMonitorPanel；学生与 AI 知识管理员按职责显示 | KnowledgeRankerTest、CampusCommandToolTest、AiToolClaimMySqlIntegrationTest | 完整闭环 |
-| DeepSeek 默认模型、聊天图片/PDF/Office/文本附件、分模式快捷问题 | AiAttachment、AiQuery；附件只在 CHAT 模式 | AiModelConfig、ResponsesAiModel、AiPlainTextFilter；图片使用视觉模型，办公文档在客户端提取文字，附件不入库 | 会话仅保存文字问题；附件不持久化 | AiChatPanel、AiAttachmentLoader | ResponsesAiModelTest、AiQueryAttachmentTest、AiAttachmentLoaderTest、AiPlainTextFilterTest | 完整闭环 |
-| 47 个结构化业务工具、缺参多轮澄清、20 个写工具 | AiPendingAction 与各业务既有 DTO | AiToolRegistry、CampusCommandTool、ModelToolIntentResolver、NamedEntityResolver；动作意图优先写工具，唯一开放自习室可自动匹配，确认后复用业务路由 | ai_tool_call_logs；参数不全时不创建待确认记录 | AiChatPanel 确认弹窗 | AiToolRegistryTest、CampusCommandToolTest、ToolIntentParserTest、ToolResultFormatterTest | 完整闭环 |
-| 小松鼠桌宠、喂食抚摸、最小化桌面形态与 AI 活动状态 | 无新增跨端协议；只使用 `ModuleId.AI_ASSISTANT` 权限结果 | 无服务端变更；桌宠不调用模型或业务命令 | 无新增表；位置与好感度使用客户端 `Preferences` | AppFrame、SquirrelPetController、SquirrelPetWidget、PetStateModel；AiChatPanel 通过可选监听器上报状态 | AiChatPanelPetStateTest、PetInteractionMathTest、PetStateModelTest、SquirrelPetWidgetTest | 完整闭环 |
 
 ## 九、网络与组合根
 

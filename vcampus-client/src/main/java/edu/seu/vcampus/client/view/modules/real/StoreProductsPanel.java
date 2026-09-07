@@ -28,17 +28,11 @@ public final class StoreProductsPanel extends JPanel {
     private final JTextField category = UiFactory.textField(12);
     private final AsyncPagedTable<ProductDto> products;
     private final StoreProductEditorPanel editor;
-    private final Runnable cartChanged;
     private long selectedProductId;
 
     public StoreProductsPanel(BasePage page, StoreClientService service, Role role) {
-        this(page, service, role, null);
-    }
-
-    public StoreProductsPanel(BasePage page, StoreClientService service, Role role,
-                              Runnable cartChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
-        this.page = page; this.service = service; this.role = role; this.cartChanged = cartChanged;
+        this.page = page; this.service = service; this.role = role;
         editor = role == Role.STORE_MANAGER ? new StoreProductEditorPanel(new EditorListener()) : null;
         JPanel filter = UiFactory.horizontal(8); filter.add(UiFactory.body("分类编码")); filter.add(category);
         JButton apply = new edu.seu.vcampus.client.ui.components.SecondaryButton("按分类筛选");
@@ -52,9 +46,7 @@ public final class StoreProductsPanel extends JPanel {
     private AsyncPagedTable<ProductDto> table() {
         AsyncPagedTable<ProductDto> table = new AsyncPagedTable<ProductDto>("商品检索与库存", 
                 "搜索商品并查看库存。",
-                "搜索商品名称、编码或说明", role == Role.STUDENT
-                        ? new String[]{"全部商品", "在售"}
-                        : new String[]{"全部状态", "在售", "已下架", "草稿", "已归档"},
+                "搜索商品名称或分类", new String[]{"全部状态", "在售", "已下架", "草稿", "已归档"},
                 new String[]{"编码", "商品", "分类", "单价", "库存", "状态"},
                 new AsyncPagedTable.Loader<ProductDto>() {
                     @Override public PageSlice<ProductDto> load(int p, String keyword, String filter) throws Exception {
@@ -103,9 +95,7 @@ public final class StoreProductsPanel extends JPanel {
             @Override public edu.seu.vcampus.common.dto.store.CartDto run() throws Exception { return service.addCartItem(new CartItemRequest(value.getId(), 1)); }
         },
                 new AsyncTask.Callback<edu.seu.vcampus.common.dto.store.CartDto>() {
-                    @Override public void onSuccess(edu.seu.vcampus.common.dto.store.CartDto result) {
-                        page.showSuccess("商品已加入购物车。"); if (cartChanged != null) cartChanged.run();
-                    }
+                    @Override public void onSuccess(edu.seu.vcampus.common.dto.store.CartDto result) { page.showSuccess("商品已加入购物车。"); }
                     @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
                 });
     }

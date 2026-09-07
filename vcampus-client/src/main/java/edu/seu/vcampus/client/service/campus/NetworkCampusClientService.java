@@ -51,7 +51,6 @@ public final class NetworkCampusClientService implements CampusClientService {
     @Override public CompetitionRegistrationDto registerCompetition(long id) throws NetworkClientException { return value(call(CampusCommands.COMPETITION_REGISTER, new CompetitionRegistrationRequest(id)), CompetitionRegistrationDto.class); }
     @Override public void cancelCompetition(long id) throws NetworkClientException { call(CampusCommands.COMPETITION_CANCEL, new CompetitionRegistrationRequest(id)); }
     @Override public CampusPage<CompetitionRegistrationDto> competitionRoster(long id, CampusPageQuery q) throws NetworkClientException { return page(call(CampusCommands.COMPETITION_ROSTER, new CompetitionRosterRequest(id, q))); }
-    @Override public CampusPage<CompetitionRegistrationDto> myCompetitionRegistrations(CampusPageQuery q) throws NetworkClientException { return page(call(CampusCommands.COMPETITION_MINE, q)); }
     @Override public CampusPage<SrtpRecordDto> mySrtp(CampusPageQuery q) throws NetworkClientException { return page(call(CampusCommands.SRTP_MINE, q)); }
     @Override public CampusPage<SrtpRecordDto> listSrtp(CampusPageQuery q) throws NetworkClientException { return page(call(CampusCommands.SRTP_LIST, q)); }
     @Override public SrtpRecordDto saveSrtp(SrtpSaveRequest r) throws NetworkClientException { return value(call(CampusCommands.SRTP_SAVE, r), SrtpRecordDto.class); }

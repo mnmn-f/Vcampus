@@ -47,77 +47,21 @@ public final class AiKnowledgeRepository {
     }
 
     public AiKnowledgeChunk save(Connection c, AiKnowledgeSaveRequest r, long userId) throws Exception {
-        if (r.getChunkId() == null) {
-            AiKnowledgeChunk inserted = insert(c, r, userId);
-            addVersion(c, inserted, userId); return inserted;
-        }
+        if (r.getChunkId() == null) return insert(c, r, userId);
         PreparedStatement ps = c.prepareStatement(
                 "UPDATE ai_knowledge_chunks SET source_type=?,title=?,content=?,status=?,updated_by=? WHERE id=?");
         try {
             bindSave(ps, r, userId); ps.setLong(6, r.getChunkId().longValue());
             if (ps.executeUpdate() != 1) throw new IllegalArgumentException("knowledge chunk not found");
         } finally { ps.close(); }
-        AiKnowledgeChunk updated = get(c, r.getChunkId().longValue());
-        addVersion(c, updated, userId); return updated;
-    }
-
-    public List<edu.seu.vcampus.common.ai.AiKnowledgeVersion> versions(
-            Connection c, long chunkId) throws Exception {
-        PreparedStatement ps = c.prepareStatement(
-                "SELECT id,chunk_id,version_no,source_type,title,content,status,created_at "
-                        + "FROM ai_knowledge_versions WHERE chunk_id=? ORDER BY version_no DESC");
-        try {
-            ps.setLong(1, chunkId); ResultSet rs = ps.executeQuery();
-            try {
-                List<edu.seu.vcampus.common.ai.AiKnowledgeVersion> out =
-                        new ArrayList<edu.seu.vcampus.common.ai.AiKnowledgeVersion>();
-                while (rs.next()) out.add(new edu.seu.vcampus.common.ai.AiKnowledgeVersion(
-                        rs.getLong(1), rs.getLong(2), rs.getInt(3), rs.getString(4),
-                        rs.getString(5), rs.getString(6), rs.getString(7),
-                        rs.getTimestamp(8).getTime()));
-                return out;
-            } finally { rs.close(); }
-        } finally { ps.close(); }
-    }
-
-    public AiKnowledgeChunk rollback(Connection c, long chunkId, long versionId,
-            long userId) throws Exception {
-        PreparedStatement ps = c.prepareStatement(
-                "SELECT source_type,title,content,status FROM ai_knowledge_versions "
-                        + "WHERE id=? AND chunk_id=?");
-        try {
-            ps.setLong(1, versionId); ps.setLong(2, chunkId); ResultSet rs = ps.executeQuery();
-            try {
-                if (!rs.next()) throw new IllegalArgumentException("knowledge version not found");
-                AiKnowledgeSaveRequest request = new AiKnowledgeSaveRequest(Long.valueOf(chunkId),
-                        rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4));
-                return save(c, request, userId);
-            } finally { rs.close(); }
-        } finally { ps.close(); }
-    }
-
-    private void addVersion(Connection c, AiKnowledgeChunk chunk, long userId) throws Exception {
-        PreparedStatement ps = c.prepareStatement(
-                "INSERT INTO ai_knowledge_versions(chunk_id,version_no,source_type,title,content,"
-                        + "status,created_by) SELECT ?,COALESCE(MAX(version_no),0)+1,?,?,?,?,? "
-                        + "FROM ai_knowledge_versions WHERE chunk_id=?");
-        try {
-            ps.setLong(1, chunk.getChunkId()); ps.setString(2, chunk.getSourceType());
-            ps.setString(3, chunk.getTitle()); ps.setString(4, chunk.getContent());
-            ps.setString(5, chunk.getStatus()); ps.setLong(6, userId);
-            ps.setLong(7, chunk.getChunkId()); ps.executeUpdate();
-        } finally { ps.close(); }
+        return get(c, r.getChunkId().longValue());
     }
 
     public void deactivate(Connection c, long id, long userId) throws Exception {
         PreparedStatement ps = c.prepareStatement(
                 "UPDATE ai_knowledge_chunks SET status='INACTIVE',updated_by=? WHERE id=?");
-        try {
-            ps.setLong(1, userId); ps.setLong(2, id);
-            if (ps.executeUpdate() != 1) throw new IllegalArgumentException("knowledge chunk not found");
-        }
+        try { ps.setLong(1, userId); ps.setLong(2, id); ps.executeUpdate(); }
         finally { ps.close(); }
-        addVersion(c, get(c, id), userId);
     }
 
     public long activeCount(Connection c) throws Exception {

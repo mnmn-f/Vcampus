@@ -5,8 +5,6 @@ import edu.seu.vcampus.client.network.NetworkClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
 import edu.seu.vcampus.common.dto.store.ProductDto;
-import edu.seu.vcampus.common.dto.store.OrderDto;
-import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.StoreSalesPage;
 import edu.seu.vcampus.common.dto.store.StoreSalesQuery;
 import edu.seu.vcampus.common.protocol.Message;
@@ -55,18 +53,6 @@ public final class NetworkStoreClientServiceTest {
         assertEquals(StoreCommands.SALES_REPORT, gateway.lastRequest.getCommand());
         assertEquals(query, gateway.lastRequest.getPayload());
         assertEquals("token-8", gateway.lastRequest.getSessionToken());
-    }
-
-    @Test public void shippingUpdateUsesManagerCommandAndRequest() throws Exception {
-        RecordingGateway gateway = new RecordingGateway(); ClientSession session = new ClientSession();
-        session.open(new LoginResult(8L, "manager", "管理员", Role.STORE_MANAGER, "token-8"));
-        NetworkStoreClientService service = new NetworkStoreClientService(new NetworkClientService(gateway), session);
-        OrderDto expected = new OrderDto(1L, "O-1", 7L, BigDecimal.TEN, "PAID", java.util.Collections.emptyList());
-        gateway.payload = expected;
-        OrderShippingUpdateRequest request = new OrderShippingUpdateRequest(1L, "SHIPPED", "YT1", null);
-        assertEquals(expected, service.updateOrderShipping(request));
-        assertEquals(StoreCommands.ORDER_SHIPPING_UPDATE, gateway.lastRequest.getCommand());
-        assertEquals(request, gateway.lastRequest.getPayload());
     }
 
     private static final class RecordingGateway implements ClientGateway {

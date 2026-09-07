@@ -10,11 +10,6 @@ import edu.seu.vcampus.common.dto.dorm.ext.AccessRecordExtDto;
 import edu.seu.vcampus.common.dto.dorm.ext.BillGenerateRequest;
 import edu.seu.vcampus.common.dto.dorm.ext.DormExtStatusDto;
 import edu.seu.vcampus.common.dto.dorm.ext.BillGenerateResultDto;
-import edu.seu.vcampus.common.dto.dorm.ext.DormHomeSummaryDto;
-import edu.seu.vcampus.common.dto.dorm.ext.RepairAssignRequest;
-import edu.seu.vcampus.common.dto.dorm.ext.RepairWorkOrderDto;
-import edu.seu.vcampus.common.dto.dorm.ext.RepairWorkerDto;
-import edu.seu.vcampus.common.dto.dorm.ext.RepairWorkRequest;
 import edu.seu.vcampus.common.dto.dorm.ext.HygieneDetailDto;
 import edu.seu.vcampus.common.dto.dorm.ext.HygieneDetailRequest;
 import edu.seu.vcampus.common.dto.dorm.ext.HygieneScoreSubmitRequest;
@@ -81,39 +76,6 @@ public interface DormExtClientService {
     // ---- 在宿状态、门禁、入内许可与房间删除 ----
 
     /** 学生查看本人在宿状态。 */
-    /** 宿管：可派单的维修员及其在手工单数。 */
-    java.util.List<RepairWorkerDto> repairWorkers() throws NetworkClientException;
-
-    /** 宿管：单张工单的派单详情，含入内授权与联系电话。 */
-    RepairWorkOrderDto repairDetail(long orderId) throws NetworkClientException;
-
-    /** 宿管：审核维修员报上来的完工；打回时把请求的备注设成 REJECT。 */
-    RepairWorkOrderDto reviewRepair(RepairWorkRequest request) throws NetworkClientException;
-
-    /** 宿管：把工单派给某个维修员。 */
-    RepairWorkOrderDto assignRepair(RepairAssignRequest request) throws NetworkClientException;
-
-    /** 维修员：待接工单队列。 */
-    DormPage<RepairWorkOrderDto> repairQueue(DormPageQuery query) throws NetworkClientException;
-
-    /** 维修员：派给自己且在处理中的工单。 */
-    DormPage<RepairWorkOrderDto> repairAssigned(DormPageQuery query) throws NetworkClientException;
-
-    /** 维修员：自己已完工或已取消的工单。 */
-    DormPage<RepairWorkOrderDto> repairHistory(DormPageQuery query) throws NetworkClientException;
-
-    /** 维修员接单。 */
-    RepairWorkOrderDto acceptRepair(RepairWorkRequest request) throws NetworkClientException;
-
-    /** 维修员开工。 */
-    RepairWorkOrderDto startRepair(RepairWorkRequest request) throws NetworkClientException;
-
-    /** 维修员完工。 */
-    RepairWorkOrderDto finishRepair(RepairWorkRequest request) throws NetworkClientException;
-
-    /** 学生「我的住宿」首屏摘要，一次取回住宿、同寝人数、未缴水电与最近卫生检查。 */
-    DormHomeSummaryDto homeSummary() throws NetworkClientException;
-
     StayStatusDto myStayStatus() throws NetworkClientException;
 
     /** 宿管查看全部在住学生的在宿状态。 */

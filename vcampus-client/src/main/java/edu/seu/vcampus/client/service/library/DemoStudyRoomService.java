@@ -24,7 +24,18 @@ final class DemoStudyRoomService {
         for (StudyRoomView value : rooms) {
             boolean capacity = query.getMinCapacity() == null
                     || value.getCapacity() >= query.getMinCapacity().intValue();
-            if (capacity && DemoLibrarySupport.matches(
+            boolean available = true;
+            if (query.getStartAt() != null && query.getEndAt() != null) {
+                for (StudyRoomReservationView reservation : reservations) {
+                    if (reservation.getRoomId() == value.getId()
+                            && "RESERVED".equals(reservation.getStatus())
+                            && reservation.getStartAt().isBefore(query.getEndAt())
+                            && reservation.getEndAt().isAfter(query.getStartAt())) {
+                        available = false; break;
+                    }
+                }
+            }
+            if (capacity && available && DemoLibrarySupport.matches(
                     value.getBuildingName() + " " + value.getRoomNo(), query.getKeyword())
                     && DemoLibrarySupport.same(query.getStatus(), value.getStatus())) {
                 result.add(value);
