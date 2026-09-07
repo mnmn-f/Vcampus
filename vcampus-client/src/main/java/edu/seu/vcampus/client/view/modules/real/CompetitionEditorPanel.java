@@ -16,15 +16,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import org.threeten.bp.LocalDateTime;
-import org.threeten.bp.format.DateTimeFormatter;
 
 /** 教务老师比赛发布与编辑的页面内表单。 */
 public final class CompetitionEditorPanel extends SectionCard {
     public interface Listener { void onSave(CompetitionSaveRequest request); }
-    private static final DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private final JTextField title = field(); private final JTextField start = field();
-    private final JTextField end = field(); private final JTextField deadline = field();
+    private final JTextField title = field(); private final DormDateTimeField start = new DormDateTimeField();
+    private final DormDateTimeField end = new DormDateTimeField(); private final DormDateTimeField deadline = new DormDateTimeField();
     private final JTextField capacity = field(); private final JTextArea description = UiFactory.textArea(3, 28);
     private final JComboBox<RealUi.CodeOption> status = new JComboBox<RealUi.CodeOption>(
             RealUi.options("DRAFT", "PUBLISHED", "CLOSED", "CANCELLED"));
@@ -48,16 +45,14 @@ public final class CompetitionEditorPanel extends SectionCard {
     }
 
     public void startNew() {
-        id = 0L; title.setText(""); capacity.setText("100"); start.setText(""); end.setText(""); deadline.setText("");
+        id = 0L; title.setText(""); capacity.setText("100"); start.clear(); end.clear(); deadline.clear();
         description.setText(""); status.setSelectedItem(RealUi.option("DRAFT")); error.setText(" ");
     }
 
     public void showCompetition(CompetitionDto value) {
         if (value == null) { startNew(); return; }
         id = value.getId(); title.setText(RealUi.input(value.getTitle())); capacity.setText(RealUi.input(value.getCapacity()));
-        start.setText(value.getStartAt() == null ? "" : FORMAT.format(value.getStartAt()));
-        end.setText(value.getEndAt() == null ? "" : FORMAT.format(value.getEndAt()));
-        deadline.setText(value.getRegistrationDeadline() == null ? "" : FORMAT.format(value.getRegistrationDeadline()));
+        start.setValue(value.getStartAt()); end.setValue(value.getEndAt()); deadline.setValue(value.getRegistrationDeadline());
         description.setText(RealUi.input(value.getDescription())); status.setSelectedItem(RealUi.option(value.getStatus())); error.setText(" ");
     }
 
@@ -66,17 +61,13 @@ public final class CompetitionEditorPanel extends SectionCard {
             Integer seats = Integer.valueOf(RealUi.required(capacity.getText(), "容量"));
             CompetitionSaveRequest request = new CompetitionSaveRequest(id == 0L ? null : Long.valueOf(id),
                     RealUi.required(title.getText(), "比赛名称"), RealUi.optional(description.getText()),
-                    parse(start.getText(), "开始时间"), parse(end.getText(), "结束时间"), parse(deadline.getText(), "报名截止"),
+                    start.required("开始时间"), end.required("结束时间"), deadline.required("报名截止"),
                     seats, RealUi.code(status.getSelectedItem()));
             if (listener != null) listener.onSave(request); error.setText(" ");
         } catch (NumberFormatException ex) { error.setText("容量必须是数字"); }
         catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }
     }
 
-    private static LocalDateTime parse(String value, String label) {
-        try { return LocalDateTime.parse(RealUi.required(value, label), FORMAT); }
-        catch (IllegalArgumentException ex) { throw new IllegalArgumentException(label + "格式应为 yyyy-MM-dd HH:mm"); }
-    }
     private static JTextField field() { return UiFactory.textField(12); }
     private static void add(JPanel panel, String label, java.awt.Component field) { panel.add(UiFactory.labelledField(label, field)); }
 }

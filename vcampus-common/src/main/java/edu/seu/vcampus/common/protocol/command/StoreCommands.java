@@ -24,6 +24,7 @@ public final class StoreCommands {
     public static final String ORDER_DETAIL = "store.order.detail";
     public static final String ORDER_MANAGER_SEARCH = "store.order.manager-search";
     public static final String ORDER_STATUS_UPDATE = "store.order.status-update";
+    public static final String ORDER_SHIPPING_UPDATE = "store.order.shipping-update";
     public static final String SALES_REPORT = "store.sales.report";
     public static final String SALES_TREND = "store.sales.trend";
 

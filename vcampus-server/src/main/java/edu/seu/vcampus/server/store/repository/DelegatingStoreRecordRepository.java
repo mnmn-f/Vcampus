@@ -114,6 +114,10 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     @Override public boolean updateOrderStatus(Connection c, long id, String s) {
         return orders.updateOrderStatus(c, id, s);
     }
+    @Override public boolean updateOrderShipping(Connection c, long id, String status,
+            String tracking, String remark) {
+        return orders.updateOrderShipping(c, id, status, tracking, remark);
+    }
 
     @Override public StoreSalesPage findSales(Connection c, StoreSalesQuery q) {
         if (sales == null) throw new UnsupportedOperationException("sales repository is required");

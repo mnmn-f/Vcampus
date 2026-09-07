@@ -18,7 +18,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
+import javax.swing.JOptionPane;
 import java.awt.BorderLayout;
+import java.util.HashMap;
+import java.util.Map;
 
 /** 比赛列表、学生报名/取消及教务老师维护报名名单。 */
 public final class CampusCompetitionsPanel extends JPanel {
@@ -26,6 +29,9 @@ public final class CampusCompetitionsPanel extends JPanel {
     private final AsyncPagedTable<CompetitionDto> table; private final CompetitionEditorPanel editor;
     private final JLabel detail = UiFactory.muted("选择比赛查看详情。");
     private final JTextArea roster = UiFactory.textArea(4, 60);
+    private final Map<Long, String> myRegistrations = new HashMap<Long, String>();
+    private JButton registerButton;
+    private JButton cancelButton;
 
     public CampusCompetitionsPanel(BasePage page, CampusClientService service, Role role) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
@@ -40,26 +46,33 @@ public final class CampusCompetitionsPanel extends JPanel {
         AsyncPagedTable<CompetitionDto> value = new AsyncPagedTable<CompetitionDto>("校园比赛",
                 "学生报名或取消报名，教务老师负责发布活动和查看名单。", "搜索比赛名称",
                 new String[]{"全部状态", "已发布", "已截止", "已取消"},
-                new String[]{"比赛名称", "时间", "报名截止", "人数", "状态"},
+                role == Role.STUDENT
+                        ? new String[]{"比赛名称", "时间", "报名截止", "人数", "活动状态", "报名状态"}
+                        : new String[]{"比赛名称", "时间", "报名截止", "人数", "状态"},
                 new AsyncPagedTable.Loader<CompetitionDto>() {
                     @Override public PageSlice<CompetitionDto> load(int p, String keyword, String filter) throws Exception {
+                        if (role == Role.STUDENT) loadMyRegistrations();
                         return RealUi.page(service.competitions(new CampusCompetitionQuery(
                                 new CampusPageQuery(p, 20, keyword, status(filter)))));
                     }
                 }, new AsyncPagedTable.RowMapper<CompetitionDto>() {
-                    @Override public Object[] values(CompetitionDto row) { return new Object[]{row.getTitle(), RealUi.dateTime(row.getStartAt()) + " - " + RealUi.dateTime(row.getEndAt()),
-                            RealUi.dateTime(row.getRegistrationDeadline()), row.getRegisteredCount() + "/" + RealUi.text(row.getCapacity()),
-                            RealUi.status(row.getStatus())}; }
+                    @Override public Object[] values(CompetitionDto row) {
+                        Object[] base = new Object[]{row.getTitle(), RealUi.dateTime(row.getStartAt()) + " - " + RealUi.dateTime(row.getEndAt()),
+                                RealUi.dateTime(row.getRegistrationDeadline()), row.getRegisteredCount() + "/" + RealUi.text(row.getCapacity()), RealUi.status(row.getStatus())};
+                        if (role != Role.STUDENT) return base;
+                        return new Object[]{base[0], base[1], base[2], base[3], base[4], registrationLabel(row.getId())};
+                    }
                 }, new AsyncPagedTable.SelectionListener<CompetitionDto>() {
                     @Override public void onSelected(CompetitionDto row) { select(row); }
                 });
         if (role == Role.STUDENT) {
-            JButton register = new PrimaryButton("报名"); register.addActionListener(new java.awt.event.ActionListener() {
+            JButton open = new JButton("打开详情"); open.addActionListener(e -> openDetail()); value.addAction(open);
+            registerButton = new PrimaryButton("报名"); registerButton.setEnabled(false); registerButton.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { register(); }
-            }); value.addAction(register);
-            JButton cancel = new DangerButton("取消报名"); cancel.addActionListener(new java.awt.event.ActionListener() {
+            }); value.addAction(registerButton);
+            cancelButton = new DangerButton("取消报名"); cancelButton.setEnabled(false); cancelButton.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { cancel(); }
-            }); value.addAction(cancel);
+            }); value.addAction(cancelButton);
         } else if (role == Role.ACADEMIC_ADMIN) {
             JButton create = new PrimaryButton("新建比赛"); create.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
@@ -68,6 +81,9 @@ public final class CampusCompetitionsPanel extends JPanel {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { loadRoster(); }
             }); value.addAction(refresh);
         }
+        value.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) { if (e.getClickCount() == 2) openDetail(); }
+        });
         return value;
     }
 
@@ -78,6 +94,7 @@ public final class CampusCompetitionsPanel extends JPanel {
     }
 
     private void select(CompetitionDto value) {
+        if (role == Role.STUDENT) updateActions(value);
         if (value == null) { detail.setText("选择比赛查看详情。"); if (editor != null) editor.startNew(); return; }
         detail.setText("比赛详情：" + RealUi.text(value.getTitle()) + "　" + RealUi.text(value.getDescription())
                 + "　报名 " + value.getRegisteredCount() + "/" + RealUi.text(value.getCapacity()));
@@ -89,7 +106,7 @@ public final class CampusCompetitionsPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<Object>() {
             @Override public Object run() throws Exception { return service.registerCompetition(value.getId()); }
         }, new AsyncTask.Callback<Object>() {
-            @Override public void onSuccess(Object result) { page.showSuccess("报名成功。"); table.reload(); }
+            @Override public void onSuccess(Object result) { myRegistrations.put(value.getId(), "REGISTERED"); updateActions(value); page.showSuccess("报名成功。"); table.reload(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
@@ -100,7 +117,7 @@ public final class CampusCompetitionsPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<Boolean>() {
             @Override public Boolean run() throws Exception { service.cancelCompetition(value.getId()); return Boolean.TRUE; }
         }, new AsyncTask.Callback<Boolean>() {
-            @Override public void onSuccess(Boolean result) { page.showSuccess("报名已取消。"); table.reload(); }
+            @Override public void onSuccess(Boolean result) { myRegistrations.put(value.getId(), "CANCELLED"); updateActions(value); page.showSuccess("报名已取消。"); table.reload(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
@@ -136,6 +153,30 @@ public final class CampusCompetitionsPanel extends JPanel {
 
     private CompetitionDto selected() {
         CompetitionDto value = table.selectedItem(); if (value == null) page.showWarning("请先选择比赛。"); return value;
+    }
+    private void openDetail() {
+        CompetitionDto value = selected(); if (value == null) return;
+        JTextArea text = UiFactory.textArea(12, 52); text.setEditable(false); text.setLineWrap(true); text.setWrapStyleWord(true);
+        text.setText(RealUi.text(value.getDescription()) + "\n\n开始：" + RealUi.dateTime(value.getStartAt())
+                + "\n结束：" + RealUi.dateTime(value.getEndAt()) + "\n报名截止："
+                + RealUi.dateTime(value.getRegistrationDeadline()) + "\n报名人数："
+                + value.getRegisteredCount() + "/" + RealUi.text(value.getCapacity()));
+        text.setCaretPosition(0);
+        JOptionPane.showMessageDialog(this, new JScrollPane(text), value.getTitle(), JOptionPane.INFORMATION_MESSAGE);
+    }
+    private void loadMyRegistrations() throws Exception {
+        CampusPage<CompetitionRegistrationDto> mine = service.myCompetitionRegistrations(new CampusPageQuery(1, 100, null, null));
+        myRegistrations.clear();
+        for (CompetitionRegistrationDto value : mine.getItems()) myRegistrations.put(value.getCompetitionId(), value.getStatus());
+    }
+    private String registrationLabel(long competitionId) {
+        String value = myRegistrations.get(Long.valueOf(competitionId));
+        return "REGISTERED".equals(value) ? "已报名" : "CANCELLED".equals(value) ? "已取消" : "未报名";
+    }
+    private void updateActions(CompetitionDto value) {
+        boolean registered = value != null && "REGISTERED".equals(myRegistrations.get(Long.valueOf(value.getId())));
+        if (registerButton != null) registerButton.setEnabled(value != null && !registered && "PUBLISHED".equals(value.getStatus()));
+        if (cancelButton != null) cancelButton.setEnabled(registered);
     }
     private static String status(String filter) {
         if ("已发布".equals(filter)) return "PUBLISHED"; if ("已截止".equals(filter)) return "CLOSED";

@@ -10,6 +10,7 @@ public final class CampusCommands {
     public static final String COMPETITION_REGISTER = "campus.competition.register";
     public static final String COMPETITION_CANCEL = "campus.competition.cancel";
     public static final String COMPETITION_ROSTER = "campus.competition.roster";
+    public static final String COMPETITION_MINE = "campus.competition.mine";
     public static final String SRTP_MINE = "campus.srtp.mine";
     public static final String SRTP_LIST = "campus.srtp.list";
     public static final String SRTP_SAVE = "campus.srtp.save";

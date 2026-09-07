@@ -4,6 +4,7 @@ import edu.seu.vcampus.client.service.campus.CampusClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
+import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.campus.CampusAnnouncementDto;
 import edu.seu.vcampus.common.dto.campus.CampusAnnouncementQuery;
@@ -14,7 +15,11 @@ import edu.seu.vcampus.common.security.Role;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JOptionPane;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 
 /** 通用模块公告查询；指定职责可在当前页面发布、编辑和撤回。 */
 public final class CampusAnnouncementsPanel extends JPanel {
@@ -47,19 +52,28 @@ public final class CampusAnnouncementsPanel extends JPanel {
     private AsyncPagedTable<CampusAnnouncementDto> createTable() {
         AsyncPagedTable<CampusAnnouncementDto> value = new AsyncPagedTable<CampusAnnouncementDto>(
                 displayTitle, canManage() ? "公告管理" : "查看已生效公告。", "搜索标题或正文",
-                new String[]{"全部状态", "已发布", "草稿", "定时发布"},
-                new String[]{"标题", "可见范围", "正文摘要", "生效时间", "状态"},
+                canManage() ? new String[]{"全部状态", "已发布", "草稿", "定时发布"} : null,
+                columns(),
                 new AsyncPagedTable.Loader<CampusAnnouncementDto>() {
                     @Override public PageSlice<CampusAnnouncementDto> load(int p, String keyword, String filter) throws Exception {
                         return RealUi.page(service.announcements(new CampusAnnouncementQuery(
-                                new CampusPageQuery(p, 20, keyword, status(filter)), moduleCode)));
+                                new CampusPageQuery(p, 20, keyword,
+                                        canManage() ? status(filter) : "PUBLISHED"), moduleCode)));
                     }
                 }, new AsyncPagedTable.RowMapper<CampusAnnouncementDto>() {
-                    @Override public Object[] values(CampusAnnouncementDto row) { return new Object[]{row.getTitle(), scope(row.getVisibleScope()), row.getContent(),
-                            RealUi.dateTime(row.getPublishAt()), RealUi.status(row.getStatus())}; }
+                    @Override public Object[] values(CampusAnnouncementDto row) { return row(row); }
                 }, new AsyncPagedTable.SelectionListener<CampusAnnouncementDto>() {
                     @Override public void onSelected(CampusAnnouncementDto row) { select(row); }
                 });
+        JButton open = new SecondaryButton("打开公告");
+        open.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { openSelected(); }
+        }); value.addAction(open);
+        value.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) openSelected();
+            }
+        });
         if (canManage()) {
             JButton create = new PrimaryButton("新建公告"); create.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
@@ -73,8 +87,18 @@ public final class CampusAnnouncementsPanel extends JPanel {
 
     private void select(CampusAnnouncementDto value) {
         if (value == null) { detail.setText("选择公告查看详情。"); if (editor != null) editor.startNew(); return; }
-        detail.setText("公告详情：" + RealUi.text(value.getTitle()) + "　" + RealUi.text(value.getContent()));
+        detail.setText("已选择：" + RealUi.text(value.getTitle()) + "　" + summary(value.getContent()));
         if (editor != null) editor.showAnnouncement(value);
+    }
+
+    private void openSelected() {
+        CampusAnnouncementDto value = table.selectedItem();
+        if (value == null) { page.showWarning("请先选择公告。"); return; }
+        JTextArea content = UiFactory.textArea(14, 56); content.setEditable(false);
+        content.setText(RealUi.text(value.getContent())); content.setCaretPosition(0);
+        JScrollPane scroll = new JScrollPane(content); scroll.setPreferredSize(new Dimension(640, 360));
+        JOptionPane.showMessageDialog(this, scroll, RealUi.text(value.getTitle()),
+                JOptionPane.PLAIN_MESSAGE);
     }
 
     private void save(CampusAnnouncementSaveRequest request) {
@@ -104,5 +128,13 @@ public final class CampusAnnouncementsPanel extends JPanel {
         return "定时发布".equals(filter) ? "SCHEDULED" : null;
     }
     private static String scope(String value) { return "ROLE".equalsIgnoreCase(value) ? "指定角色" : "全部用户"; }
+    private String[] columns() { return canManage()
+            ? new String[]{"标题", "可见范围", "正文摘要", "生效时间", "状态"}
+            : new String[]{"标题", "正文摘要", "发布时间"}; }
+    private Object[] row(CampusAnnouncementDto value) { return canManage()
+            ? new Object[]{value.getTitle(), scope(value.getVisibleScope()), summary(value.getContent()),
+                    RealUi.dateTime(value.getPublishAt()), RealUi.status(value.getStatus())}
+            : new Object[]{value.getTitle(), summary(value.getContent()), RealUi.dateTime(value.getPublishAt())}; }
+    private static String summary(String value) { if (value == null) return "--"; String text = value.replace('\n', ' ').trim(); return text.length() > 80 ? text.substring(0, 80) + "…" : text; }
     private boolean canManage() { return manageRole != null && manageRole == role; }
 }

@@ -108,6 +108,8 @@ public final class DemoLibraryCampusClientService implements CampusClientService
     }
     @Override public CampusPage<CompetitionRegistrationDto> competitionRoster(
             long id, CampusPageQuery q) throws NetworkClientException { throw unsupported(); }
+    @Override public CampusPage<CompetitionRegistrationDto> myCompetitionRegistrations(
+            CampusPageQuery q) throws NetworkClientException { throw unsupported(); }
     @Override public CampusPage<SrtpRecordDto> mySrtp(CampusPageQuery q)
             throws NetworkClientException { throw unsupported(); }
     @Override public CampusPage<SrtpRecordDto> listSrtp(CampusPageQuery q)

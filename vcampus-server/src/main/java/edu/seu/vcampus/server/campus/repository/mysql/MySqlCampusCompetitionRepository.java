@@ -88,6 +88,20 @@ public final class MySqlCampusCompetitionRepository implements CampusCompetition
                 new JdbcCampusSupport.Mapper<CompetitionRegistrationDto>() { public CompetitionRegistrationDto map(ResultSet r) throws SQLException { return JdbcCampusSupport.registration(r); } });
     }
 
+    @Override public CampusPage<CompetitionRegistrationDto> registrationsForStudent(Connection c,
+            long student, CampusPageQuery q) throws SQLException {
+        CampusPageQuery query = q == null ? CampusPageQuery.all() : q;
+        List<Object> values = new ArrayList<Object>(); values.add(student);
+        String where = " WHERE student_user_id=?";
+        if (query.getStatus() != null) { where += " AND status=?"; values.add(query.getStatus()); }
+        return JdbcCampusSupport.page(c, "SELECT COUNT(*) FROM competition_registrations" + where,
+                "SELECT " + REG_COLUMNS + " FROM competition_registrations" + where
+                        + " ORDER BY registered_at DESC LIMIT ? OFFSET ?", values, query,
+                new JdbcCampusSupport.Mapper<CompetitionRegistrationDto>() {
+                    public CompetitionRegistrationDto map(ResultSet r) throws SQLException { return JdbcCampusSupport.registration(r); }
+                });
+    }
+
     private long insert(Connection c, CompetitionSaveRequest r, long organizer) throws SQLException {
         String sql = "INSERT INTO competitions(title,description,organizer_id,start_at,end_at,registration_deadline,capacity,status) VALUES(?,?,?,?,?,?,?,?)";
         try (PreparedStatement s = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {

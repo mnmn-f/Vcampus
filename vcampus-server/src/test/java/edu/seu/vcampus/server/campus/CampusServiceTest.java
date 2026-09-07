@@ -46,12 +46,17 @@ public class CampusServiceTest {
                 start.plusHours(2), start.minusDays(1), Integer.valueOf(1), "PUBLISHED");
         final long id = service.saveCompetition(academic, request).getId();
         service.registerCompetition(student, id);
+        assertEquals("REGISTERED", service.myCompetitionRegistrations(student,
+                new edu.seu.vcampus.common.dto.campus.CampusPageQuery()).getItems().get(0).getStatus());
         assertCode(CampusCommands.COMPETITION_DUPLICATE, new Operation() {
             @Override public void run() { service.registerCompetition(student, id); }
         });
         assertCode(CampusCommands.COMPETITION_FULL, new Operation() {
             @Override public void run() { service.registerCompetition(otherStudent, id); }
         });
+        service.cancelCompetition(student, id);
+        assertEquals("CANCELLED", service.myCompetitionRegistrations(student,
+                new edu.seu.vcampus.common.dto.campus.CampusPageQuery()).getItems().get(0).getStatus());
     }
 
     @Test public void classroomApprovalRejectsSecondOverlappingApprovedRequest() {

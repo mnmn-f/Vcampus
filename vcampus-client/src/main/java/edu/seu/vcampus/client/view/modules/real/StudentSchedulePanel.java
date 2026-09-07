@@ -14,25 +14,47 @@ import edu.seu.vcampus.common.dto.academic.StudentScheduleQuery;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.Dimension;
+import java.util.HashMap;
+import java.util.Map;
 
-/** 学生本人按学期查看课表，并点击课程查看教师、教室及时段详情。 */
+/** Student timetable rendered as a weekday-by-period grid. */
 public final class StudentSchedulePanel extends SectionCard {
-    private static final String[] WEEKDAYS = {"", "周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+    private static final String[] DAYS = {"节次", "周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+    private static final int DEFAULT_PERIODS = 12;
     private final BasePage page;
     private final AcademicClientService service;
     private final JTextField semester = UiFactory.textField(12);
-    private final JLabel detail = UiFactory.body("选择课程查看教师、教室和上课时段。");
-    private AsyncPagedTable<CourseDto> table;
+    private final JLabel state = UiFactory.muted("等待查询");
+    private final JLabel detail = UiFactory.body("点击课表中的课程查看教师、教室和日期。");
+    private final DefaultTableModel model = model();
+    private final JTable table = new JTable(model);
+    private final Map<String, CourseDto> cells = new HashMap<String, CourseDto>();
 
     public StudentSchedulePanel(BasePage page, AcademicClientService service) {
-        super("我的课表", "按学期查看本人已选课程；点击课程查看详细安排。");
+        super("我的课表", "按周次布局本人当前已选课程，点击课程查看详细安排。");
         if (page == null || service == null) throw new IllegalArgumentException("schedule dependencies are required");
-        this.page = page; this.service = service;
-        setContent(content());
+        this.page = page; this.service = service; setContent(content()); reload();
+    }
+
+    public void reload() {
+        state.setText("正在加载课表…");
+        AsyncTask.run(new AsyncTask.Work<StudentScheduleDto>() {
+            @Override public StudentScheduleDto run() throws Exception {
+                return service.studentSchedule(new StudentScheduleQuery(semester.getText()));
+            }
+        }, new AsyncTask.Callback<StudentScheduleDto>() {
+            @Override public void onSuccess(StudentScheduleDto value) { render(value); }
+            @Override public void onFailure(Throwable error) {
+                state.setText("课表加载失败"); page.showError(AsyncTask.message(error));
+            }
+        });
     }
 
     private JPanel content() {
@@ -41,100 +63,78 @@ public final class StudentSchedulePanel extends SectionCard {
         filter.add(UiFactory.body("学期编号（留空为全部）")); filter.add(semester);
         javax.swing.JButton query = new PrimaryButton("查询课表");
         query.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { table.reload(); }
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { reload(); }
         });
-        filter.add(query); root.add(filter, BorderLayout.NORTH);
-        table = scheduleTable(); root.add(table, BorderLayout.CENTER);
-        JPanel detailBox = new JPanel(new BorderLayout()); detailBox.setOpaque(false);
-        detailBox.add(detail, BorderLayout.CENTER); root.add(detailBox, BorderLayout.SOUTH);
+        filter.add(query); filter.add(state); root.add(filter, BorderLayout.NORTH);
+        configureTable(); JScrollPane scroll = new JScrollPane(table);
+        scroll.setPreferredSize(new Dimension(900, 420)); root.add(scroll, BorderLayout.CENTER);
+        root.add(detail, BorderLayout.SOUTH);
         semester.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { table.reload(); }
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { reload(); }
         });
         return root;
     }
 
-    private AsyncPagedTable<CourseDto> scheduleTable() {
-        return new AsyncPagedTable<CourseDto>("课程列表", "选中一行后，下方显示完整课程详情。",
-                "搜索课程编号或名称", null,
-                new String[]{"课程编号", "课程名称", "学分", "授课教师", "上课时段"},
-                new AsyncPagedTable.Loader<CourseDto>() {
-                    @Override public PageSlice<CourseDto> load(int page, String keyword,
-                                                                  String filter) throws Exception {
-                        StudentScheduleDto result = service.studentSchedule(
-                                new StudentScheduleQuery(semester.getText()));
-                        List<CourseDto> rows = filter(result.getCourses(), keyword);
-                        return new PageSlice<CourseDto>(rows, rows.size(), 1,
-                                Math.max(1, rows.size()));
-                    }
-                }, new AsyncPagedTable.RowMapper<CourseDto>() {
-                    @Override public Object[] values(CourseDto row) {
-                        return new Object[]{row.getCourseCode(), row.getCourseName(),
-                                RealUi.text(row.getCredits()), instructorNames(row), scheduleNames(row)};
-                    }
-                }, new AsyncPagedTable.SelectionListener<CourseDto>() {
-                    @Override public void onSelected(CourseDto row) { showDetail(row); }
-                });
+    private void configureTable() {
+        DormTables.style(table); table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setCellSelectionEnabled(true); table.setRowHeight(42);
+        table.getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            @Override public void valueChanged(javax.swing.event.ListSelectionEvent e) { if (!e.getValueIsAdjusting()) showSelected(); }
+        });
+        table.getColumnModel().getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            @Override public void valueChanged(javax.swing.event.ListSelectionEvent e) { if (!e.getValueIsAdjusting()) showSelected(); }
+        });
     }
 
-    private void showDetail(CourseDto course) {
-        if (course == null) { detail.setText("选择课程查看教师、教室和上课时段。"); return; }
-        StringBuilder text = new StringBuilder("课程：").append(RealUi.text(course.getCourseCode()))
-                .append("　").append(RealUi.text(course.getCourseName())).append("　学期：")
-                .append(RealUi.text(course.getSemesterCode())).append("\n授课教师：")
-                .append(instructorDetails(course));
-        if (course.getSchedules().isEmpty()) text.append("\n上课安排：暂无");
-        for (CourseScheduleDto schedule : course.getSchedules()) {
-            text.append("\n上课安排：").append(weekday(schedule.getWeekday())).append(" ")
-                    .append(schedule.getStartPeriod()).append("-").append(schedule.getEndPeriod())
-                    .append("节，日期 ").append(RealUi.date(schedule.getStartDate())).append(" 至 ")
-                    .append(RealUi.date(schedule.getEndDate())).append("，教室 ")
-                    .append(classroomDetails(schedule.getClassroom()));
+    private void render(StudentScheduleDto value) {
+        cells.clear(); int periods = DEFAULT_PERIODS;
+        for (CourseDto course : value.getCourses()) for (CourseScheduleDto schedule : course.getSchedules()) {
+            periods = Math.max(periods, schedule.getEndPeriod());
         }
-        detail.setText("<html>" + text.toString().replace("\n", "<br>") + "</html>");
-        page.showInfo("已显示课程详情。");
+        model.setRowCount(0);
+        for (int period = 1; period <= periods; period++) {
+            Object[] row = new Object[DAYS.length]; row[0] = period + "";
+            model.addRow(row);
+        }
+        for (CourseDto course : value.getCourses()) for (CourseScheduleDto schedule : course.getSchedules()) {
+            if (schedule.getWeekday() < 1 || schedule.getWeekday() > 7) continue;
+            for (int period = schedule.getStartPeriod(); period <= schedule.getEndPeriod(); period++) {
+                int row = period - 1, column = schedule.getWeekday();
+                model.setValueAt(cellText(course, schedule), row, column);
+                cells.put(key(row, column), course);
+            }
+        }
+        state.setText(value.getCourses().isEmpty() ? "当前学期暂无课程" : "共 " + value.getCourses().size() + " 门课程");
+        detail.setText("点击课表中的课程查看教师、教室和日期。");
     }
 
-    private static List<CourseDto> filter(List<CourseDto> values, String keyword) {
-        List<CourseDto> rows = new ArrayList<CourseDto>();
-        String key = keyword == null ? "" : keyword.trim().toLowerCase();
-        for (CourseDto value : values) if (key.length() == 0
-                || contains(value.getCourseCode(), key) || contains(value.getCourseName(), key)) rows.add(value);
-        return rows;
+    private void showSelected() {
+        CourseDto course = cells.get(key(table.getSelectedRow(), table.getSelectedColumn()));
+        if (course == null) return;
+        StringBuilder text = new StringBuilder("<html><b>").append(RealUi.text(course.getCourseName()))
+                .append("</b>　").append(RealUi.text(course.getCourseCode())).append("<br>教师：")
+                .append(teachers(course));
+        for (CourseScheduleDto schedule : course.getSchedules()) text.append("<br>")
+                .append(DAYS[schedule.getWeekday()]).append(" ").append(schedule.getStartPeriod())
+                .append("-").append(schedule.getEndPeriod()).append(" 节　")
+                .append(room(schedule.getClassroom())).append("　")
+                .append(RealUi.date(schedule.getStartDate())).append(" 至 ")
+                .append(RealUi.date(schedule.getEndDate()));
+        detail.setText(text.append("</html>").toString());
     }
 
-    private static boolean contains(String value, String key) {
-        return value != null && value.toLowerCase().contains(key);
+    private static String cellText(CourseDto course, CourseScheduleDto schedule) {
+        return RealUi.text(course.getCourseName()) + " / " + room(schedule.getClassroom());
     }
-
-    private static String instructorNames(CourseDto course) {
-        return course.getInstructors().isEmpty() ? "--" : course.getInstructors().get(0).getDisplayName();
-    }
-
-    private static String instructorDetails(CourseDto course) {
-        StringBuilder result = new StringBuilder();
+    private static String teachers(CourseDto course) {
+        StringBuilder value = new StringBuilder();
         for (CourseInstructorDto teacher : course.getInstructors()) {
-            if (result.length() > 0) result.append("；");
-            result.append(RealUi.text(teacher.getDisplayName())).append("（工号 ")
-                    .append(teacher.getEmployeeNo() == null ? teacher.getTeacherUserId()
-                            : teacher.getEmployeeNo()).append("）");
+            if (value.length() > 0) value.append("、"); value.append(RealUi.text(teacher.getDisplayName()));
         }
-        return result.length() == 0 ? "暂无" : result.toString();
+        return value.length() == 0 ? "待定" : value.toString();
     }
-
-    private static String scheduleNames(CourseDto course) {
-        StringBuilder result = new StringBuilder();
-        for (CourseScheduleDto schedule : course.getSchedules()) {
-            if (result.length() > 0) result.append("；");
-            result.append(weekday(schedule.getWeekday())).append(" ")
-                    .append(schedule.getStartPeriod()).append("-").append(schedule.getEndPeriod()).append("节");
-        }
-        return result.length() == 0 ? "暂无" : result.toString();
-    }
-
-    private static String classroomDetails(ClassroomDto classroom) {
-        return classroom == null ? "待定" : RealUi.text(classroom.getBuildingName()) + " "
-                + RealUi.text(classroom.getRoomNo()) + "（" + RealUi.text(classroom.getClassroomType()) + "）";
-    }
-
-    private static String weekday(int value) { return value > 0 && value < WEEKDAYS.length ? WEEKDAYS[value] : "星期?"; }
+    private static String room(ClassroomDto room) { return room == null ? "教室待定" : RealUi.text(room.getBuildingName()) + " " + RealUi.text(room.getRoomNo()); }
+    private static String key(int row, int column) { return row + ":" + column; }
+    private static DefaultTableModel model() { return new DefaultTableModel(DAYS, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } }; }
 }

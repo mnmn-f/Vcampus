@@ -28,6 +28,7 @@ public final class CampusCommandRegistry {
                 CampusCommands.ANNOUNCEMENT_REVOKE, CampusCommands.COMPETITION_LIST,
                 CampusCommands.COMPETITION_SAVE, CampusCommands.COMPETITION_REGISTER,
                 CampusCommands.COMPETITION_CANCEL, CampusCommands.COMPETITION_ROSTER,
+                CampusCommands.COMPETITION_MINE,
                 CampusCommands.SRTP_MINE, CampusCommands.SRTP_LIST, CampusCommands.SRTP_SAVE,
                 CampusCommands.SRTP_REVIEW, CampusCommands.CLASSROOM_LIST,
                 CampusCommands.CLASSROOM_APPLY, CampusCommands.CLASSROOM_MINE,

@@ -71,6 +71,10 @@ public abstract class CampusRepositoryComposite implements CampusRepository {
     }
     @Override public CampusPage<CompetitionRegistrationDto> roster(Connection c, long comp,
             CampusPageQuery q) throws SQLException { return competitions.roster(c, comp, q); }
+    @Override public CampusPage<CompetitionRegistrationDto> registrationsForStudent(Connection c,
+            long student, CampusPageQuery q) throws SQLException {
+        return competitions.registrationsForStudent(c, student, q);
+    }
 
     @Override public CampusPage<SrtpRecordDto> list(Connection c, CampusPageQuery q, Long student)
             throws SQLException { return srtp.list(c, q, student); }

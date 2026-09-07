@@ -117,6 +117,17 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
         }
     }
 
+    @Override public boolean updateOrderShipping(Connection c, long orderId, String shippingStatus,
+            String trackingNo, String remark) {
+        synchronized (state) {
+            InMemoryStoreState.MemoryOrder order = state.orders.get(orderId);
+            if (order == null) return false;
+            order.shippingStatus = shippingStatus; order.trackingNo = trackingNo; order.shippingRemark = remark;
+            if ("DELIVERED".equals(shippingStatus)) { order.status = "COMPLETED"; order.completedAt = LocalDateTime.now(); }
+            return true;
+        }
+    }
+
     void addOrder(OrderDto value) {
         synchronized (state) {
             LocalDateTime created = value.getCreatedAt() == null
@@ -124,6 +135,9 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
             InMemoryStoreState.MemoryOrder order = new InMemoryStoreState.MemoryOrder(value.getId(),
                     value.getOrderNo(), value.getBuyerId(), value.getTotalAmount(), created);
             order.status = value.getStatus();
+            order.shippingStatus = value.getShippingStatus();
+            order.trackingNo = value.getTrackingNo();
+            order.shippingRemark = value.getShippingRemark();
             order.originalAmount = value.getOriginalAmount();
             order.discountAmount = value.getDiscountAmount();
             order.promotionCode = value.getPromotionCode();
@@ -147,7 +161,7 @@ final class InMemoryStoreOrderRepository implements StoreOrderRepository {
     private static OrderDto toDto(InMemoryStoreState.MemoryOrder o) {
         return new OrderDto(o.id, o.orderNo, o.buyerId, o.totalAmount, o.originalAmount,
                 o.discountAmount, o.promotionCode, o.couponCode, o.paymentMode, o.status,
-                o.createdAt, o.paidAt, o.cancelledAt, o.completedAt,
+                o.shippingStatus, o.trackingNo, o.shippingRemark, o.createdAt, o.paidAt, o.cancelledAt, o.completedAt,
                 new ArrayList<OrderItemDto>(o.items));
     }
 

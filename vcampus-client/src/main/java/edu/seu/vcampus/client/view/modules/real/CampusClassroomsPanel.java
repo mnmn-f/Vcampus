@@ -96,7 +96,8 @@ public final class CampusClassroomsPanel extends JPanel {
         if (value == null) { detail.setText("选择教室查看详情。"); return; }
         detail.setText("教室详情：" + RealUi.text(value.getBuildingName()) + " " + RealUi.text(value.getRoomNo())
                 + "　容量 " + value.getCapacity() + "　设备：" + RealUi.text(value.getEquipmentDescription()));
-        if (apply != null) apply.selectRoom(value.getId());
+        if (apply != null) apply.selectRoom(value.getId(),
+                RealUi.text(value.getBuildingName()) + " " + RealUi.text(value.getRoomNo()));
     }
 
     private void apply(final ClassroomReservationRequest request) {

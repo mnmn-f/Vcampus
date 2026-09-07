@@ -22,7 +22,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V7-V9 增加维修员、维修复核和住宿申请调整；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V7-V9 增加维修员、维修复核和住宿申请调整；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈；V13 续期已过期的演示欢迎券；V14 增加订单物流。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -36,6 +36,8 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
     vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
     vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
+    vcampus-server/src/main/resources/db/migration/V13__store_coupon_refresh.sql
+    vcampus-server/src/main/resources/db/migration/V14__store_order_shipping.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
@@ -51,6 +53,8 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V13__store_coupon_refresh.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V14__store_order_shipping.sql
 
 脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 

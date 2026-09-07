@@ -64,6 +64,9 @@ final class InMemoryStoreState {
         String paymentMode = "SELF";
         final LocalDateTime createdAt;
         String status = "CREATED";
+        String shippingStatus;
+        String trackingNo;
+        String shippingRemark;
         LocalDateTime paidAt;
         LocalDateTime cancelledAt;
         LocalDateTime completedAt;
@@ -112,6 +115,9 @@ final class InMemoryStoreState {
             MemoryOrder copy = new MemoryOrder(value.id, value.orderNo, value.buyerId,
                     value.totalAmount, value.createdAt);
             copy.status = value.status;
+            copy.shippingStatus = value.shippingStatus;
+            copy.trackingNo = value.trackingNo;
+            copy.shippingRemark = value.shippingRemark;
             copy.originalAmount = value.originalAmount;
             copy.discountAmount = value.discountAmount;
             copy.promotionCode = value.promotionCode;

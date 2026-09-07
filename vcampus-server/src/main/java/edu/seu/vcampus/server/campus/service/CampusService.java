@@ -52,6 +52,7 @@ public final class CampusService {
     public void cancelCompetition(SessionContext s, long id) { competitions.cancel(s, id); }
     public void cancelRegistration(SessionContext s, long id) { cancelCompetition(s, id); }
     public CampusPage<CompetitionRegistrationDto> competitionRoster(SessionContext s, long id, CampusPageQuery q) { return competitions.roster(s, id, q); }
+    public CampusPage<CompetitionRegistrationDto> myCompetitionRegistrations(SessionContext s, CampusPageQuery q) { return competitions.mine(s, q); }
 
     public CampusPage<SrtpRecordDto> mySrtp(SessionContext s, CampusPageQuery q) { return srtp.mine(s, q); }
     public CampusPage<SrtpRecordDto> studentSrtp(SessionContext s, CampusPageQuery q) { return mySrtp(s, q); }

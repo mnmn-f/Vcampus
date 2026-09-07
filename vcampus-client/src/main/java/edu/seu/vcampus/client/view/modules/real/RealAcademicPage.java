@@ -14,12 +14,15 @@ public final class RealAcademicPage extends BasePage {
         super(session, RoleWorkspace.navigationLabel(session.getActiveRole(), ModuleId.ACADEMIC), "");
         Role role = session.getActiveRole(); setHeaderContext(role.getDisplayName());
         TaskTabs tabs = new TaskTabs();
-        tabs.addTask(courseTab(role), new AcademicCoursesPanel(this, services.academic(), role));
         if (role == Role.STUDENT) {
-            tabs.addTask("我的选课", new StudentEnrollmentsPanel(this, services.academic()));
-            tabs.addTask("我的课表", new StudentSchedulePanel(this, services.academic()));
+            final StudentEnrollmentsPanel enrollments = new StudentEnrollmentsPanel(this, services.academic());
+            final StudentSchedulePanel schedule = new StudentSchedulePanel(this, services.academic());
+            tabs.addTask(courseTab(role), new AcademicCoursesPanel(this, services.academic(), role,
+                    new Runnable() { @Override public void run() { enrollments.reload(); schedule.reload(); } }));
+            tabs.addTask("我的选课", enrollments);
+            tabs.addTask("我的课表", schedule);
             tabs.addTask("我的成绩", new StudentGradesPanel(services.student()));
-        }
+        } else tabs.addTask(courseTab(role), new AcademicCoursesPanel(this, services.academic(), role));
         if (role == Role.TEACHER) tabs.addTask("成绩登记",
                 new TeacherGradePanel(this, services.academic(), services.student()));
         if (role == Role.ACADEMIC_ADMIN) tabs.addTask("自动排课",

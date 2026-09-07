@@ -55,6 +55,8 @@ public final class CampusCommandHandler implements CommandHandler {
                 CompetitionRosterRequest value = payload(p, CompetitionRosterRequest.class);
                 return Message.success(request, service.competitionRoster(session, value.getCompetitionId(), value.getPage()));
             }
+            if (CampusCommands.COMPETITION_MINE.equals(command)) return Message.success(request,
+                    service.myCompetitionRegistrations(session, pageQuery(p)));
             if (CampusCommands.SRTP_MINE.equals(command)) return Message.success(request,
                     service.mySrtp(session, pageQuery(p)));
             if (CampusCommands.SRTP_LIST.equals(command)) return Message.success(request,
@@ -86,7 +88,8 @@ public final class CampusCommandHandler implements CommandHandler {
     @Override public Permission requiredPermission() {
         if (CampusCommands.ANNOUNCEMENT_SAVE.equals(command) || CampusCommands.ANNOUNCEMENT_REVOKE.equals(command)) return Permission.ANNOUNCEMENT_MANAGE;
         if (CampusCommands.COMPETITION_SAVE.equals(command) || CampusCommands.COMPETITION_ROSTER.equals(command)) return Permission.COMPETITION_MANAGE;
-        if (CampusCommands.COMPETITION_REGISTER.equals(command) || CampusCommands.COMPETITION_CANCEL.equals(command)) return Permission.COMPETITION_ENROLL;
+        if (CampusCommands.COMPETITION_REGISTER.equals(command) || CampusCommands.COMPETITION_CANCEL.equals(command)
+                || CampusCommands.COMPETITION_MINE.equals(command)) return Permission.COMPETITION_ENROLL;
         if (CampusCommands.SRTP_MINE.equals(command)) return Permission.SRTP_SELF_READ;
         if (CampusCommands.SRTP_SAVE.equals(command)) return null;
         if (CampusCommands.SRTP_REVIEW.equals(command) || CampusCommands.SRTP_LIST.equals(command)) return Permission.SRTP_MANAGE;

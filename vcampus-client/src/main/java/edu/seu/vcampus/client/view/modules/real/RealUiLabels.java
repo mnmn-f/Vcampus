@@ -25,6 +25,8 @@ final class RealUiLabels {
         put("CANCELLED", "已取消"); put("CONFIRMED", "已确认"); put("IGNORED", "已忽略");
         put("ENROLLED", "在读"); put("DROPPED", "已退选"); put("SUSPENDED", "休学"); put("GRADUATED", "毕业");
         put("WITHDRAWN", "退学"); put("ENDED", "已结束"); put("PUBLISHED", "已发布"); put("DRAFT", "草稿");
+        put("PREPARING", "备货中"); put("SHIPPED", "已发货"); put("IN_TRANSIT", "运输中");
+        put("READY_FOR_PICKUP", "待取货"); put("DELIVERED", "已送达");
         put("SCHEDULED", "定时发布"); put("REVOKED", "已撤回"); put("EXPIRED", "已过期");
         put("ROLE", "指定角色"); put("ARCHIVED", "已归档"); put("MAINTENANCE", "维护中");
         put("ON_SALE", "在售"); put("OFF_SALE", "已下架"); put("RECHARGE", "充值");
