@@ -22,12 +22,17 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 增加商品图片、分类、促销、优惠券、评价、好友代付和订单价格快照。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
     vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
+    vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
+    vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
@@ -35,6 +40,11 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
 
 脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
@@ -70,6 +80,25 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     java -jar .\vcampus-client\target\vCampusClient.jar
 
 客户端默认进入网络模式并连接 `127.0.0.1:8888`。跨电脑或修改端口时使用 `vcampus.server.host` 和 `vcampus.server.port`，具体参数见下方“真实网络模式”。
+
+## AI 校园助手与小松鼠桌宠
+
+校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、模式化快捷问题、校园知识检索、实时业务查询和需要二次确认的校园操作。聊天区使用用户/助手消息气泡和独立业务结果卡；缺少代办参数时显示可填写的参数卡，知识回答可展开查看命中依据。聊天模式可用输入框左侧“+”上传最多 3 个图片、PDF、DOCX、PPTX、XLS/XLSX、CSV、文本或代码附件；附件可逐个移除，办公文档在客户端提取有界文字后发送，原文件不持久化。网络失败时保留问题和附件供一键重试；可折叠会话侧栏支持搜索、重命名、归档和纯文本导出。写操作确认前可以返回修改，回答后可点赞、点踩或提交纠错。代办参数不完整时会先通过多轮对话澄清。默认模型服务为 DeepSeek Responses API，服务端可配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY`。
+
+知识库迁移 `V11__ai_knowledge_and_tools.sql` 已录入学生公寓管理、学生违纪处分、系统操作与新增代办指南。课程、图书、订单、竞赛、学籍等动态事实不复制进知识库，而是继续通过原业务服务实时查询。
+
+AI 知识管理员拥有知识维护、问答测试、脱敏用户反馈、校园工具状态和运行监控五个工作区。文档可自动提取文字并按段批量导入；每次保存、停用或回滚都会留下知识版本，发布前可用真实检索链路测试答案。升级已有数据库时必须执行 `V12__ai_quality_workbench.sql`，否则版本、反馈和增强监控不可用。
+
+登录职责拥有 `AI_ASSISTANT` 入口时，小松鼠桌宠默认显示在主窗口右下角：
+
+- 在主窗口内可自由拖动松鼠，位置会自动保存；单击可进入校园助手，已经位于 AI 页面时只播放回应动画。
+- 最小化主窗口后，原窗口隐藏并收束为透明、无边框、置顶的桌面松鼠；可自由拖动，单击恢复最小化前的页面和窗口状态。
+- 右键可以“喂一颗松果”或“摸摸小松鼠”，好感度在本机持久化；桌面模式另提供“展开主界面”和“打开校园助手”。
+- 松鼠只显示固定的非敏感状态气泡，并跟随 AI 状态播放不同动作：待机呼吸、悬停招手、思考歪头、回答摆手、待确认提醒、成功跳跃和失败低落。
+- 桌宠控制器每 12 秒执行一次轻量连接探测（主窗口最小化后仍继续）；服务器断开后松鼠持续显示“网络离线”，连接恢复后自动回到待机状态。
+- 无 AI 权限的职责不显示松鼠，仍使用系统原生最小化行为；退出登录或关闭程序会释放桌宠窗口和动画计时器。
+
+桌宠使用内置透明 PNG 基础形象 [squirrel.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel.png) 和六姿势动作表 [squirrel-actions.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel-actions.png)。Swing 按状态循环切帧并叠加呼吸、摇摆、跳跃、倾斜和阴影补间，不依赖 GIF 播放库。自动化测试或低性能环境可添加 JVM 参数 `-Dvcampus.pet.animation=false` 禁用补间和循环切帧，但仍保留对应状态的静态姿势。完整设计、运行边界与扩展接口见 [AI_MODULE](docs/AI_MODULE.md) 和 [UI_SPEC](docs/UI_SPEC.md)。
 
 ## 本地界面预览
 
@@ -124,4 +153,4 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
 - 排课已由 AcademicCoursesPanel → CourseScheduleEditorPanel 在真实页面行内维护时段，服务端负责冲突和权限校验。
 - 线上资源支持访问记录和图书管理员分页日志；借阅台账支持筛选与 CSV 导出，单次最多 5000 条，覆盖已有文件前需确认。
 - 未实现后台预警/账单定时调度器。
-- AI 助手已接入兼容 OpenAI Responses API 的模型、校园知识 RAG、系统操作指引和业务工具注册表；学生可进行问答和业务查询，涉及数据变更的工具必须二次确认，AI 知识管理员可维护知识库。配置、权限边界、工具清单和运行方法见 [AI_MODULE](docs/AI_MODULE.md)。
+- AI 助手已接入 DeepSeek Responses API、校园知识 RAG、校纪校规与系统操作知识、聊天附件、快捷问题和 47 个业务工具；涉及数据变更的 20 个工具必须二次确认，参数不完整时先澄清，AI 知识管理员可维护知识库。配置、权限边界、工具清单和运行方法见 [AI_MODULE](docs/AI_MODULE.md)。

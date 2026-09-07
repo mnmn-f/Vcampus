@@ -57,6 +57,10 @@ final class AiStreamConnection implements Runnable {
                         && message.getPayload() instanceof AiStreamChunk) {
                     AiStreamChunk chunk = (AiStreamChunk) message.getPayload();
                     if (!chunk.getText().isEmpty()) listener.onChunk(chunk.getText());
+                    if (!chunk.getEvidence().isEmpty()
+                            && listener instanceof AiConversationListener) {
+                        ((AiConversationListener) listener).onEvidence(chunk.getEvidence());
+                    }
                     if (chunk.isCompleted()) { completed = true; listener.onComplete(); break; }
                 } else if (message.getType() == MessageType.ACTION_CONFIRMATION
                         && message.getPayload() instanceof AiPendingAction

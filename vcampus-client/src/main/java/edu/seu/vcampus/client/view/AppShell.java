@@ -9,6 +9,7 @@ import edu.seu.vcampus.client.controller.WorkspaceController;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.view.modules.AiAssistantPage;
+import edu.seu.vcampus.client.view.pet.PetActivityListener;
 import edu.seu.vcampus.common.module.ModuleId;
 import edu.seu.vcampus.common.security.Role;
 
@@ -26,6 +27,7 @@ public final class AppShell extends JPanel {
     private final TopBarPanel topbar;
     private final WorkspaceController controller;
     private final ClientBusinessServices businessServices;
+    private final PetActivityListener petActivity;
     private final JPanel content = new JPanel(new BorderLayout());
     private ModuleId activeModule = ModuleId.DASHBOARD;
     private boolean roleSwitching;
@@ -43,11 +45,19 @@ public final class AppShell extends JPanel {
     public AppShell(AuthClientService authService, final ClientSession session, Listener listener,
                     AiAssistantPage.Factory aiFactory,
                     ClientBusinessServices businessServices) {
+        this(authService, session, listener, aiFactory, businessServices, null);
+    }
+
+    public AppShell(AuthClientService authService, final ClientSession session, Listener listener,
+                    AiAssistantPage.Factory aiFactory,
+                    ClientBusinessServices businessServices,
+                    PetActivityListener petActivity) {
         super(new BorderLayout());
         this.authService = authService;
         this.session = session;
         this.listener = listener;
         this.businessServices = businessServices;
+        this.petActivity = petActivity == null ? PetActivityListener.NONE : petActivity;
         this.aiFactory = aiFactory == null ? new AiAssistantPage.Factory() {
             @Override public AiAssistantClientService create() {
                 return new DisabledAiAssistantClientService();
@@ -55,7 +65,7 @@ public final class AppShell extends JPanel {
         } : aiFactory;
         this.controller = new WorkspaceController(session, this.aiFactory, businessServices, new Runnable() {
             @Override public void run() { logout(); }
-        });
+        }, this.petActivity);
         setBackground(DesignTokens.PAGE_BACKGROUND);
         sidebar = new SidebarPanel(new SidebarPanel.ClientSessionView() {
             @Override public Role activeRole() { return session.getActiveRole(); }
@@ -87,6 +97,11 @@ public final class AppShell extends JPanel {
         sidebar.refresh(activeModule);
         topbar.syncRole();
         open(activeModule);
+        petActivity.onAvailabilityChanged(controller.canOpen(ModuleId.AI_ASSISTANT));
+    }
+
+    public ModuleId getActiveModule() {
+        return activeModule;
     }
 
     public void open(ModuleId module) {

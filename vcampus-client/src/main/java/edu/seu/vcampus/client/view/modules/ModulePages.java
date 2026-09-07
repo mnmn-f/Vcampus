@@ -9,6 +9,7 @@ import edu.seu.vcampus.client.view.modules.real.RealIdentityAdminPage;
 import edu.seu.vcampus.client.view.modules.real.RealLibraryPage;
 import edu.seu.vcampus.client.view.modules.real.RealStorePage;
 import edu.seu.vcampus.client.view.modules.real.RealStudentRecordPage;
+import edu.seu.vcampus.client.view.pet.PetActivityListener;
 import edu.seu.vcampus.common.module.ModuleId;
 
 /** 模块页面工厂：网络模式使用真实页面，未接入服务时使用统一占位页。 */
@@ -24,6 +25,13 @@ public final class ModulePages {
     public static BasePage forModule(ModuleId id, ClientSession session,
                                      AiAssistantPage.Factory aiFactory,
                                      ClientBusinessServices businessServices) {
+        return forModule(id, session, aiFactory, businessServices, null);
+    }
+
+    public static BasePage forModule(ModuleId id, ClientSession session,
+                                     AiAssistantPage.Factory aiFactory,
+                                     ClientBusinessServices businessServices,
+                                     PetActivityListener petActivity) {
         if (id == ModuleId.LIBRARY && businessServices == null
                 && "demo".equalsIgnoreCase(System.getProperty(
                 "vcampus.client.mode", "network").trim())) {
@@ -48,7 +56,7 @@ public final class ModulePages {
             case SYSTEM:
                 return new RealIdentityAdminPage(session, businessServices.identity(), true);
             case AI_ASSISTANT:
-                return AiAssistantPage.create(session, aiFactory);
+                return AiAssistantPage.create(session, aiFactory, petActivity);
             default:
                 return new ServiceRequiredPage(session, id);
         }
