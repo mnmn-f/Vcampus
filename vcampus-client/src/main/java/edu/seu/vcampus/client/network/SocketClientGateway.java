@@ -58,6 +58,9 @@ public final class SocketClientGateway implements ClientGateway {
         if (request == null) {
             throw new IllegalArgumentException("request 不能为空");
         }
+        boolean fileRequest = request.getCommand() != null
+                && request.getCommand().startsWith("library.pdf.");
+        if (fileRequest) close();
         ensureConnected();
         try {
             output.writeObject(request);
@@ -67,6 +70,7 @@ public final class SocketClientGateway implements ClientGateway {
             if (!(value instanceof Message)) {
                 throw new IOException("服务器返回了未知消息类型");
             }
+            if (fileRequest) close();
             return (Message) value;
         } catch (IOException ex) {
             close();

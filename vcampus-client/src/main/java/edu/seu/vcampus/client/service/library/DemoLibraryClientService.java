@@ -28,6 +28,11 @@ public final class DemoLibraryClientService implements LibraryClientService {
     private final DemoOnlineResourceService resources = new DemoOnlineResourceService();
 
     @Override
+    public PdfClientService pdf(edu.seu.vcampus.client.session.ClientSession session) {
+        return new DemoPdfClientService(session);
+    }
+
+    @Override
     public synchronized PageResult<BookDetail> searchBooks(BookSearchRequest request) {
         return books.search(request);
     }

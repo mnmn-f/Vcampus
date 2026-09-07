@@ -16,6 +16,7 @@ public final class LibraryBorrowingsPanel extends JPanel {
 
     public LibraryBorrowingsPanel(BasePage page, LibraryClientService service) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)); this.page = page; this.service = service; records = table(); add(records);
+        page.addPropertyChangeListener("library.books.version", event -> records.refreshCurrentPage());
     }
 
     private AsyncPagedTable<BorrowRecordView> table() {
@@ -41,7 +42,7 @@ public final class LibraryBorrowingsPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<BorrowRecordView>() {
             @Override public BorrowRecordView run() throws Exception { return service.returnBook(value.getId()); }
         }, new AsyncTask.Callback<BorrowRecordView>() {
-            @Override public void onSuccess(BorrowRecordView result) { page.showSuccess("还书成功，库存已更新。"); records.reload(); }
+            @Override public void onSuccess(BorrowRecordView result) { page.showSuccess("还书成功，库存已更新。"); page.putClientProperty("library.books.version", System.nanoTime()); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }

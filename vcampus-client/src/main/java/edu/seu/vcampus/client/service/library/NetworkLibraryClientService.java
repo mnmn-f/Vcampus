@@ -44,6 +44,11 @@ public final class NetworkLibraryClientService implements LibraryClientService {
         this.session = session;
     }
 
+    @Override
+    public PdfClientService pdf(ClientSession value) {
+        return new NetworkPdfClientService(network, value == null ? session : value);
+    }
+
     @Override public PageResult<BookDetail> searchBooks(BookSearchRequest r) throws NetworkClientException {
         return page(request(LibraryCommands.BOOK_SEARCH, r), BookDetail.class);
     }

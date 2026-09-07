@@ -13,7 +13,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import org.threeten.bp.LocalDate;
 import org.threeten.bp.LocalDateTime;
@@ -27,7 +26,7 @@ public final class ReservationFormPanel extends SectionCard {
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final JTextField roomId = UiFactory.textField(10);
-    private final JTextField date = UiFactory.textField(12);
+    private final CalendarDateField date = new CalendarDateField();
     private final JComboBox<String> startHour = hourBox();
     private final JComboBox<String> startMinute = minuteBox();
     private final JComboBox<String> endHour = hourBox();
@@ -36,16 +35,16 @@ public final class ReservationFormPanel extends SectionCard {
     private final Listener listener;
 
     public ReservationFormPanel(Listener listener) {
-        super("预约自习室", "选中房间，填写预约日期，并从下拉框选择开始和结束时间。");
+        super("预约自习室", "选中房间，从日历选择预约日期，并从下拉框选择开始和结束时间。");
         this.listener = listener;
         roomId.setEditable(false);
-        date.setText(LocalDate.now().plusDays(1).format(DATE_FORMAT));
+        date.setDate(LocalDate.now().plusDays(1));
         startHour.setSelectedItem("08");
         startMinute.setSelectedItem("00");
         endHour.setSelectedItem("09");
         endMinute.setSelectedItem("00");
 
-        JPanel fields = new JPanel(new GridLayout(1, 4, 12, 8));
+        JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(190, 4, 12));
         fields.setOpaque(false);
         fields.add(UiFactory.labelledField("自习室编号", roomId));
         fields.add(UiFactory.labelledField("预约日期（yyyy-MM-dd）", date));
@@ -55,7 +54,7 @@ public final class ReservationFormPanel extends SectionCard {
         JPanel content = new JPanel(new BorderLayout(0, 10));
         content.setOpaque(false);
         content.add(fields, BorderLayout.CENTER);
-        JPanel actions = UiFactory.horizontal(8);
+        JPanel actions = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8)); actions.setOpaque(false);
         javax.swing.JButton submit = new PrimaryButton("提交预约");
         submit.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { submit(); }
@@ -106,7 +105,7 @@ public final class ReservationFormPanel extends SectionCard {
 
     private LocalDate selectedDate() {
         try {
-            return LocalDate.parse(date.getText().trim(), DATE_FORMAT);
+            return date.getDate();
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException("预约日期格式应为 yyyy-MM-dd");
         }

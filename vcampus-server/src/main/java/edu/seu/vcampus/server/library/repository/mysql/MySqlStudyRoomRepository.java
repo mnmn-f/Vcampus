@@ -97,6 +97,14 @@ public final class MySqlStudyRoomRepository implements StudyRoomRepository {
         if (request.getMinCapacity() != null) {
             where.append(" AND capacity>=?"); params.add(request.getMinCapacity());
         }
+        if (request.getStartAt() != null && request.getEndAt() != null
+                && request.getEndAt().isAfter(request.getStartAt())) {
+            where.append(" AND NOT EXISTS (SELECT 1 FROM study_room_reservations rr")
+                    .append(" WHERE rr.room_id=study_rooms.id AND rr.status='RESERVED'")
+                    .append(" AND rr.start_at<? AND rr.end_at>?)");
+            params.add(JdbcTemporal.timestamp(request.getEndAt()));
+            params.add(JdbcTemporal.timestamp(request.getStartAt()));
+        }
         return new JdbcLibrarySupport.QueryParts(where.toString(), params);
     }
 }

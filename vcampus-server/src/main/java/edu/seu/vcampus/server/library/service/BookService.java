@@ -66,6 +66,18 @@ public final class BookService extends LibraryServiceSupport {
                 ? old == null ? "ON_SHELF" : old.getStatus() : request.getStatus().trim();
         if (!"ON_SHELF".equals(status) && !"UNAVAILABLE".equals(status)
                 && !"ARCHIVED".equals(status)) throw invalid("图书状态不正确");
+        Integer year = request.getPublicationYear() == null && old != null
+                ? old.getPublicationYear() : request.getPublicationYear();
+        byte[] cover = request.getCoverImage() == null && old != null
+                ? old.getCoverImage() : request.getCoverImage();
+        if (year != null && (year < 1 || year > 9999)) throw invalid("出版年份应为 1 至 9999");
+        if (cover != null && cover.length > 131072) throw invalid("封面图片过大");
+        if (cover != null && cover.length > 0) {
+            try {
+                if (javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(cover)) == null)
+                    throw invalid("封面格式不正确");
+            } catch (java.io.IOException ex) { throw invalid("封面格式不正确"); }
+        }
         BookUpsertRequest normalized = new BookUpsertRequest(request.getId(),
                 value(request.getIsbn(), old == null ? null : old.getIsbn()), title,
                 value(request.getAuthor(), old == null ? null : old.getAuthor()),
@@ -73,7 +85,8 @@ public final class BookService extends LibraryServiceSupport {
                 value(request.getCategory(), old == null ? null : old.getCategory()),
                 Integer.valueOf(total), Integer.valueOf(available),
                 value(request.getLocation(), old == null ? null : old.getLocation()),
-                value(request.getDescription(), old == null ? null : old.getDescription()), status);
+                value(request.getDescription(), old == null ? null : old.getDescription()), status,
+                year, cover);
         return books.save(c, normalized, operatorId);
     }
 

@@ -19,7 +19,11 @@ import edu.seu.vcampus.server.dorm.registry.DormCommandRegistry;
 import edu.seu.vcampus.server.dorm.service.DormExtService;
 import edu.seu.vcampus.server.dorm.service.DormService;
 import edu.seu.vcampus.server.library.registry.LibraryCommandRegistry;
+import edu.seu.vcampus.server.library.registry.PdfCommandRegistry;
+import edu.seu.vcampus.server.library.repository.mysql.MySqlPdfRepository;
 import edu.seu.vcampus.server.library.service.LibraryService;
+import edu.seu.vcampus.server.library.service.PdfLibraryService;
+import edu.seu.vcampus.common.library.PdfFileStore;
 import edu.seu.vcampus.server.identity.registry.IdentityCommandRegistry;
 import edu.seu.vcampus.server.identity.repository.mysql.MySqlLoginAuditSink;
 import edu.seu.vcampus.server.identity.service.IdentityService;
@@ -110,6 +114,9 @@ public final class ServerMain {
                 AcademicCommandRegistry.createMySqlService(transactions);
         LibraryService libraryService =
                 LibraryCommandRegistry.createMySqlService(transactions);
+        PdfLibraryService pdfService = new PdfLibraryService(new MySqlPdfRepository(),
+                new PdfFileStore(java.nio.file.Paths.get(System.getProperty(
+                        "vcampus.library.files", "data/library-pdf"))), transactions);
         DormService dormService = DormCommandRegistry.createMySqlService(transactions);
         DormExtService dormExtService = DormExtCommandRegistry.createMySqlService(transactions);
         StoreService storeService = StoreCommandRegistry.createMySqlService(transactions);
@@ -120,6 +127,7 @@ public final class ServerMain {
         StudentCommandRegistry.registerAll(router, studentService);
         AcademicCommandRegistry.registerAll(router, academicService);
         LibraryCommandRegistry.registerAll(router, libraryService);
+        PdfCommandRegistry.register(router, pdfService);
         DormCommandRegistry.registerAll(router, dormService);
         DormExtCommandRegistry.registerAll(router, dormExtService);
         StoreCommandRegistry.registerAll(router, storeService);
