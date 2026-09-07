@@ -180,7 +180,7 @@ V2 演示数据已经提供以下系统知识：
 
 ## 6. 校纪校规知识
 
-`V7__ai_knowledge_and_tools.sql` 已按主题录入两份扫描材料的经核验摘要：学生公寓的入住调宿、门禁访客、消防用电、禁用电器、卫生设施和秩序要求，以及学生违纪处分的原则、处分种类、公共秩序、网络行为、宿舍消防、考试学术诚信和处分申诉程序。公寓文件在学校官网对应“2025年6月修订版”；用户提供的本地文件名标注“2026年”，知识条目明确记录这一差异，不把文件名误当作正式版本号。
+`V11__ai_knowledge_and_tools.sql` 已按主题录入两份扫描材料的经核验摘要：学生公寓的入住调宿、门禁访客、消防用电、禁用电器、卫生设施和秩序要求，以及学生违纪处分的原则、处分种类、公共秩序、网络行为、宿舍消防、考试学术诚信和处分申诉程序。公寓文件在学校官网对应“2025年6月修订版”；用户提供的本地文件名标注“2026年”，知识条目明确记录这一差异，不把文件名误当作正式版本号。
 
 政策知识用于问答提示和出处定位，不替代正式文件、处分决定或申诉告知；制度更新后，`AI_KNOWLEDGE_ADMIN` 应停用旧片段并录入新版本。
 
@@ -194,7 +194,7 @@ AI 知识管理员页面分为知识库管理、知识测试、用户反馈、�
 
 AI 页面使用有鉴权的 `ai.ping` 每 12 秒探测一次服务端连接。连接失败会调用桌宠的独立连通性状态，松鼠显示持久的 `OFFLINE` 动作和“网络离线”气泡；恢复成功后短暂提示已重新连接。网络状态和角色是否拥有 AI 权限分别管理，离线不会错误隐藏桌宠。
 
-以上能力依赖 `V8__ai_quality_workbench.sql`。服务端不会自动运行 SQL 迁移，升级已有库时需要在重启服务端前手动执行 V8。
+以上能力依赖 `V12__ai_quality_workbench.sql`。服务端不会自动运行 SQL 迁移，升级已有库时需要在重启服务端前手动执行 V12。
 
 ### 6.2 DeepSeek 与聊天附件
 
@@ -358,9 +358,9 @@ AI 模块使用四张自有存储表：
 新增操作步骤知识后，需要在 MySQL 客户端执行可重复的 AI 知识扩充脚本：
 
 ```sql
-SOURCE D:/Vcampus/Vcampus-main3/Vcampus-main/vcampus-server/src/main/resources/db/migration/V6__ai_assistant_knowledge.sql;
-SOURCE D:/Vcampus/Vcampus-main3/Vcampus-main/vcampus-server/src/main/resources/db/migration/V7__ai_knowledge_and_tools.sql;
-SOURCE D:/Vcampus/Vcampus-main3/Vcampus-main/vcampus-server/src/main/resources/db/migration/V8__ai_quality_workbench.sql;
+SOURCE E:/path/to/Vcampus/vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql;
+SOURCE E:/path/to/Vcampus/vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql;
+SOURCE E:/path/to/Vcampus/vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql;
 ```
 
 不要把 `SOURCE` 命令直接输入 PowerShell；它应在 MySQL 客户端中执行。

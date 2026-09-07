@@ -22,16 +22,17 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6/V7 增加 AI 系统指南、校纪校规和操作知识；V8 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
     vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
-    vcampus-server/src/main/resources/db/migration/V6__ai_assistant_knowledge.sql
-    vcampus-server/src/main/resources/db/migration/V7__ai_knowledge_and_tools.sql
-    vcampus-server/src/main/resources/db/migration/V8__ai_quality_workbench.sql
+    vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
@@ -40,9 +41,10 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__ai_assistant_knowledge.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V7__ai_knowledge_and_tools.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V8__ai_quality_workbench.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
 
 脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
@@ -83,9 +85,9 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
 
 校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、模式化快捷问题、校园知识检索、实时业务查询和需要二次确认的校园操作。聊天区使用用户/助手消息气泡和独立业务结果卡；缺少代办参数时显示可填写的参数卡，知识回答可展开查看命中依据。聊天模式可用输入框左侧“+”上传最多 3 个图片、PDF、DOCX、PPTX、XLS/XLSX、CSV、文本或代码附件；附件可逐个移除，办公文档在客户端提取有界文字后发送，原文件不持久化。网络失败时保留问题和附件供一键重试；可折叠会话侧栏支持搜索、重命名、归档和纯文本导出。写操作确认前可以返回修改，回答后可点赞、点踩或提交纠错。代办参数不完整时会先通过多轮对话澄清。默认模型服务为 DeepSeek Responses API，服务端可配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY`。
 
-知识库迁移 `V7__ai_knowledge_and_tools.sql` 已录入学生公寓管理、学生违纪处分、系统操作与新增代办指南。课程、图书、订单、竞赛、学籍等动态事实不复制进知识库，而是继续通过原业务服务实时查询。
+知识库迁移 `V11__ai_knowledge_and_tools.sql` 已录入学生公寓管理、学生违纪处分、系统操作与新增代办指南。课程、图书、订单、竞赛、学籍等动态事实不复制进知识库，而是继续通过原业务服务实时查询。
 
-AI 知识管理员拥有知识维护、问答测试、脱敏用户反馈、校园工具状态和运行监控五个工作区。文档可自动提取文字并按段批量导入；每次保存、停用或回滚都会留下知识版本，发布前可用真实检索链路测试答案。升级已有数据库时必须执行 `V8__ai_quality_workbench.sql`，否则版本、反馈和增强监控不可用。
+AI 知识管理员拥有知识维护、问答测试、脱敏用户反馈、校园工具状态和运行监控五个工作区。文档可自动提取文字并按段批量导入；每次保存、停用或回滚都会留下知识版本，发布前可用真实检索链路测试答案。升级已有数据库时必须执行 `V12__ai_quality_workbench.sql`，否则版本、反馈和增强监控不可用。
 
 登录职责拥有 `AI_ASSISTANT` 入口时，小松鼠桌宠默认显示在主窗口右下角：
 
