@@ -30,10 +30,18 @@ public final class NetworkAiAssistantClientService implements AiAssistantClientS
         this.connectTimeout = connectTimeout; this.readTimeout = readTimeout;
     }
 
-    public String query(String sessionId, String text, final AiStreamListener listener) {
+    public String query(String sessionId, String text, AiMode mode,
+                        final AiStreamListener listener) {
+        return query(sessionId, text, mode, null, listener);
+    }
+
+    public String query(String sessionId, String text, AiMode mode,
+                        List<AiAttachment> attachments,
+                        final AiStreamListener listener) {
         final String requestId = UUID.randomUUID().toString();
         final AiStreamConnection connection = new AiStreamConnection(host, port, connectTimeout,
-                readTimeout, session.getSessionToken(), new AiQuery(requestId, sessionId, text),
+                readTimeout, session.getSessionToken(),
+                new AiQuery(requestId, sessionId, text, mode, attachments),
                 new AiConversationListener() {
                     public void onChunk(String value) { listener.onChunk(value); }
                     public void onComplete() { active.remove(requestId); listener.onComplete(); }
@@ -41,6 +49,11 @@ public final class NetworkAiAssistantClientService implements AiAssistantClientS
                     public void onActionRequired(AiPendingAction action) {
                         if (listener instanceof AiConversationListener) {
                             ((AiConversationListener) listener).onActionRequired(action);
+                        }
+                    }
+                    public void onEvidence(List<AiAnswerEvidence> evidence) {
+                        if (listener instanceof AiConversationListener) {
+                            ((AiConversationListener) listener).onEvidence(evidence);
                         }
                     }
                 });
@@ -56,6 +69,10 @@ public final class NetworkAiAssistantClientService implements AiAssistantClientS
         catch (ClientServiceException ignored) { }
     }
 
+    public boolean ping() throws ClientServiceException {
+        return request(AiCommands.PING, null, Boolean.class).booleanValue();
+    }
+
     public List<AiSessionSummary> sessions() throws ClientServiceException {
         return list(request(AiCommands.SESSION_LIST, null, List.class), AiSessionSummary.class);
     }
@@ -69,6 +86,9 @@ public final class NetworkAiAssistantClientService implements AiAssistantClientS
     public void clearSession(String id) throws ClientServiceException {
         request(AiCommands.SESSION_CLEAR, new AiSessionRequest(id), Boolean.class);
     }
+    public void renameSession(String id, String title) throws ClientServiceException {
+        request(AiCommands.SESSION_RENAME, new AiSessionRenameRequest(id, title), Boolean.class);
+    }
     public AiConfirmResult confirm(long id, boolean agreed) throws ClientServiceException {
         return request(AiCommands.CONFIRM, new AiActionConfirmation(id, agreed), AiConfirmResult.class);
     }
@@ -80,6 +100,28 @@ public final class NetworkAiAssistantClientService implements AiAssistantClientS
     }
     public void deleteKnowledge(long id) throws ClientServiceException {
         request(AiCommands.KNOWLEDGE_DELETE, new AiKnowledgeDeleteRequest(id), Boolean.class);
+    }
+    public AiKnowledgeTestResult testKnowledge(String question) throws ClientServiceException {
+        return request(AiCommands.KNOWLEDGE_TEST, new AiKnowledgeTestRequest(question),
+                AiKnowledgeTestResult.class);
+    }
+    public List<AiKnowledgeVersion> knowledgeVersions(long chunkId) throws ClientServiceException {
+        return list(request(AiCommands.KNOWLEDGE_VERSIONS,
+                new AiKnowledgeVersionRequest(chunkId, null), List.class), AiKnowledgeVersion.class);
+    }
+    public AiKnowledgeChunk rollbackKnowledge(long chunkId, long versionId)
+            throws ClientServiceException {
+        return request(AiCommands.KNOWLEDGE_ROLLBACK,
+                new AiKnowledgeVersionRequest(chunkId, Long.valueOf(versionId)), AiKnowledgeChunk.class);
+    }
+    public void saveFeedback(AiFeedbackRequest feedback) throws ClientServiceException {
+        request(AiCommands.FEEDBACK_SAVE, feedback, Boolean.class);
+    }
+    public List<AiFeedbackEntry> feedback() throws ClientServiceException {
+        return list(request(AiCommands.FEEDBACK_LIST, null, List.class), AiFeedbackEntry.class);
+    }
+    public List<AiToolStatus> toolStatuses() throws ClientServiceException {
+        return list(request(AiCommands.TOOL_STATUS, null, List.class), AiToolStatus.class);
     }
     public AiMonitorSnapshot monitor() throws ClientServiceException {
         return request(AiCommands.MONITOR, null, AiMonitorSnapshot.class);

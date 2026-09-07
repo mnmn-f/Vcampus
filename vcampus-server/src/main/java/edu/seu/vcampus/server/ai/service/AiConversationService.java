@@ -47,10 +47,41 @@ public final class AiConversationService {
         });
     }
 
+    /** 返回有界的最近对话，供多轮指代和模型回答使用。 */
+    public String recentContext(SessionContext session, String id) {
+        if (id == null) return "";
+        List<AiChatMessage> messages = history(session, id);
+        StringBuilder out = new StringBuilder();
+        int start = Math.max(0, messages.size() - 12);
+        for (int i = start; i < messages.size(); i++) {
+            AiChatMessage message = messages.get(i);
+            String content = message.getContent() == null ? "" : message.getContent().trim();
+            if (content.length() > 800) content = content.substring(0, 800) + "…";
+            out.append("USER".equals(message.getSenderType()) ? "用户：" : "助手：")
+                    .append(content).append('\n');
+            if (out.length() > 5000) return out.substring(out.length() - 5000);
+        }
+        return out.toString();
+    }
+
     public void clear(final SessionContext session, final String id) {
         tx(new Work<Void>() {
             public Void run(Connection c) throws Exception {
                 requireOwn(c, session, id); repository.archive(c, id, session.getUserId());
+                return null;
+            }
+        });
+    }
+
+    public void rename(final SessionContext session, final String id, final String title) {
+        final String clean = title == null ? "" : title.trim();
+        if (clean.isEmpty() || clean.length() > 80) {
+            throw new AiServiceException(ResultCodes.INVALID_INPUT,
+                    "会话标题不能为空且不能超过 80 字");
+        }
+        tx(new Work<Void>() {
+            public Void run(Connection c) throws Exception {
+                requireOwn(c, session, id); repository.rename(c, id, session.getUserId(), clean);
                 return null;
             }
         });

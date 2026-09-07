@@ -43,13 +43,15 @@ $timeoutValue = Read-Setting $ClientReadTimeoutMillis `
     $env:VCAMPUS_SERVER_CLIENT_READ_TIMEOUT '1800000' 'ClientReadTimeoutMillis' 1 2147483647
 
 $aiModel = $env:VCAMPUS_AI_MODEL
-if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'gpt-4.1-mini' }
+if ([string]::IsNullOrWhiteSpace($aiModel)) { $aiModel = 'deepseek-v4-flash' }
 $aiEndpoint = $env:VCAMPUS_AI_ENDPOINT
 if ([string]::IsNullOrWhiteSpace($aiEndpoint)) {
-    $aiEndpoint = 'https://api.openai.com/v1/responses'
+    $aiEndpoint = 'https://api.deepseek.com/responses'
 }
-if ([string]::IsNullOrWhiteSpace($env:VCAMPUS_AI_API_KEY)) {
-    Write-Warning 'VCAMPUS_AI_API_KEY is not set. VCampus will use knowledge-base fallback.'
+$aiKey = $env:VCAMPUS_AI_API_KEY
+if ([string]::IsNullOrWhiteSpace($aiKey)) { $aiKey = $env:DEEPSEEK_API_KEY }
+if ([string]::IsNullOrWhiteSpace($aiKey)) {
+    Write-Warning 'VCAMPUS_AI_API_KEY/DEEPSEEK_API_KEY is not set. VCampus will use knowledge-base fallback.'
 } else {
     Write-Host "AI Responses API configured: $aiModel at $aiEndpoint" -ForegroundColor Green
 }

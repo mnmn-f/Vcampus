@@ -10,6 +10,7 @@
 - 侧栏与顶部身份：[SidebarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/SidebarPanel.java)、[TopBarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/TopBarPanel.java)。侧栏只保留当前职责有权进入的模块；多角色账号才显示身份切换器。
 - 个人中心：[PersonalCenterPage.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/PersonalCenterPage.java)。所有登录人员可查看本人资料和账号安全；本人注销申请在非系统管理员的个人中心内办理。
 - 网络组合根：[ClientBusinessServices.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/composition/ClientBusinessServices.java)。登录成功后的业务页共用同一 `NetworkClientService`、`ClientSession` 和当前身份。
+- AI 桌宠：[SquirrelPetController.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetController.java)、[SquirrelPetWidget.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetWidget.java)。仅对可进入校园助手的职责显示；窗口内和最小化后的桌面形态均可拖动并分别保存位置，窗口内单击进入 AI 页面，桌面形态单击恢复原页面。
 
 主导航分为“我的工作台”“校园业务”“系统管理”三组。模块内的查询、维护、审批、日志等任务使用 [TaskTabs.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/components/TaskTabs.java) 切换，避免把互不相同的人员任务堆在同一长页面中。
 
@@ -40,6 +41,7 @@
 | `DormAccommodationPanel`、`DormStudentLeavePanel`、`DormStudentRepairsPanel`、`DormExtVisitorPanel`、`DormExtStayPanel`、`DormExtNoticePanel` | `DormClientService`、`DormExtClientService` | 学生本人住宿、请假、访客、报修许可/评价、在宿门禁、账单和公告；用户身份由会话确定 |
 | `DormManagerSpacePanel`、`DormManagerLeavePanel`、`DormManagerRequestsPanel`、`DormExtVisitorAuditPanel`、`DormExtWarningPanel`、`DormExtHygienePanel`、`DormExtBillingPanel`、`DormExtNoticePanel` | `DormClientService`、`DormExtClientService` | 宿管空间与审批、门禁/连续未归、卫生、报修、抄表出账和分范围公告；两个服务共享同一网络组合根 |
 | `IdentityUsersPanel`、`IdentitySessionsPanel`、`IdentityCancellationPanel`、`IdentityAuditPanel`、`IdentityMonitorPanel` | `IdentityClientService` | 用户、状态、角色、会话、注销申请、审计与系统快照；会话展示不返回 raw token |
+| `AiAssistantPage`、`AiChatPanel`、`SquirrelPetWidget` | `AiAssistantClientService` | 问答、聊天、代办、会话与流式响应；桌宠只接收固定状态事件，不接触回答正文或业务凭据 |
 
 ## 高风险操作确认
 

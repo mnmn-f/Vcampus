@@ -1,5 +1,7 @@
 package edu.seu.vcampus.server.ai.model;
 
+import edu.seu.vcampus.common.ai.AiAttachment;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -7,6 +9,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 
 /** 调用兼容 Responses API 的 HTTPS 接口并读取 SSE 文本增量。 */
 public final class ResponsesAiModel implements AiModel {
@@ -26,10 +31,15 @@ public final class ResponsesAiModel implements AiModel {
     }
 
     public void generate(String requestId, String prompt, AiTextSink sink) throws Exception {
+        generate(requestId, prompt, Collections.<AiAttachment>emptyList(), sink);
+    }
+
+    public void generate(String requestId, String prompt, List<AiAttachment> attachments,
+                         AiTextSink sink) throws Exception {
         if (!isConfigured()) throw new IllegalStateException("AI API Key 未配置");
         HttpURLConnection connection = open();
         try {
-            byte[] body = body(prompt).getBytes(UTF8);
+            byte[] body = body(prompt, attachments).getBytes(UTF8);
             connection.setFixedLengthStreamingMode(body.length);
             OutputStream output = connection.getOutputStream();
             try { output.write(body); output.flush(); } finally { output.close(); }
@@ -51,12 +61,39 @@ public final class ResponsesAiModel implements AiModel {
         return connection;
     }
 
-    private String body(String prompt) {
-        String instructions = "你是虚拟校园系统内的校园助手。只根据提供的校园知识作答；"
-                + "涉及个人数据或业务操作时不得编造结果，回答简洁并标明依据。";
-        return "{\"model\":" + JsonText.quote(config.getModel())
+    private String body(String prompt, List<AiAttachment> attachments) {
+        String instructions = "你是虚拟校园系统内的 AI 助手。严格遵循输入中声明的模式和任务；"
+                + "涉及个人数据或业务操作时不得编造结果，也不得声称执行未由系统工具完成的操作。"
+                + "回答必须是适合桌面聊天框显示的纯文本，不使用 Markdown 标题、星号、方框、"
+                + "反引号或方括号数字引用；需要分步时使用“第一步、第二步”这样的中文表达。";
+        boolean hasImage = false;
+        StringBuilder content = new StringBuilder("[");
+        content.append("{\"type\":\"input_text\",\"text\":")
+                .append(JsonText.quote(prompt)).append('}');
+        if (attachments != null) for (AiAttachment attachment : attachments) {
+            if (attachment == null) continue;
+            if (attachment.isImage()) {
+                hasImage = true;
+                String data = "data:" + attachment.getMediaType() + ";base64,"
+                        + Base64.getEncoder().encodeToString(attachment.getContent());
+                content.append(",{\"type\":\"input_text\",\"text\":")
+                        .append(JsonText.quote("图片附件：" + attachment.getFileName()
+                                + "。请观察实际画面，不要根据文件名猜测。"))
+                        .append('}')
+                        .append(",{\"type\":\"input_image\",\"image_url\":")
+                        .append(JsonText.quote(data)).append('}');
+            } else if (attachment.isText()) {
+                String text = new String(attachment.getContent(), UTF8);
+                if (text.length() > 60000) text = text.substring(0, 60000) + "\n文件内容已截断";
+                content.append(",{\"type\":\"input_text\",\"text\":")
+                        .append(JsonText.quote("附件 " + attachment.getFileName() + ":\n" + text))
+                        .append('}');
+            }
+        }
+        content.append(']');
+        return "{\"model\":" + JsonText.quote(hasImage ? config.getVisionModel() : config.getModel())
                 + ",\"instructions\":" + JsonText.quote(instructions)
-                + ",\"input\":" + JsonText.quote(prompt)
+                + ",\"input\":[{\"role\":\"user\",\"content\":" + content + "}]"
                 + ",\"stream\":true,\"max_output_tokens\":1200}";
     }
 

@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 增加商店分类、促销、优惠券、评价和好友代付结构。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 扩展商店，V5 扩展宿舍，V6 增加教师排课偏好，V10/V11 增加 AI 知识片段，V12 增加 AI 知识版本和回答反馈。
 
 执行顺序：
 
 ```text
-V1__baseline.sql  ->  V2__demo_data.sql  ->  V3__academic_insights.sql  ->  V4__store_experience.sql
+V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> V4__store_experience.sql -> V5__dorm_extension.sql -> V6__teacher_time_preferences.sql -> V10__ai_assistant_knowledge.sql -> V11__ai_knowledge_and_tools.sql -> V12__ai_quality_workbench.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -21,6 +21,16 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
 ```
 
 脚本使用 `CREATE DATABASE IF NOT EXISTS`、`CREATE TABLE IF NOT EXISTS` 和自然键/幂等键，因此可以在同一个演示库重复执行。它面向全新库；如果已有表的结构与基线不一致，不应靠重复执行修复，而应新增后续版本迁移。生产环境不应直接执行演示数据脚本。
@@ -55,7 +65,7 @@ V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希�
 - 账户资金变化是真正同构的数据，统一放在 `account_transactions`；充值、消费、退款、宿舍缴费使用不同 `transaction_type`。
 - 商品订单使用 `store_orders` 和 `store_order_items`，销售统计由 MySqlStoreSalesRepository 直接聚合已支付订单明细，不重复保存销售事实；V1 的 `vw_store_sales` 仅作兼容/查询辅助。
 - 图书借阅、自习室预约、宿舍报修、卫生检查、水电分摊和 AI 调用各自保留明确实体。
-- AI 在当前版本只保留 `ai_chat_sessions`、`ai_chat_messages`、`ai_knowledge_chunks` 和 `ai_tool_call_logs` 四张存储表；不实现模型、RAG 检索或实际写操作工具。
+- AI 使用 `ai_chat_sessions`、`ai_chat_messages`、`ai_knowledge_chunks` 和 `ai_tool_call_logs` 四张自有存储表，已实现可选模型、混合知识检索和白名单工具编排；课程、图书、订单、宿舍等事实仍由原业务表和服务维护，不在 AI 表中复制。
 
 ### 2.3 时间、金额和状态
 
@@ -138,9 +148,9 @@ V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希�
 - 学生缴费事务锁定 `utility_allocations`、`utility_bills` 和 `accounts`，检查分摊状态和余额，插入负金额 `account_transactions`，更新分摊为 `PAID` 并刷新账单状态。
 - 门禁预警、账单生成等定时任务只生成可审计的记录；不在后台直接执行不可逆审批或调宿。
 
-### 4.9 AI 接口阶段
+### 4.9 AI 会话、知识与工具确认
 
-AI 相关表当前只是协议与存储预留，没有真实模型、RAG、知识维护服务或工具调用服务。未实现能力不向任何角色显示入口，也不能把表结构或占位文本写成已交付功能。
+AI 对话先写入会话和消息表，知识问答只检索 `ai_knowledge_chunks.status = 'ACTIVE'` 的片段；`V11__ai_knowledge_and_tools.sql` 增加公寓管理、违纪处分和系统操作摘要。当前未部署独立向量库：服务端从 MySQL 读取有界候选并在内存做关键词、同义词和轻量文本向量混排，`embedding_json` 保留为空。写工具先在 `ai_tool_call_logs` 创建具有有效期的待确认记录；参数不完整时先澄清，不创建待确认记录。确认时由数据库原子领取，随后携带当前登录会话重新进入原 `CommandRouter`，由原业务服务执行权限、状态和事务校验。AI 不直接写课程、借阅、购物车、订单、竞赛或宿舍业务表，也不接受问题文本指定他人身份。聊天附件只随当前请求传输、不写入消息表。客户端小松鼠桌宠没有数据库表，只在本机 `Preferences` 中保存桌面位置和好感度。
 
 ## 5. 跨表约束（由服务层保证）
 
