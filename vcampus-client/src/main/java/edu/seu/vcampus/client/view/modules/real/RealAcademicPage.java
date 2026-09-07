@@ -22,6 +22,8 @@ public final class RealAcademicPage extends BasePage {
         }
         if (role == Role.TEACHER) tabs.addTask("成绩登记",
                 new TeacherGradePanel(this, services.academic(), services.student()));
+        if (role == Role.ACADEMIC_ADMIN) tabs.addTask("自动排课",
+                new AutoSchedulingPanel(this, services.academic()));
         tabs.addTask("教务公告", new CampusAnnouncementsPanel(this, services.campus(), role));
         if (role == Role.STUDENT || role == Role.ACADEMIC_ADMIN) {
             tabs.addTask("竞赛活动", new CampusCompetitionsPanel(this, services.campus(), role));

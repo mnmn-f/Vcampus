@@ -41,7 +41,17 @@ public final class AcademicCommandRegistry {
                 .register(AcademicCommands.TEACHER_COURSES,
                         new AcademicCommandHandler(AcademicCommands.TEACHER_COURSES, service))
                 .register(AcademicCommands.COURSE_ROSTER,
-                        new AcademicCommandHandler(AcademicCommands.COURSE_ROSTER, service));
+                        new AcademicCommandHandler(AcademicCommands.COURSE_ROSTER, service))
+                .register(AcademicCommands.SCHEDULING_OVERVIEW,
+                        new AcademicCommandHandler(AcademicCommands.SCHEDULING_OVERVIEW, service))
+                .register(AcademicCommands.SCHEDULING_PREFERENCE_SAVE,
+                        new AcademicCommandHandler(AcademicCommands.SCHEDULING_PREFERENCE_SAVE, service))
+                .register(AcademicCommands.SCHEDULING_PREFERENCE_DELETE,
+                        new AcademicCommandHandler(AcademicCommands.SCHEDULING_PREFERENCE_DELETE, service))
+                .register(AcademicCommands.AUTO_SCHEDULE_PREVIEW,
+                        new AcademicCommandHandler(AcademicCommands.AUTO_SCHEDULE_PREVIEW, service))
+                .register(AcademicCommands.AUTO_SCHEDULE_CONFIRM,
+                        new AcademicCommandHandler(AcademicCommands.AUTO_SCHEDULE_CONFIRM, service));
     }
 
     public static CommandRouter registerAll(CommandRouter router, AcademicService service) {
