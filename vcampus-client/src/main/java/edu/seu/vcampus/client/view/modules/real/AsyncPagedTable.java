@@ -43,6 +43,8 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private final RowMapper<T> mapper;
     private final SelectionListener<T> selectionListener;
     private List<T> items = Collections.emptyList();
+    private java.util.function.Function<T, Object> itemKey;
+    private boolean checkboxSelection;
     private int page = 1;
     private int requestSerial;
     private boolean hasNext;
@@ -128,6 +130,29 @@ public final class AsyncPagedTable<T> extends SectionCard {
         toolbar.setAdditionalFilters(filters);
         additionalCondition = condition;
     }
+    public void setItemKey(java.util.function.Function<T, Object> key) { itemKey = key; }
+    public void refreshCurrentPage() { load(page); }
+    public void enableCheckboxSelection() {
+        checkboxSelection = true;
+        if (table.getColumnCount() > 0) table.getColumnModel().getColumn(0).setPreferredWidth(45);
+        model.fireTableStructureChanged();
+        configureTable();
+    }
+    public List<T> checkedItems() {
+        List<T> result = new java.util.ArrayList<T>();
+        for (int i = 0; i < items.size(); i++) {
+            if (Boolean.TRUE.equals(model.getValueAt(i, 0))) result.add(items.get(i));
+        }
+        return result;
+    }
+    public List<T> selectedItems() {
+        List<T> result = new java.util.ArrayList<T>();
+        for (int row : table.getSelectedRows()) {
+            int index = table.convertRowIndexToModel(row);
+            if (index >= 0 && index < items.size()) result.add(items.get(index));
+        }
+        return result;
+    }
     public void reload() { load(1); }
     public void resetFilters() {
         toolbar.getSearchField().setText("");
@@ -153,8 +178,25 @@ public final class AsyncPagedTable<T> extends SectionCard {
             @Override protected void done() {
                 if (serial != requestSerial) return;
                 try {
-                    PageSlice<T> result = get(); items = result.getItems(); page = result.getPage(); hasNext = result.hasNext();
-                    model.setRowCount(0); for (T item : items) model.addRow(mapper.values(item));
+                    PageSlice<T> result = get();
+                    java.util.Set<Object> selectedKeys = new java.util.HashSet<Object>();
+                    java.util.Set<Object> checkedKeys = new java.util.HashSet<Object>();
+                    if (itemKey != null) {
+                        for (T item : selectedItems()) selectedKeys.add(itemKey.apply(item));
+                        for (T item : checkedItems()) checkedKeys.add(itemKey.apply(item));
+                    }
+                    items = result.getItems(); page = result.getPage(); hasNext = result.hasNext();
+                    model.setRowCount(0);
+                    for (T item : items) {
+                        Object[] values = mapper.values(item);
+                        if (checkboxSelection && itemKey != null && values.length > 0) {
+                            values[0] = checkedKeys.contains(itemKey.apply(item));
+                        }
+                        model.addRow(values);
+                        if (itemKey != null && selectedKeys.contains(itemKey.apply(item))) {
+                            table.addRowSelectionInterval(model.getRowCount() - 1, model.getRowCount() - 1);
+                        }
+                    }
                     toolbar.setResultHint("共 " + result.getTotal() + " 条");
                     if (items.isEmpty()) viewport.showEmpty(hasCondition(keyword, filter) ? "没有找到匹配记录" : "暂无记录", "");
                     else { viewport.showRows(items.size()); lastFitWidth = -1; refitColumns(); }
@@ -176,7 +218,14 @@ public final class AsyncPagedTable<T> extends SectionCard {
     }
     private DefaultTableModel model(String[] columns) {
         final String[] safe = columns == null ? new String[0] : columns.clone();
-        return new DefaultTableModel(safe, 0) { @Override public boolean isCellEditable(int row, int column) { return false; } };
+        return new DefaultTableModel(safe, 0) {
+            @Override public boolean isCellEditable(int row, int column) {
+                return checkboxSelection && column == 0;
+            }
+            @Override public Class<?> getColumnClass(int column) {
+                return checkboxSelection && column == 0 ? Boolean.class : Object.class;
+            }
+        };
     }
     private void configureTable() {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setFillsViewportHeight(false);

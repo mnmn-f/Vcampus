@@ -23,6 +23,7 @@ import edu.seu.vcampus.common.dto.library.StudyRoomView;
 
 /** 客户端图书馆服务边界；不暴露 Socket 或服务端仓储。 */
 public interface LibraryClientService {
+    default PdfClientService pdf(edu.seu.vcampus.client.session.ClientSession session) { return null; }
     PageResult<BookDetail> searchBooks(BookSearchRequest request) throws NetworkClientException;
     BookDetail bookDetail(long bookId) throws NetworkClientException;
     BorrowRecordView borrow(BorrowRequest request) throws NetworkClientException;
