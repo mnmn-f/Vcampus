@@ -5,7 +5,6 @@ import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
-import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -412,17 +411,12 @@ public final class DormStudentRepairPage extends JPanel {
         note.setPreferredSize(new Dimension(720, 130));
         note.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
-        JButton submit = new PrimaryButton("提交报修");
-        submit.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { create(); }
-        });
-        JButton cancel = new SecondaryButton("收起");
-        cancel.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { toggleCompose(false); }
-        });
-        JPanel buttons = UiFactory.horizontal(9);
-        buttons.add(submit);
-        buttons.add(cancel);
+        JPanel buttons = DormFormUi.primarySecondaryActions("提交报修",
+                new java.awt.event.ActionListener() {
+                    @Override public void actionPerformed(java.awt.event.ActionEvent e) { create(); }
+                }, "收起", new java.awt.event.ActionListener() {
+                    @Override public void actionPerformed(java.awt.event.ActionEvent e) { toggleCompose(false); }
+                });
 
         JPanel rows = new JPanel();
         rows.setOpaque(false);

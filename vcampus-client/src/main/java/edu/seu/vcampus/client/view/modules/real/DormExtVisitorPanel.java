@@ -16,7 +16,6 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -59,15 +58,15 @@ public final class DormExtVisitorPanel extends JPanel {
     private JPanel form() {
         JPanel first = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         first.setOpaque(false);
-        first.add(field("来访人姓名", visitorName, 132));
-        first.add(field("证件号", visitorIdCard, 220));
-        first.add(field("联系电话（可空）", visitorPhone, 150));
-        first.add(field("来访事由", visitReason, 180));
+        first.add(DormFormUi.field("来访人姓名", visitorName, 132));
+        first.add(DormFormUi.field("证件号", visitorIdCard, 220));
+        first.add(DormFormUi.field("联系电话（可空）", visitorPhone, 150));
+        first.add(DormFormUi.field("来访事由", visitReason, 180));
 
         JPanel second = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         second.setOpaque(false);
-        second.add(field("来访时间", startAt, 330));
-        second.add(field("离开时间", endAt, 330));
+        second.add(DormFormUi.field("来访时间", startAt, 330));
+        second.add(DormFormUi.field("离开时间", endAt, 330));
 
         JButton submit = new PrimaryButton("提交登记");
         submit.addActionListener(new ActionListener() {
@@ -112,15 +111,6 @@ public final class DormExtVisitorPanel extends JPanel {
         section.add(javax.swing.Box.createVerticalStrut(20));
         section.setAlignmentX(LEFT_ALIGNMENT);
         return section;
-    }
-
-    private static JPanel field(String label, java.awt.Component control, int width) {
-        JPanel holder = new JPanel(new BorderLayout(0, 5));
-        holder.setOpaque(false);
-        holder.add(DormUi.caption(label), BorderLayout.NORTH);
-        holder.add(control, BorderLayout.CENTER);
-        holder.setPreferredSize(new Dimension(width, 60));
-        return holder;
     }
 
     private AsyncPagedTable<VisitorRegistrationDto> table() {

@@ -359,17 +359,12 @@ public final class DormExtNoticePanel extends JPanel {
         bodyRow.setPreferredSize(new Dimension(760, 170));
         bodyRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 170));
 
-        JButton submit = new PrimaryButton("保存公告");
-        submit.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { submitCompose(); }
-        });
-        JButton cancel = new SecondaryButton("收起");
-        cancel.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { toggleCompose(false); }
-        });
-        JPanel buttons = UiFactory.horizontal(9);
-        buttons.add(submit);
-        buttons.add(cancel);
+        JPanel buttons = DormFormUi.primarySecondaryActions("保存公告",
+                new java.awt.event.ActionListener() {
+                    @Override public void actionPerformed(java.awt.event.ActionEvent e) { submitCompose(); }
+                }, "收起", new java.awt.event.ActionListener() {
+                    @Override public void actionPerformed(java.awt.event.ActionEvent e) { toggleCompose(false); }
+                });
 
         JPanel rows = new JPanel();
         rows.setOpaque(false);

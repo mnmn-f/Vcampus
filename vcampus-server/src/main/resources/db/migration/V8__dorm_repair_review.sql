@@ -1,5 +1,5 @@
 -- ============================================================================
--- V7 报修工单增加「待宿管审核」状态，并修正演示楼栋的性别政策
+-- V8 报修工单增加「待宿管审核」状态，并修正演示楼栋的性别政策
 --
 -- 原来的四态里，维修员一点「完工」工单就直接终结，宿管没有任何复核的机会——而现实
 -- 里报修完没完，是宿管去看一眼才算数。这里在 IN_PROGRESS 和 COMPLETED 之间插一个
@@ -10,7 +10,15 @@
 -- 不用动。
 -- ============================================================================
 
-ALTER TABLE `repair_orders` DROP CHECK `ck_repair_orders_status`;
+SET @drop_status = (SELECT IF(EXISTS(
+        SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+        WHERE CONSTRAINT_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'repair_orders'
+          AND CONSTRAINT_NAME = 'ck_repair_orders_status'),
+    'ALTER TABLE `repair_orders` DROP CHECK `ck_repair_orders_status`',
+    'DO 0'));
+PREPARE s FROM @drop_status; EXECUTE s; DEALLOCATE PREPARE s;
+
 ALTER TABLE `repair_orders` ADD CONSTRAINT `ck_repair_orders_status`
     CHECK (`status` IN ('SUBMITTED', 'ACCEPTED', 'IN_PROGRESS', 'PENDING_REVIEW',
                         'COMPLETED', 'CANCELLED'));

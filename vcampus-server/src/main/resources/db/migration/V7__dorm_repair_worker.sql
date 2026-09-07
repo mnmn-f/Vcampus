@@ -1,5 +1,5 @@
 -- ============================================================================
--- V6 维修员角色
+-- V7 维修员角色
 --
 -- 报修工单本身在 V1 就已经齐了：repair_orders 有 handler_id、accepted_at、
 -- completed_at 和 SUBMITTED/ACCEPTED/IN_PROGRESS/COMPLETED 四态。缺的只是「谁来

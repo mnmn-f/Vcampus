@@ -66,10 +66,10 @@ public final class DormStudentLeavePanel extends JPanel {
 
         JPanel fields = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
         fields.setOpaque(false);
-        fields.add(field("类型", type, 112));
-        fields.add(field("开始日期", start, 190));
-        fields.add(field("结束日期", end, 190));
-        fields.add(field("事由", reason, 240));
+        fields.add(DormFormUi.field("类型", type, 112));
+        fields.add(DormFormUi.field("开始日期", start, 190));
+        fields.add(DormFormUi.field("结束日期", end, 190));
+        fields.add(DormFormUi.field("事由", reason, 240));
 
         JButton submit = new PrimaryButton("提交请假");
         submit.addActionListener(new java.awt.event.ActionListener() {
@@ -106,16 +106,6 @@ public final class DormStudentLeavePanel extends JPanel {
         section.add(javax.swing.Box.createVerticalStrut(20));
         section.setAlignmentX(LEFT_ALIGNMENT);
         return section;
-    }
-
-    /** 一个「标签在上、控件在下」的字段，宽度自己说了算。 */
-    private static JPanel field(String label, java.awt.Component control, int width) {
-        JPanel holder = new JPanel(new BorderLayout(0, 5));
-        holder.setOpaque(false);
-        holder.add(DormUi.caption(label), BorderLayout.NORTH);
-        holder.add(control, BorderLayout.CENTER);
-        holder.setPreferredSize(new Dimension(width, 60));
-        return holder;
     }
 
     private AsyncPagedTable<LeaveRequestDto> history() {
