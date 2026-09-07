@@ -107,9 +107,10 @@ public final class MySqlDormAccommodationRepository implements DormAccommodation
                 && (existing == null || current == null || existing.getId() != current.longValue())) {
             throw new DormRepositoryException(DormCommands.ACCOMMODATION_NOT_FOUND, "当前住宿记录不存在");
         }
+        // 床位不再由学生填：入住和调宿申请可以不带目标床位，交给宿管审批时统一调配。
+        // 带了就校验一次，免得存进一条指向已占用床位的申请。
         if ("CHECK_IN".equals(type) || "TRANSFER".equals(type)) {
-            if (target == null) throw new DormRepositoryException(DormCommands.INVALID_INPUT, "目标床位不能为空");
-            MySqlDormAccommodationOps.requireAvailable(c, facilities, target.longValue());
+            if (target != null) MySqlDormAccommodationOps.requireAvailable(c, facilities, target.longValue());
         } else if (target != null) {
             throw new DormRepositoryException(DormCommands.INVALID_INPUT, "退宿申请不能带目标床位");
         }

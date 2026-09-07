@@ -56,6 +56,7 @@ final class InMemoryDormAccessStore {
     }
 
     void setPhone(long userId, String phone) { state.phones.put(Long.valueOf(userId), phone); }
+    void setPriority(long orderId, String priority) { state.repairPriorities.put(Long.valueOf(orderId), priority); }
     String reporterPhone(long orderId) {
         Long reporter = state.repairReporters.get(Long.valueOf(orderId));
         return reporter == null ? null : state.phones.get(reporter);
@@ -82,6 +83,136 @@ final class InMemoryDormAccessStore {
             if (reporter != null && reporter.longValue() == studentId && InMemoryDormSupport.status(q.getStatus(), entry.getValue().getOrderStatus())) rows.add(entry.getValue());
         }
         return InMemoryDormSupport.page(rows, q);
+    }
+
+    // ---------- 维修员工作流 ----------
+
+    /**
+     * 内存版的报修工单借用 {@link RepairEntryPermitDto} 存放，它没有处理人和状态可改，
+     * 所以状态流转在这里表现为「换一份带新状态的副本」，处理人另用一张表记。
+     */
+    DormPage<RepairWorkOrderDto> repairQueue(DormPageQuery query) {
+        DormPageQuery q = query == null ? DormPageQuery.all() : query;
+        List<RepairWorkOrderDto> rows = new ArrayList<RepairWorkOrderDto>();
+        for (Map.Entry<Long, RepairEntryPermitDto> entry : state.repairOrders.entrySet()) {
+            if (!"SUBMITTED".equals(entry.getValue().getOrderStatus())) continue;
+            if (state.repairHandlers.containsKey(entry.getKey())) continue;
+            if (!InMemoryDormSupport.matches(q.getKeyword(), entry.getValue().getRoomNo(), entry.getValue().getCategory())) continue;
+            rows.add(workOrder(entry.getKey(), entry.getValue(), false));
+        }
+        return InMemoryDormSupport.page(rows, q);
+    }
+
+    DormPage<RepairWorkOrderDto> repairAssigned(long handlerId, DormPageQuery query, boolean active) {
+        DormPageQuery q = query == null ? DormPageQuery.all() : query;
+        List<RepairWorkOrderDto> rows = new ArrayList<RepairWorkOrderDto>();
+        for (Map.Entry<Long, RepairEntryPermitDto> entry : state.repairOrders.entrySet()) {
+            Long handler = state.repairHandlers.get(entry.getKey());
+            if (handler == null || handler.longValue() != handlerId) continue;
+            if (activeStatus(entry.getValue().getOrderStatus()) != active) continue;
+            if (!InMemoryDormSupport.matches(q.getKeyword(), entry.getValue().getRoomNo(), entry.getValue().getCategory())) continue;
+            rows.add(workOrder(entry.getKey(), entry.getValue(), true));
+        }
+        return InMemoryDormSupport.page(rows, q);
+    }
+
+    /** 内存实现没有用户表，维修员名单由测试用 {@code addRepairWorker} 直接喂进来。 */
+    List<RepairWorkerDto> repairWorkers() {
+        List<RepairWorkerDto> rows = new ArrayList<RepairWorkerDto>();
+        for (Map.Entry<Long, String> entry : state.repairWorkers.entrySet()) {
+            int active = 0;
+            for (Map.Entry<Long, Long> assigned : state.repairHandlers.entrySet()) {
+                if (!assigned.getValue().equals(entry.getKey())) continue;
+                RepairEntryPermitDto order = state.repairOrders.get(assigned.getKey());
+                if (order != null && activeStatus(order.getOrderStatus())) active++;
+            }
+            rows.add(new RepairWorkerDto(entry.getKey().longValue(), entry.getValue(), active));
+        }
+        return rows;
+    }
+
+    int assignRepair(long orderId, long workerId) {
+        Long key = Long.valueOf(orderId);
+        RepairEntryPermitDto value = state.repairOrders.get(key);
+        if (value == null) return 0;
+        String status = value.getOrderStatus();
+        if (!"SUBMITTED".equals(status) && !activeStatus(status)) return 0;
+        state.repairHandlers.put(key, Long.valueOf(workerId));
+        if ("SUBMITTED".equals(status)) state.repairOrders.put(key, withStatus(value, "ACCEPTED"));
+        return 1;
+    }
+
+    RepairWorkOrderDto findRepairForManager(long orderId) {
+        RepairEntryPermitDto value = state.repairOrders.get(Long.valueOf(orderId));
+        return value == null ? null : workOrder(Long.valueOf(orderId), value, true);
+    }
+
+    void addRepairWorker(long userId, String displayName) {
+        state.repairWorkers.put(Long.valueOf(userId), displayName);
+    }
+
+    RepairWorkOrderDto findRepairWork(long orderId, long handlerId) {
+        RepairEntryPermitDto value = state.repairOrders.get(Long.valueOf(orderId));
+        if (value == null) return null;
+        Long handler = state.repairHandlers.get(Long.valueOf(orderId));
+        return workOrder(Long.valueOf(orderId), value, handler != null && handler.longValue() == handlerId);
+    }
+
+    int claimRepair(long orderId, long handlerId) {
+        Long key = Long.valueOf(orderId);
+        RepairEntryPermitDto value = state.repairOrders.get(key);
+        if (value == null || !"SUBMITTED".equals(value.getOrderStatus())) return 0;
+        if (state.repairHandlers.containsKey(key)) return 0;
+        state.repairHandlers.put(key, Long.valueOf(handlerId));
+        state.repairOrders.put(key, withStatus(value, "ACCEPTED"));
+        return 1;
+    }
+
+    int startRepair(long orderId, long handlerId) {
+        return advance(orderId, handlerId, "ACCEPTED", "IN_PROGRESS");
+    }
+
+    int finishRepair(long orderId, long handlerId) {
+        int done = advance(orderId, handlerId, "ACCEPTED", "PENDING_REVIEW");
+        return done == 1 ? done : advance(orderId, handlerId, "IN_PROGRESS", "PENDING_REVIEW");
+    }
+
+    int reviewRepair(long orderId, boolean approved) {
+        Long key = Long.valueOf(orderId);
+        RepairEntryPermitDto value = state.repairOrders.get(key);
+        if (value == null || !"PENDING_REVIEW".equals(value.getOrderStatus())) return 0;
+        state.repairOrders.put(key, withStatus(value, approved ? "COMPLETED" : "IN_PROGRESS"));
+        return 1;
+    }
+
+    private int advance(long orderId, long handlerId, String from, String to) {
+        Long key = Long.valueOf(orderId);
+        RepairEntryPermitDto value = state.repairOrders.get(key);
+        Long handler = state.repairHandlers.get(key);
+        if (value == null || handler == null || handler.longValue() != handlerId) return 0;
+        if (!from.equals(value.getOrderStatus())) return 0;
+        state.repairOrders.put(key, withStatus(value, to));
+        return 1;
+    }
+
+    private static boolean activeStatus(String status) {
+        return "ACCEPTED".equals(status) || "IN_PROGRESS".equals(status);
+    }
+
+    private static RepairEntryPermitDto withStatus(RepairEntryPermitDto value, String status) {
+        return new RepairEntryPermitDto(value.getRepairOrderId(), value.getRoomId(), value.getBuildingCode(),
+                value.getRoomNo(), value.getCategory(), status, value.getSubmittedAt(),
+                value.isAllowEnter(), value.getNote(), value.getContactPhone());
+    }
+
+    private RepairWorkOrderDto workOrder(Long key, RepairEntryPermitDto value, boolean withPhone) {
+        Long reporter = state.repairReporters.get(key);
+        String priority = state.repairPriorities.get(key);
+        return new RepairWorkOrderDto(value.getRepairOrderId(), value.getRoomId(), value.getBuildingCode(),
+                value.getRoomNo(), value.getCategory(), null, priority == null ? "NORMAL" : priority,
+                value.getOrderStatus(), reporter, null, value.getSubmittedAt(), null, null,
+                state.repairHandlers.get(key), value.isAllowEnter(), value.getNote(),
+                withPhone ? value.getContactPhone() : null, null);
     }
 
     int activeResidents(long roomId) {

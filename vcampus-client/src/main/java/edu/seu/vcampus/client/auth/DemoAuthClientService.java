@@ -74,6 +74,7 @@ public final class DemoAuthClientService implements AuthClientService {
         add(result, 5L, "demo_librarian", "library123", "演示图书管理员", Role.LIBRARIAN);
         add(result, 6L, "demo_store", "store123", "演示商店管理员", Role.STORE_MANAGER);
         add(result, 7L, "demo_dorm", "dorm123", "演示宿管员", Role.DORM_MANAGER);
+        add(result, 10L, "demo_repair", "repair123", "演示维修员", Role.REPAIR_WORKER);
         add(result, 8L, "demo_ai", "ai123", "演示AI知识管理员", Role.AI_KNOWLEDGE_ADMIN);
         add(result, 9L, "demo_system", "system123", "演示系统管理员", Role.SYSTEM_ADMIN);
         return result;

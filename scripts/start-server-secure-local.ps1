@@ -39,10 +39,17 @@ try {
     $arguments = @(
         "-Dvcampus.server.port=$Port",
         '-Dvcampus.server.max-connections=32',
-        "-Dvcampus.server.client-read-timeout=$ClientReadTimeoutMillis",
-        '-jar',
-        $jar
+        "-Dvcampus.server.client-read-timeout=$ClientReadTimeoutMillis"
     )
+
+    # 宿舍的月度出账任务要在账单上记「是谁出的账」，拿不到这个用户号它就整月跳过不执行。
+    # 填宿管员账号的用户号——登录客户端后右上角「用户编号」那一栏就是，演示库里是 7。
+    # 例：$env:VCAMPUS_DORM_SCHEDULER_OPERATOR = '7'
+    if (-not [string]::IsNullOrWhiteSpace($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)) {
+        $arguments += "-Dvcampus.dorm.scheduler.operator=$($env:VCAMPUS_DORM_SCHEDULER_OPERATOR)"
+    }
+
+    $arguments += @('-jar', $jar)
 
     Write-Host 'Starting VCampus Server'
     Write-Host "Java command: $java -Dvcampus.server.port=$Port -jar $jar"

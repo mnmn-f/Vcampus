@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 扩展商店，V5 扩展宿舍，V6 增加教师排课偏好，V10/V11 增加 AI 知识片段，V12 增加 AI 知识版本和回答反馈。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 扩展商店，V5 扩展宿舍，V6 增加教师排课偏好，V7-V9 增加维修员、维修复核和住宿申请调整，V10/V11 增加 AI 知识片段，V12 增加 AI 知识版本和回答反馈。
 
 执行顺序：
 
 ```text
-V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> V4__store_experience.sql -> V5__dorm_extension.sql -> V6__teacher_time_preferences.sql -> V10__ai_assistant_knowledge.sql -> V11__ai_knowledge_and_tools.sql -> V12__ai_quality_workbench.sql
+V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> V4__store_experience.sql -> V5__dorm_extension.sql -> V6__teacher_time_preferences.sql -> V7__dorm_repair_worker.sql -> V8__dorm_repair_review.sql -> V9__dorm_request_bed_optional.sql -> V10__ai_assistant_knowledge.sql -> V11__ai_knowledge_and_tools.sql -> V12__ai_quality_workbench.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -25,6 +25,12 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \

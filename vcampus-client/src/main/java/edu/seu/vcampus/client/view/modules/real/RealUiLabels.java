@@ -15,6 +15,7 @@ final class RealUiLabels {
         put("STUDENT", "学生"); put("TEACHER", "任课教师"); put("REGISTRAR", "学籍管理员");
         put("ACADEMIC_ADMIN", "教务老师"); put("LIBRARIAN", "图书管理员");
         put("STORE_MANAGER", "商店管理员"); put("DORM_MANAGER", "宿管员");
+        put("REPAIR_WORKER", "维修员");
         put("AI_KNOWLEDGE_ADMIN", "AI知识管理员"); put("SYSTEM_ADMIN", "系统管理员");
         put("REQUIRED", "必修"); put("ELECTIVE", "选修"); put("PUBLIC", "公共"); put("PRACTICE", "实践"); put("OK", "成功");
         put("SUCCESS", "成功"); put("FAILURE", "失败"); put("ERROR", "失败");
@@ -42,7 +43,8 @@ final class RealUiLabels {
         put("ELECTRIC", "电气"); put("ELECTRICAL", "电气"); put("NETWORK", "网络");
         put("FURNITURE", "家具"); put("APPLIANCE", "家电"); put("AIR_CONDITIONING", "空调");
         put("EQUIPMENT", "设备"); put("DOOR_WINDOW", "门窗");
-        put("SUBMITTED", "已提交"); put("ACCEPTED", "已受理"); put("IN_PROGRESS", "处理中");
+        put("SUBMITTED", "待派单"); put("ACCEPTED", "已派单"); put("IN_PROGRESS", "处理中");
+        put("PENDING_REVIEW", "待宿管审核");
         put("CHECK_IN", "入住"); put("TRANSFER", "调宿"); put("CHECK_OUT", "退宿");
         put("UNPAID", "待缴费"); put("WAIVED", "已减免"); put("HIGH", "高");
         put("LOW", "低"); put("NORMAL", "正常"); put("URGENT", "紧急"); put("RECTIFICATION_REQUIRED", "待整改");

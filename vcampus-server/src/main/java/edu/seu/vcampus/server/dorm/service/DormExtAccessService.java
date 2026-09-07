@@ -17,6 +17,17 @@ final class DormExtAccessService extends DormServiceSupport {
     private final DormExtRepository repository;
     DormExtAccessService(DormExtRepository repository, TransactionManager transactions) { super(transactions); this.repository = repository; }
 
+    /**
+     * 学生首屏摘要：住宿、同寝人数、未缴水电、最近一次卫生检查。
+     *
+     * <p>没有在住记录不算错误，返回空摘要——新生还没分配床位时首屏照样要能打开，
+     * 抛异常只会让页面变成一条红色报错。</p>
+     */
+    DormHomeSummaryDto homeSummary(SessionContext session) {
+        require(session, Permission.DORM_SELF_READ);
+        return execute(new Work<DormHomeSummaryDto>() { @Override public DormHomeSummaryDto run(Connection c) throws Exception { DormHomeSummaryDto value = repository.homeSummary(c, session.getUserId()); return value == null ? DormHomeSummaryDto.empty() : value; } });
+    }
+
     StayStatusDto myStay(SessionContext session) {
         require(session, Permission.DORM_SELF_READ);
         return execute(new Work<StayStatusDto>() { @Override public StayStatusDto run(Connection c) throws Exception { List<StayStatusDto> rows = resolve(c, Long.valueOf(session.getUserId())); if (rows.isEmpty()) throw new DormException(DormExtCommands.NO_ACCOMMODATION, "没有有效的住宿记录"); return rows.get(0); } });

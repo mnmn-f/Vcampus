@@ -22,7 +22,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V7-V9 增加维修员、维修复核和住宿申请调整；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -30,6 +30,9 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
     vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
+    vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
+    vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
     vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
     vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
     vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
@@ -42,6 +45,9 @@ V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql

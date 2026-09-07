@@ -6,7 +6,7 @@
 -- 本脚本只新增对象，不修改 V1 建立的任何表结构，可以重复执行。
 --
 -- 用 mysql 客户端执行：
---   source D:/Vcampus/vcampus-server/src/main/resources/db/migration/V3__dorm_extension.sql
+--   source E:/path/to/Vcampus/vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
 
 USE `vcampus`;
 

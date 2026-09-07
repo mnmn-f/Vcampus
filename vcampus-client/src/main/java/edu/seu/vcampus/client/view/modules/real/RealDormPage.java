@@ -29,61 +29,90 @@ public final class RealDormPage extends BasePage {
         Role role = session.getActiveRole(); setHeaderContext(role.getDisplayName());
         if (role == Role.STUDENT) buildStudent(services);
         else if (role == Role.DORM_MANAGER) buildManager(services);
+        else if (role == Role.REPAIR_WORKER) buildRepairWorker(services);
         else warning("当前角色没有宿舍服务页面。");
     }
 
     private void buildStudent(ClientBusinessServices services) {
         DormExtClientService ext = services.dormExt();
-        TaskTabs tabs = new TaskTabs();
-        tabs.addTask("我的住宿", new DormAccommodationPanel(this, services.dorm()));
+        TaskTabs tabs = DormTabs.create();
+        tabs.addTask("我的住宿", new DormAccommodationPanel(this, services.dorm(), ext));
         // 请假和外来登记都是「向宿管提交一件事再等审批」，放在一起找得到。
+        // 上下排而不是左右分栏：这两块各自带一张记录表，横着切开之后每张表只剩半屏
+        // 宽，列全被压成省略号。中间那条深色分隔线负责说明「换了一件事」。
         tabs.addTask("申请与登记",
                 new DormStudentLeavePanel(this, services.dorm()),
                 new DormExtVisitorPanel(this, ext));
-        // 入内授权本来就是报修单的一个属性，不该单独占一个标签。
-        tabs.addTask("报修服务",
-                new DormStudentRepairsPanel(this, services.dorm()),
-                new DormExtPermitPanel(this, ext),
-                new DormStudentRepairEvaluationPanel(this, services.dorm()));
-        tabs.addTask("水电账单", new DormStudentBillsPanel(this, services.dorm()));
+        // 报修、入内授权、评价说的都是同一张工单，所以是一页里的三块，不是三张表。
+        tabs.addTask("报修服务", new DormStudentRepairPage(this, services.dorm(), ext));
+        tabs.addTask("水电账单", new DormStudentBillsPanel(this, services.dorm(), ext));
         tabs.addTask("在宿门禁", new DormExtStayPanel(this, ext));
         // 学生端只保留带类型/范围/置顶的这一份：它是 main 那份的超集，
         // 两份并列只会让人以为是两批公告。
-        tabs.addTask("宿舍公告", new DormExtNoticePanel(this, ext, false));
+        tabs.addTask("宿舍公告", new DormExtNoticePanel(this, ext, services.dorm(), false));
         DormExtTabHeights.fitToSelectedTab(tabs);
+        DormUi.flatten(tabs);
+        addBlock(tabs);
+    }
+
+    /**
+     * 维修员工作台。
+     *
+     * <p>两个标签按一次派工的时间顺序排：在「我的工单」里推进度，做完了在「处理记录」
+     * 回看评价。</p>
+     *
+     * <p>没有「待接工单」：派单权在宿管手上——他知道谁手头压了几单，也知道哪一单更急。
+     * 再留一个让维修员自己抢单的队列，等于同一件事有两个入口，先到先得还会把急件留给
+     * 没人挑的那一堆。</p>
+     *
+     * <p>也没有单独的「入内授权」页：能不能进门是工单自己的属性，两张工单表都已经带
+     * 了这一列，再开一页就是把同一批数据换个列序再列一遍。</p>
+     *
+     * <p>维修员只有 {@code DORM_REPAIR_WORK} 一条宿舍权限，所以这里不挂任何住宿、
+     * 水电、卫生的面板——那些页面对他来说会全部返回无权限，摆上去只是摆几个报错。</p>
+     */
+    private void buildRepairWorker(ClientBusinessServices services) {
+        DormExtClientService ext = services.dormExt();
+        TaskTabs tabs = DormTabs.create();
+        tabs.addTask("我的工单", new DormRepairWorkPanel(this, ext, DormRepairWorkPanel.View.ASSIGNED));
+        tabs.addTask("处理记录", new DormRepairWorkPanel(this, ext, DormRepairWorkPanel.View.HISTORY));
+        DormExtTabHeights.fitToSelectedTab(tabs);
+        DormUi.flatten(tabs);
         addBlock(tabs);
     }
 
     private void buildManager(ClientBusinessServices services) {
         DormExtClientService ext = services.dormExt();
-        TaskTabs tabs = new TaskTabs();
+        TaskTabs tabs = DormTabs.create();
         tabs.addTask("住宿与空间", new DormManagerSpacePanel(this, services.dorm()));
-        // 住宿申请、请假、来访三类审批合并：对宿管来说都是「待我处理的申请」。
+        // 住宿申请单独成块并且带房间平面：它和请假、来访不是一类事——后两者点个头就完了，
+        // 住宿申请点头之后还得真的把人放到某张床上，而哪张床空着只有看图才知道。
+        // 平面图只长在这里：在「住宿与空间」里也摆一张，等于同一件事有两个入口，
+        // 而那一页要回答的是「一共有多少楼、多少房、多少床」，不是「这个人放哪儿」。
+        // 下面那张合并表仍然是三类的总览，回答「今天一共有多少待办」。
         tabs.addTask("申请与审批",
-                new DormManagerRequestsPanel(this, services.dorm()),
-                new DormManagerLeavePanel(this, services.dorm()),
-                new DormExtVisitorAuditPanel(this, ext));
-        tabs.addTask("报修处理", new DormManagerRepairsPanel(this, services.dorm()));
+                new DormManagerHousingRequestPanel(this, services.dorm()),
+                new DormManagerApprovalPage(this, services.dorm(), ext));
+        // 报修处理的主线是派单，所以右栏放维修员名单而不是又一组状态按钮。
+        tabs.addTask("报修处理", new DormManagerRepairPage(this, services.dorm(), ext));
         // 账单是抄表的结果，两者必须并排看才判断得出哪个房间还没出账。
         tabs.addTask("水电",
                 new DormManagerBillingPanel(this, services.dorm()),
                 new DormExtBillingPanel(this, ext));
-        // 未归与卫生是两件不相干的事，main 把它们放在同一个面板里，这里拆开分两页。
+        // 未归与卫生是两件不相干的事，各占一页。
         // 晚归（回来了但超时）与连续未归（一直没回来）是两套数据，互补而非重复；
-        // 卫生同理：一边是检查记录，一边是五项分项与待检任务。
-        DormExtGovernanceSplit governance =
-                new DormExtGovernanceSplit(new DormManagerGovernancePanel(this, services.dorm()));
+        // 卫生同理：一边是待检任务与分项打分，一边是历史检查记录。
         tabs.addTask("未归管理",
-                governance.absencePart(),
                 new DormExtWarningPanel(this, ext),
+                new DormManagerAbsencePanel(this, services.dorm()),
                 new DormExtStayAdminPanel(this, ext));
         tabs.addTask("卫生管理",
                 new DormExtHygienePanel(this, ext),
-                governance.hygienePart());
-        tabs.addTask("宿舍公告",
-                new DormExtNoticePanel(this, ext, true));
+                new DormManagerHygieneRecordPanel(this, services.dorm()));
+        tabs.addTask("宿舍公告", new DormExtNoticePanel(this, ext, services.dorm(), true));
         tabs.addTask("设置", new DormExtSettingsPanel(this, ext));
         DormExtTabHeights.fitToSelectedTab(tabs);
+        DormUi.flatten(tabs);
         addBlock(tabs);
     }
 }

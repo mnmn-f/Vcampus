@@ -54,24 +54,21 @@ public final class RealUiMappingTest {
         assertEquals("REFUND", type.invoke(null, "退款"));
     }
 
+    /**
+     * 卫生检查结果的标签和编码不脱钩。
+     *
+     * <p>原来这条是拿「修订记录」那个编辑器测的。那个表单已经去掉了——总分和等级由
+     * 分项打分在服务端算出来，旁边再放一个能直接改总分和结果的框，等于给这套算法开
+     * 了个后门。选项本身还在（分项打分提交上去的仍是 PASS / FAIL），所以改成直接测
+     * 这对映射。</p>
+     */
     @Test
-    public void hygieneResultEditorUsesLabelsButKeepsCode() throws Exception {
-        AtomicReference<HygieneInspectionRequest> saved = new AtomicReference<HygieneInspectionRequest>();
-        CountDownLatch completed = new CountDownLatch(1);
-        DormManagerGovernancePanel panel = new DormManagerGovernancePanel(page(), dormService(saved, completed, null, null));
-        JComboBox<?> result = field(panel, "result");
-        assertEquals("通过", String.valueOf(result.getItemAt(0)));
-        assertEquals("不通过", String.valueOf(result.getItemAt(1)));
-        assertEquals("PASS", RealUi.code(result.getItemAt(0)));
-        assertEquals("FAIL", RealUi.code(result.getItemAt(1)));
-        JTextField room = field(panel, "room");
-        JTextField score = field(panel, "score");
-        room.setText("12");
-        score.setText("95");
-        result.setSelectedIndex(1);
-        invoke(panel, "saveHygiene");
-        assertTrue(completed.await(2, TimeUnit.SECONDS));
-        assertEquals("FAIL", saved.get().getResult());
+    public void hygieneResultOptionsShowLabelsButKeepCode() {
+        RealUi.CodeOption[] options = RealUi.options("PASS", "FAIL");
+        assertEquals("通过", String.valueOf(options[0]));
+        assertEquals("不通过", String.valueOf(options[1]));
+        assertEquals("PASS", RealUi.code(options[0]));
+        assertEquals("FAIL", RealUi.code(options[1]));
     }
 
     @Test

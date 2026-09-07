@@ -4,7 +4,6 @@ import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
-import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
@@ -25,13 +24,20 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.threeten.bp.LocalDate;
-/** 宿管员卫生检查：五项分项打分与检查任务清单。 */
+/**
+ * 宿管员卫生检查：左边待检任务清单，右边五项分项打分。
+ *
+ * <p>选中一条任务就把房间编号填进右边的表单。让人对着左边那行「D1 / 101」再去右边
+ * 手敲一个数字房间编号，是把两栏并排摆在一起的意义丢掉了，还多一次敲错的机会。</p>
+ */
 public final class DormExtHygienePanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final BasePage page;
     private final DormExtClientService service;
     private final AsyncPagedTable<HygieneTaskDto> tasks;
     private final JTextField room = UiFactory.textField(8);
+    /** 选中任务后显示「在给哪间房打分」；只填一个数字编号，人是认不出房间的。 */
+    private final javax.swing.JLabel target = DormUi.sub("在左边选一条待检任务，房间编号会自动填好。");
     private final JTextField[] scores = new JTextField[HygieneItemScoreDto.ITEM_CODES.length];
     private final JTextField issue = UiFactory.textField(20);
     public DormExtHygienePanel(BasePage page, DormExtClientService service) {
@@ -43,16 +49,14 @@ public final class DormExtHygienePanel extends JPanel {
         for (int i = 0; i < scores.length; i++) scores[i] = UiFactory.textField(6);
         this.tasks = taskTable();
         tasks.addAction(generateButton());
-        add(scoreForm());
-        add(tasks);
+        // 任务表在左、分项打分在右：检查的动线是「挑一间待检的房，当场逐项打分」。
+        setLayout(new BorderLayout());
+        add(DormUi.split(tasks, scoreForm(), 470), BorderLayout.CENTER);
         resetScores();
     }
     public void reload() { tasks.reload(); }
     private JPanel scoreForm() {
-        SectionCard card = new SectionCard("卫生检查评分",
-                "五项各 0~20 分；总分与等级由服务端计算，低于 "
-                + "70 分自动下发整改并排复查任务。");
-        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
+        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 10));
         fields.setOpaque(false);
         fields.add(UiFactory.labelledField("房间编号", room));
         for (int i = 0; i < HygieneItemScoreDto.ITEM_CODES.length; i++) {
@@ -68,15 +72,24 @@ public final class DormExtHygienePanel extends JPanel {
         submit.addActionListener(e -> submit());
         line.add(reset);
         line.add(submit);
-        JPanel content = new JPanel(new BorderLayout(0, 10));
-        content.setOpaque(false);
-        content.add(fields, BorderLayout.CENTER);
-        content.add(line, BorderLayout.SOUTH);
-        card.setContent(content);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(card, BorderLayout.CENTER);
-        return wrap;
+        JPanel rows = new JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
+        rows.add(target);
+        rows.add(javax.swing.Box.createVerticalStrut(12));
+        rows.add(fields);
+        rows.add(javax.swing.Box.createVerticalStrut(14));
+        rows.add(line);
+        JPanel box = DormUi.panel();
+        box.add(rows, BorderLayout.CENTER);
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.add(DormUi.header("分项打分",
+                "五项各 0~20 分；总分与等级由服务端计算，低于 70 分自动下发整改并排复查任务。",
+                null, false));
+        column.add(box);
+        return column;
     }
     private AsyncPagedTable<HygieneTaskDto> taskTable() {
         return new AsyncPagedTable<HygieneTaskDto>("检查任务",
@@ -101,7 +114,26 @@ public final class DormExtHygienePanel extends JPanel {
                                 RealUi.date(row.getPlanDate()), taskLabel(row.getStatus()),
                                 RealUi.text(row.getInspectionId())};
                     }
-                }, null);
+                },
+                new AsyncPagedTable.SelectionListener<HygieneTaskDto>() {
+                    @Override public void onSelected(HygieneTaskDto row) { pick(row); }
+                });
+    }
+
+    /** 选中任务：把房间编号带进右边的表单，并把分数复位成满分重新打。 */
+    private void pick(HygieneTaskDto task) {
+        if (task == null) {
+            room.setText("");
+            target.setText("在左边选一条待检任务，房间编号会自动填好。");
+            return;
+        }
+        room.setText(String.valueOf(task.getRoomId()));
+        issue.setText("");
+        for (JTextField field : scores) field.setText("20");
+        target.setText("正在给 " + RealUi.text(task.getBuildingCode()) + " "
+                + RealUi.text(task.getRoomNo()) + "（房间编号 " + task.getRoomId() + "）打分　·　"
+                + (task.isRecheck() ? "复查" : "周检查")
+                + "　·　计划 " + RealUi.date(task.getPlanDate()));
     }
     /** 补生成本周检查任务。 */
     private JButton generateButton() {
@@ -109,8 +141,8 @@ public final class DormExtHygienePanel extends JPanel {
         generate.addActionListener(e -> generate());
         return generate;
     }
+    /** 重置为满分：只清分数和问题描述，不清房间——通常是想重打同一间房。 */
     private void resetScores() {
-        room.setText("");
         issue.setText("");
         for (JTextField field : scores) field.setText("20");
     }

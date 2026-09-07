@@ -65,11 +65,31 @@ public final class MySqlDormFacilityRepository implements DormFacilityRepository
                 page.getTotalElements(), hidden);
     }
 
+    /**
+     * 单张床位。
+     *
+     * <p>{@code BED_COLUMNS} 里带了 {@code ar.student_user_id}，所以查询必须联上
+     * {@code accommodation_records}——之前这里漏了这一句，数据库直接报
+     * 「Unknown column ar.student_user_id」，上面一层把 SQLException 归成了笼统的
+     * 「宿舍服务暂时不可用」，所有要占床的操作（分配、调宿、提交带目标床位
+     * 的申请）全部卡在这里。</p>
+     *
+     * <p>锁定分两步：先对 {@code dorm_beds} 那一行上行锁，再去取展示列。
+     * 直接在带 LEFT JOIN 的查询后面接 {@code FOR UPDATE} 会把房间、楼栋和住宿记录
+     * 一并锁住，而这里只需要保证「这张床的状态不被并发改掉」。</p>
+     */
     @Override
     public DormBedDto findBed(Connection c, long bedId, boolean lock) throws SQLException {
+        if (lock) {
+            try (PreparedStatement s = c.prepareStatement("SELECT id FROM dorm_beds WHERE id=? FOR UPDATE")) {
+                s.setLong(1, bedId);
+                try (ResultSet r = s.executeQuery()) { if (!r.next()) return null; }
+            }
+        }
         String sql = "SELECT " + BED_COLUMNS + " FROM dorm_beds b JOIN dorm_rooms dr ON dr.id=b.room_id"
-                + " JOIN dorm_buildings db ON db.id=dr.building_id WHERE b.id=?"
-                + (lock ? " FOR UPDATE" : "");
+                + " JOIN dorm_buildings db ON db.id=dr.building_id"
+                + " LEFT JOIN accommodation_records ar ON ar.bed_id=b.id AND ar.status='ACTIVE'"
+                + " WHERE b.id=?";
         try (PreparedStatement s = c.prepareStatement(sql)) {
             s.setLong(1, bedId);
             try (ResultSet r = s.executeQuery()) { return r.next() ? JdbcDormSupport.bed(r) : null; }

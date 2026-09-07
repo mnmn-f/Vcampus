@@ -68,4 +68,25 @@ public interface DormExtRepository {
     NoticeExtraDto saveNoticeExtra(Connection c, NoticeExtraRequest r, long actor) throws SQLException;
     int expireDormAnnouncements(Connection c, LocalDateTime now) throws SQLException;
     List<AbsenceWarningDto> pendingSevereWarnings(Connection c, LocalDate onOrBefore) throws SQLException;
+
+    DormHomeSummaryDto homeSummary(Connection c, long studentId) throws SQLException;
+
+    DormPage<RepairWorkOrderDto> repairQueue(Connection c, DormPageQuery q) throws SQLException;
+    DormPage<RepairWorkOrderDto> repairAssigned(Connection c, long handlerId, DormPageQuery q,
+                                                boolean active) throws SQLException;
+    RepairWorkOrderDto findRepairWork(Connection c, long orderId, long handlerId) throws SQLException;
+    /** 抢单：命中返回 1，单子不存在或已被别人接走返回 0。 */
+    int claimRepair(Connection c, long orderId, long handlerId) throws SQLException;
+    /** 开工：命中返回 1，不是本人的单或状态不允许返回 0。 */
+    int startRepair(Connection c, long orderId, long handlerId) throws SQLException;
+    /** 完工：命中返回 1，不是本人的单或状态不允许返回 0。 */
+    int finishRepair(Connection c, long orderId, long handlerId) throws SQLException;
+
+    List<RepairWorkerDto> repairWorkers(Connection c) throws SQLException;
+    /** 宿管派单：命中返回 1，工单不存在或已完工返回 0。 */
+    int assignRepair(Connection c, long orderId, long workerId) throws SQLException;
+    /** 宿管审核完工：命中返回 1，这单不在待审核状态返回 0。 */
+    int reviewRepair(Connection c, long orderId, boolean approved) throws SQLException;
+    /** 宿管视角的单张工单，联系电话照常给出——派单本来就要联系人。 */
+    RepairWorkOrderDto findRepairForManager(Connection c, long orderId) throws SQLException;
 }

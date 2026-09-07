@@ -43,6 +43,8 @@ public final class DormExtCommands {
     public static final String HYGIENE_TASK_GENERATE = "dorm.ext.hygiene.task.generate";
     /** 卫生检查任务分页查询。 */
     public static final String HYGIENE_TASK_LIST = "dorm.ext.hygiene.task.list";
+    /** 学生「我的住宿」首屏摘要：住宿、同寝人数、未缴水电、最近一次卫生检查。 */
+    public static final String HOME_SUMMARY = "dorm.ext.home.summary";
     /** 学生查询本人当前在宿状态。 */
     public static final String STAY_MINE = "dorm.ext.stay.mine";
     /** 宿管查询全部在住学生的在宿状态。 */
@@ -57,6 +59,26 @@ public final class DormExtCommands {
     public static final String REPAIR_PERMIT_SET = "dorm.ext.repair.permit.set";
     /** 学生查询本人报修单及入内许可。 */
     public static final String REPAIR_PERMIT_MINE = "dorm.ext.repair.permit.mine";
+    /** 维修员查看待接工单队列（已提交、还没人接）。 */
+    public static final String REPAIR_QUEUE = "dorm.ext.repair.queue";
+    /** 维修员查看派给自己且还在处理中的工单。 */
+    public static final String REPAIR_ASSIGNED = "dorm.ext.repair.assigned";
+    /** 维修员查看自己已完工或已取消的工单。 */
+    public static final String REPAIR_HISTORY = "dorm.ext.repair.history";
+    /** 维修员接单：工单从已提交转为已接单，并锁定处理人。 */
+    public static final String REPAIR_ACCEPT = "dorm.ext.repair.accept";
+    /** 维修员开工：已接单转为处理中。 */
+    public static final String REPAIR_START = "dorm.ext.repair.start";
+    /** 维修员完工：处理中或已接单转为已完成。 */
+    public static final String REPAIR_FINISH = "dorm.ext.repair.finish";
+    /** 宿管查看可派单的维修员及其在手工单数。 */
+    public static final String REPAIR_WORKERS = "dorm.ext.repair.workers";
+    /** 宿管把一张工单派给某个维修员。 */
+    public static final String REPAIR_ASSIGN = "dorm.ext.repair.assign";
+    /** 宿管审核维修员报上来的完工：通过转已完成，打回退回处理中。 */
+    public static final String REPAIR_REVIEW = "dorm.ext.repair.review";
+    /** 宿管查看单张工单的派单详情，含入内授权与联系电话。 */
+    public static final String REPAIR_DETAIL = "dorm.ext.repair.detail";
     /** 宿管删除空置房间。 */
     public static final String ROOM_DELETE = "dorm.ext.room.delete";
     /** 学生查看面向自己的宿舍公告（已发布、范围命中本人房间/楼栋）。 */
@@ -84,6 +106,8 @@ public final class DormExtCommands {
     public static final String HYGIENE_NOT_FOUND = "DORM_EXT.HYGIENE_NOT_FOUND";
     public static final String HYGIENE_ITEMS_INVALID = "DORM_EXT.HYGIENE_ITEMS_INVALID";
     public static final String REPAIR_NOT_FOUND = "DORM_EXT.REPAIR_NOT_FOUND";
+    public static final String REPAIR_ALREADY_TAKEN = "DORM_EXT.REPAIR_ALREADY_TAKEN";
+    public static final String REPAIR_INVALID_STATE = "DORM_EXT.REPAIR_INVALID_STATE";
     public static final String ROOM_OCCUPIED = "DORM_EXT.ROOM_OCCUPIED";
     public static final String ROOM_HAS_HISTORY = "DORM_EXT.ROOM_HAS_HISTORY";
     public static final String POLICY_INVALID = "DORM_EXT.POLICY_INVALID";

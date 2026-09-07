@@ -36,5 +36,8 @@ final class InMemoryDormExtState {
     final List<AccessRecordExtDto> accessRecords = new ArrayList<AccessRecordExtDto>();
     final Map<Long, RepairEntryPermitDto> repairOrders = new LinkedHashMap<Long, RepairEntryPermitDto>();
     final Map<Long, Long> repairReporters = new LinkedHashMap<Long, Long>();
+    final Map<Long, Long> repairHandlers = new LinkedHashMap<Long, Long>();
+    final Map<Long, String> repairPriorities = new LinkedHashMap<Long, String>();
+    final Map<Long, String> repairWorkers = new LinkedHashMap<Long, String>();
     AccessPolicyDto accessPolicy = new AccessPolicyDto(LocalTime.of(23, 0), LocalTime.of(5, 0), LocalDateTime.now());
 }
