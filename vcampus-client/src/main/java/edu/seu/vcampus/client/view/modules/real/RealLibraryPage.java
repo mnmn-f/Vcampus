@@ -14,15 +14,12 @@ import edu.seu.vcampus.common.security.Role;
 
 /** 图书馆模块页面；网络模式与 Demo 模式复用同一套界面和主题。 */
 public final class RealLibraryPage extends BasePage {
-    private static final DemoLibraryClientService DEMO_LIBRARY =
-            new DemoLibraryClientService();
-
     public RealLibraryPage(ClientSession session, ClientBusinessServices services) {
         this(session, services.library(), services.campus());
     }
 
     public static RealLibraryPage demo(ClientSession session) {
-        return new RealLibraryPage(session, DEMO_LIBRARY,
+        return new RealLibraryPage(session, new DemoLibraryClientService(),
                 new DemoLibraryCampusClientService(session.getActiveRole()));
     }
 
