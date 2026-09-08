@@ -38,6 +38,13 @@ final class InMemoryEnrollmentStore {
         return mapper.enrollment(state.enrollments.get(key(studentId, courseId)));
     }
 
+    void add(long id, long studentId, long courseId, String status) {
+        InMemoryAcademicState.EnrollmentState value =
+                new InMemoryAcademicState.EnrollmentState(id, studentId, courseId);
+        value.status = status;
+        state.enrollments.put(key(studentId, courseId), value);
+    }
+
     long countEnrolled(long courseId) {
         return mapper.countEnrolled(courseId);
     }

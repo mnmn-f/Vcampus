@@ -47,7 +47,9 @@ public final class AcademicCoursesPanel extends JPanel {
             editor = new CourseEditorPanel(new CourseEditorPanel.Listener() {
                 @Override public void onSave(CourseSaveRequest request, boolean update) { saveCourse(request, update); }
             }); add(editor);
-            scheduleEditor = new CourseScheduleEditorPanel(page, service); add(scheduleEditor);
+            scheduleEditor = new CourseScheduleEditorPanel(page, service,
+                    new Runnable() { @Override public void run() { courses.refreshCurrentPage(); } });
+            add(scheduleEditor);
         } else { editor = null; scheduleEditor = null; }
         JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
     }
@@ -81,6 +83,9 @@ public final class AcademicCoursesPanel extends JPanel {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
             }); table.addAction(create);
         }
+        table.setItemKey(new java.util.function.Function<CourseDto, Object>() {
+            @Override public Object apply(CourseDto value) { return Long.valueOf(value.getId()); }
+        });
         return table;
     }
 

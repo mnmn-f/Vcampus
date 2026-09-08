@@ -52,6 +52,11 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
         }
         state.classrooms.put(classroom.getId(), classroom);
     }
+    /** 仅供业务回归夹具预置已完成选课记录。 */
+    public synchronized void addEnrollment(long id, long studentId, long courseId,
+                                            String status) {
+        enrollmentStore.add(id, studentId, courseId, status);
+    }
 
     @Override
     public synchronized CoursePageDto findCourses(Connection c, CourseQuery q) {

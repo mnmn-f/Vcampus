@@ -36,6 +36,7 @@ import java.util.List;
 public final class CourseScheduleEditorPanel extends SectionCard {
     private static final String[] WEEKDAYS = {"星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"};
     private final BasePage page; private final AcademicClientService service;
+    private final Runnable changed;
     private final JLabel course = UiFactory.body("请先选择课程。"), error = UiFactory.muted(" ");
     private final JTextField scheduleId = UiFactory.textField(10), startDate = UiFactory.textField(10), endDate = UiFactory.textField(10), classroom = UiFactory.textField(10);
     private final JComboBox<String> weekday = new JComboBox<String>(WEEKDAYS);
@@ -45,8 +46,12 @@ public final class CourseScheduleEditorPanel extends SectionCard {
     private List<CourseScheduleDto> schedules = Collections.emptyList();
     private long courseId; private long selectedId; private boolean busy;
     public CourseScheduleEditorPanel(BasePage page, AcademicClientService service) {
+        this(page, service, null);
+    }
+    public CourseScheduleEditorPanel(BasePage page, AcademicClientService service,
+                                     Runnable changed) {
         super("排课维护", "维护当前课程的上课时段；冲突时提示。");
-        this.page = page; this.service = service; scheduleId.setEditable(false);
+        this.page = page; this.service = service; this.changed = changed; scheduleId.setEditable(false);
         scheduleId.setToolTipText("上课时段编号由系统生成"); startDate.setToolTipText("格式：yyyy-MM-dd，可留空"); endDate.setToolTipText("格式：yyyy-MM-dd，可留空");
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setRowHeight(36); table.setFillsViewportHeight(true); table.setShowGrid(false);
         table.setFont(DesignTokens.regular(13)); table.setForeground(DesignTokens.TEXT_PRIMARY);
@@ -102,7 +107,7 @@ public final class CourseScheduleEditorPanel extends SectionCard {
             setBusy(true); AsyncTask.run(new AsyncTask.Work<CourseScheduleDto>() {
                 @Override public CourseScheduleDto run() throws Exception { return updating ? service.updateSchedule(request) : service.createSchedule(request); }
             }, new AsyncTask.Callback<CourseScheduleDto>() {
-                @Override public void onSuccess(CourseScheduleDto value) { replace(value); page.showSuccess("课程时段已保存。"); setBusy(false); }
+                @Override public void onSuccess(CourseScheduleDto value) { replace(value); if (changed != null) changed.run(); page.showSuccess("课程时段已保存。"); setBusy(false); }
                 @Override public void onFailure(Throwable cause) { setError(AsyncTask.message(cause)); setBusy(false); }
             });
         } catch (IllegalArgumentException ex) { setError(ex.getMessage()); }
@@ -113,7 +118,7 @@ public final class CourseScheduleEditorPanel extends SectionCard {
         AsyncTask.run(new AsyncTask.Work<Boolean>() {
             @Override public Boolean run() throws Exception { service.deleteSchedule(deleting); return Boolean.TRUE; }
         }, new AsyncTask.Callback<Boolean>() {
-            @Override public void onSuccess(Boolean value) { remove(deleting); page.showSuccess("课程时段已删除。"); setBusy(false); }
+            @Override public void onSuccess(Boolean value) { remove(deleting); if (changed != null) changed.run(); page.showSuccess("课程时段已删除。"); setBusy(false); }
             @Override public void onFailure(Throwable cause) { setError(AsyncTask.message(cause)); setBusy(false); }
         });
     }

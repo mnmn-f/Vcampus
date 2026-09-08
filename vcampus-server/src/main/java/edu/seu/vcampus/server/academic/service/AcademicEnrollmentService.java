@@ -81,8 +81,14 @@ final class AcademicEnrollmentService {
                 }
                 EnrollmentDto enrollment = repository.findEnrollment(connection, studentId,
                         courseId, true);
-                if (enrollment == null
-                        || !EnrollmentStatus.ENROLLED.name().equals(enrollment.getStatus())) {
+                if (enrollment == null) {
+                    throw failure(AcademicCommands.ENROLLMENT_NOT_FOUND, "没有找到有效选课记录");
+                }
+                if (EnrollmentStatus.COMPLETED.name().equals(enrollment.getStatus())) {
+                    throw failure(AcademicCommands.ENROLLMENT_COMPLETED,
+                            "已完成课程不能退选");
+                }
+                if (!EnrollmentStatus.ENROLLED.name().equals(enrollment.getStatus())) {
                     throw failure(AcademicCommands.ENROLLMENT_NOT_FOUND, "没有找到有效选课记录");
                 }
                 repository.drop(connection, studentId, courseId);
