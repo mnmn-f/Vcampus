@@ -1,0 +1,9 @@
+target/
+manual-classes/
+.idea/
+*.iml
+*.log
+.env
+application-local.properties
+.codex-doc-review/
+~$*.docx

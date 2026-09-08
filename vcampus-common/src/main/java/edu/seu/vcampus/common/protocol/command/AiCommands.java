@@ -1,0 +1,32 @@
+package edu.seu.vcampus.common.protocol.command;
+
+/** AI 助手命令字的唯一登记处。 */
+public final class AiCommands {
+    public static final String QUERY = "ai.query";
+    public static final String CANCEL = "ai.cancel";
+    public static final String CONFIRM = "ai.confirm";
+    public static final String SESSION_LIST = "ai.session.list";
+    public static final String SESSION_CREATE = "ai.session.create";
+    public static final String SESSION_HISTORY = "ai.session.history";
+    public static final String SESSION_CLEAR = "ai.session.clear";
+    public static final String SESSION_RENAME = "ai.session.rename";
+    public static final String SESSION_ARCHIVED = "ai.session.archived";
+    public static final String SESSION_RESTORE = "ai.session.restore";
+    public static final String KNOWLEDGE_LIST = "ai.knowledge.list";
+    public static final String KNOWLEDGE_SAVE = "ai.knowledge.save";
+    public static final String KNOWLEDGE_DELETE = "ai.knowledge.delete";
+    public static final String KNOWLEDGE_TEST = "ai.knowledge.test";
+    public static final String KNOWLEDGE_VERSIONS = "ai.knowledge.versions";
+    public static final String KNOWLEDGE_ROLLBACK = "ai.knowledge.rollback";
+    public static final String KNOWLEDGE_IMPORT = "ai.knowledge.import";
+    public static final String FEEDBACK_SAVE = "ai.feedback.save";
+    public static final String FEEDBACK_LIST = "ai.feedback.list";
+    public static final String FEEDBACK_UPDATE = "ai.feedback.update";
+    public static final String TOOL_STATUS = "ai.tool.status";
+    public static final String TOOL_ROUTE_TEST = "ai.tool.route.test";
+    public static final String PING = "ai.ping";
+    public static final String MONITOR = "ai.monitor";
+    public static final String LIVE_COMPETITIONS_MINE = "ai.live.competitions.mine";
+
+    private AiCommands() { }
+}
