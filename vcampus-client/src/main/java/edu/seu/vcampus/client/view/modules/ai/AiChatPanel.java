@@ -506,12 +506,13 @@ public final class AiChatPanel extends SectionCard {
     }
 
     private void loadSessions(final String preferred, final boolean loadHistory) {
+        final int generation = requestGeneration;
         task(new Work<List<AiSessionSummary>>() { public List<AiSessionSummary> run()
                 throws Exception { return service.sessions(); }},
                 new Result<List<AiSessionSummary>>() {
             public void accept(List<AiSessionSummary> values) {
                 allSessions = new ArrayList<AiSessionSummary>(values);
-                renderSessions(preferred, loadHistory);
+                renderSessions(preferred, loadHistory && generation == requestGeneration);
             }
         });
     }

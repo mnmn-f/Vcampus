@@ -20,16 +20,16 @@ public final class AiChatPanelRetryTest {
         final AiChatPanel[] holder = new AiChatPanel[1];
         SwingUtilities.invokeAndWait(() -> {
             holder[0] = new AiChatPanel(service);
-        });
-        awaitListEnabled(holder[0]);
-        SwingUtilities.invokeAndWait(() -> {
             JTextArea input = editableTextArea(holder[0]); input.setText("测试重试");
             input.getActionMap().get("send-message").actionPerformed(
                     new ActionEvent(input, ActionEvent.ACTION_PERFORMED, "send"));
             assertFalse(firstList(holder[0]).isEnabled());
         });
+        service.awaitSessionsStarted();
         SwingUtilities.invokeAndWait(() -> service.listener.onFailure("连接中断"));
         awaitEnabled(holder[0], "重试");
+        service.releaseSessions();
+        service.awaitSessionsReturned(); flush(); Thread.sleep(40L); flush();
         SwingUtilities.invokeAndWait(() -> enabledButton(holder[0], "重试").doClick());
         awaitRequests(service, 2);
         assertEquals(2, service.requestIds.size());
@@ -93,17 +93,12 @@ public final class AiChatPanelRetryTest {
         }
     }
 
-    private static void awaitListEnabled(Component component) throws Exception {
-        long deadline = System.currentTimeMillis() + 2000L;
-        while (!firstList(component).isEnabled() && System.currentTimeMillis() < deadline) {
-            flush(); Thread.sleep(10L);
-        }
-        if (!firstList(component).isEnabled()) throw new AssertionError("session list did not finish loading");
-    }
-
     private static final class FakeService implements AiAssistantClientService {
         private AiStreamListener listener;
         private final List<String> requestIds = Collections.synchronizedList(new ArrayList<String>());
+        private final java.util.concurrent.CountDownLatch sessionsStarted = new java.util.concurrent.CountDownLatch(1);
+        private final java.util.concurrent.CountDownLatch sessionsRelease = new java.util.concurrent.CountDownLatch(1);
+        private final java.util.concurrent.CountDownLatch sessionsReturned = new java.util.concurrent.CountDownLatch(1);
         public String query(String sessionId, String text, AiMode mode, AiStreamListener listener) {
             this.listener = listener; return "fallback";
         }
@@ -112,7 +107,20 @@ public final class AiChatPanelRetryTest {
             requestIds.add(requestId); this.listener = listener; return requestId;
         }
         public void cancel(String requestId) { }
-        public List<AiSessionSummary> sessions() { return Collections.emptyList(); }
+        public List<AiSessionSummary> sessions() {
+            sessionsStarted.countDown();
+            try { sessionsRelease.await(2, java.util.concurrent.TimeUnit.SECONDS); }
+            catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+            sessionsReturned.countDown();
+            return Collections.emptyList();
+        }
+        void awaitSessionsStarted() throws Exception {
+            if (!sessionsStarted.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("sessions not started");
+        }
+        void releaseSessions() { sessionsRelease.countDown(); }
+        void awaitSessionsReturned() throws Exception {
+            if (!sessionsReturned.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("sessions not returned");
+        }
         public String createSession() { return "1"; }
         public List<AiChatMessage> history(String sessionId) { return Collections.emptyList(); }
         public void clearSession(String sessionId) { }
