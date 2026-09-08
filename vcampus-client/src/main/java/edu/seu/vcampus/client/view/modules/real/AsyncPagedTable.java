@@ -229,6 +229,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
     }
     private void configureTable() {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setFillsViewportHeight(false);
+        table.getTableHeader().setReorderingAllowed(false);
         table.setFont(DesignTokens.regular(14));
         table.setSelectionBackground(DesignTokens.PRIMARY_LIGHT); table.setSelectionForeground(DesignTokens.TEXT_PRIMARY);
         DormTables.style(table);

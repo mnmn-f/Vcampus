@@ -20,13 +20,18 @@ public final class AiChatPanelRetryTest {
         final AiChatPanel[] holder = new AiChatPanel[1];
         SwingUtilities.invokeAndWait(() -> {
             holder[0] = new AiChatPanel(service);
+        });
+        awaitListEnabled(holder[0]);
+        SwingUtilities.invokeAndWait(() -> {
             JTextArea input = editableTextArea(holder[0]); input.setText("测试重试");
             input.getActionMap().get("send-message").actionPerformed(
                     new ActionEvent(input, ActionEvent.ACTION_PERFORMED, "send"));
             assertFalse(firstList(holder[0]).isEnabled());
         });
-        service.listener.onFailure("连接中断"); flush();
-        SwingUtilities.invokeAndWait(() -> button(holder[0], "重试").doClick());
+        SwingUtilities.invokeAndWait(() -> service.listener.onFailure("连接中断"));
+        awaitEnabled(holder[0], "重试");
+        SwingUtilities.invokeAndWait(() -> enabledButton(holder[0], "重试").doClick());
+        awaitRequests(service, 2);
         assertEquals(2, service.requestIds.size());
         assertEquals(service.requestIds.get(0), service.requestIds.get(1));
         assertEquals(1, countCards(holder[0], "测试重试"));
@@ -61,10 +66,44 @@ public final class AiChatPanelRetryTest {
         }
         throw new AssertionError("button not found");
     }
+    private static JButton enabledButton(Component component, String text) {
+        if (component instanceof JButton && ((JButton) component).isEnabled()
+                && text.equals(((JButton) component).getText())) return (JButton) component;
+        if (component instanceof Container) for (Component child : ((Container) component).getComponents()) {
+            try { return enabledButton(child, text); } catch (AssertionError ignored) { }
+        }
+        throw new AssertionError("enabled button not found");
+    }
     private static void flush() throws Exception { SwingUtilities.invokeAndWait(() -> { }); }
 
+    private static void awaitEnabled(Component component, String text) throws Exception {
+        long deadline = System.currentTimeMillis() + 2000L;
+        while (System.currentTimeMillis() < deadline) {
+            flush();
+            try { enabledButton(component, text); return; }
+            catch (AssertionError ignored) { Thread.sleep(10L); }
+        }
+        enabledButton(component, text);
+    }
+
+    private static void awaitRequests(FakeService service, int expected) throws Exception {
+        long deadline = System.currentTimeMillis() + 2000L;
+        while (service.requestIds.size() < expected && System.currentTimeMillis() < deadline) {
+            flush(); Thread.sleep(10L);
+        }
+    }
+
+    private static void awaitListEnabled(Component component) throws Exception {
+        long deadline = System.currentTimeMillis() + 2000L;
+        while (!firstList(component).isEnabled() && System.currentTimeMillis() < deadline) {
+            flush(); Thread.sleep(10L);
+        }
+        if (!firstList(component).isEnabled()) throw new AssertionError("session list did not finish loading");
+    }
+
     private static final class FakeService implements AiAssistantClientService {
-        private AiStreamListener listener; private final List<String> requestIds = new ArrayList<String>();
+        private AiStreamListener listener;
+        private final List<String> requestIds = Collections.synchronizedList(new ArrayList<String>());
         public String query(String sessionId, String text, AiMode mode, AiStreamListener listener) {
             this.listener = listener; return "fallback";
         }

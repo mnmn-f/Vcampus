@@ -1,12 +1,10 @@
 package edu.seu.vcampus.client.view.modules.real;
 
-import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.components.TimeSpinnerField;
 
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import org.threeten.bp.LocalDate;
 import org.threeten.bp.LocalDateTime;
@@ -30,24 +28,8 @@ public final class DormDateTimeField extends JPanel {
         super(new FlowLayout(FlowLayout.LEFT, 6, 0));
         setOpaque(false);
         add(date);
-        add(unit(hour, "时"));
-        add(unit(minute, "分"));
-    }
-
-    private JPanel unit(JSpinner spinner, String suffix) {
-        spinner.setFont(DesignTokens.regular(15));
-        spinner.setPreferredSize(new Dimension(58, 33));
-        JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "00");
-        editor.getTextField().setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        spinner.setEditor(editor);
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 0));
-        row.setOpaque(false);
-        row.add(spinner);
-        JLabel label = new JLabel(suffix);
-        label.setFont(DesignTokens.regular(13));
-        label.setForeground(DesignTokens.TEXT_SECONDARY);
-        row.add(label);
-        return row;
+        add(TimeSpinnerField.unit(hour, "时", 15, 58, 33));
+        add(TimeSpinnerField.unit(minute, "分", 15, 58, 33));
     }
 
     public void setValue(LocalDateTime value) {
