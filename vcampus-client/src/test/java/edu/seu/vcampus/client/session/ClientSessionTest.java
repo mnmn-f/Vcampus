@@ -28,4 +28,20 @@ public class ClientSessionTest {
         session.open(result);
         session.switchRole(Role.SYSTEM_ADMIN);
     }
+
+    @Test
+    public void profileDisplayNameUpdateReachesEverySessionConsumer() throws Exception {
+        LoginResult result = new DemoAuthClientService().login("demo_student", "student123");
+        ClientSession session = new ClientSession();
+        final int[] changes = {0};
+        session.addListener(new ClientSession.Listener() {
+            @Override public void onSessionChanged() { changes[0]++; }
+        });
+        session.open(result);
+        session.updateDisplayName("新的显示名");
+        assertEquals("新的显示名", session.getDisplayName());
+        assertEquals("demo_student", session.getAccount());
+        assertEquals(result.getSessionToken(), session.getSessionToken());
+        assertEquals(2, changes[0]);
+    }
 }

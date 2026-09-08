@@ -114,7 +114,11 @@ public final class StoreProductsPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<ProductDto>() {
             @Override public ProductDto run() throws Exception { return service.saveProduct(request); }
         }, new AsyncTask.Callback<ProductDto>() {
-            @Override public void onSuccess(ProductDto result) { page.showSuccess("商品已保存。"); products.reload(); }
+            @Override public void onSuccess(ProductDto result) {
+                page.showSuccess("商品已保存。");
+                select(result);
+                products.reload();
+            }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }
@@ -123,7 +127,11 @@ public final class StoreProductsPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<ProductDto>() {
             @Override public ProductDto run() throws Exception { return service.adjustProductStock(request); }
         }, new AsyncTask.Callback<ProductDto>() {
-            @Override public void onSuccess(ProductDto result) { page.showSuccess("库存已调整。"); products.reload(); editor.showProduct(result); }
+            @Override public void onSuccess(ProductDto result) {
+                page.showSuccess("库存已调整。");
+                select(result);
+                products.reload();
+            }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }

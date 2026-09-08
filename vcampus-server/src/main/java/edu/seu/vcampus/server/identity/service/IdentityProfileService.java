@@ -118,7 +118,7 @@ final class IdentityProfileService {
         IdentityServiceSupport.text(request.getDisplayName(), "姓名");
         IdentityServiceSupport.length(request.getDisplayName(), 100, "姓名");
         IdentityServiceSupport.length(request.getEmail(), 255, "邮箱");
-        IdentityServiceSupport.length(request.getPhone(), 32, "手机号");
+        validatePhone(request.getPhone());
     }
 
     private static void validateProfile(ProfileUpdateRequest request)
@@ -127,7 +127,15 @@ final class IdentityProfileService {
         IdentityServiceSupport.text(request.getDisplayName(), "姓名");
         IdentityServiceSupport.length(request.getDisplayName(), 100, "姓名");
         IdentityServiceSupport.length(request.getEmail(), 255, "邮箱");
-        IdentityServiceSupport.length(request.getPhone(), 32, "手机号");
+        validatePhone(request.getPhone());
         IdentityServiceSupport.length(request.getAvatarUrl(), 500, "头像地址");
+    }
+
+    private static void validatePhone(String phone) throws IdentityServiceException {
+        IdentityServiceSupport.length(phone, 32, "手机号");
+        if (phone != null && !phone.trim().isEmpty()
+                && !phone.trim().matches("[0-9]{6,32}")) {
+            throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "手机号只能填写数字");
+        }
     }
 }

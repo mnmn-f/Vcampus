@@ -97,6 +97,18 @@ public final class RoleAwareShellUiTest {
     }
 
     @Test
+    public void profileDisplayNameRefreshesTopBarAndWorkbench() {
+        final ClientSession session = session(EnumSet.of(Role.STUDENT), Role.STUDENT, "旧显示名");
+        AppShell shell = new AppShell(new StubAuth(), session, new AppShell.Listener() {
+            @Override public void onLogout() { }
+        }, null);
+        session.updateDisplayName("新显示名");
+        String view = text(shell);
+        assertTrue(view.contains("新显示名"));
+        assertFalse(view.contains("旧显示名"));
+    }
+
+    @Test
     public void loginOnlyCollectsCredentialsAndDoesNotChooseIdentity() {
         LoginFormPanel form = new LoginFormPanel(new LoginController(new StubAuth()), new LoginFormPanel.Listener() {
             @Override public void onLoginSuccess(LoginResult result) { }

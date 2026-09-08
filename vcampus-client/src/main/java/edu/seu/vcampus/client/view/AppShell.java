@@ -82,6 +82,14 @@ public final class AppShell extends JPanel {
             @Override public void onRoleChanged(Role role) { changeRole(role); }
             @Override public void onLogout() { logout(); }
         });
+        session.addListener(new ClientSession.Listener() {
+            @Override public void onSessionChanged() {
+                topbar.syncRole();
+                if (activeModule == ModuleId.DASHBOARD && session.isAuthenticated()) {
+                    open(ModuleId.DASHBOARD);
+                }
+            }
+        });
         add(sidebar, BorderLayout.WEST);
         JPanel main = new JPanel(new BorderLayout());
         main.setBackground(DesignTokens.PAGE_BACKGROUND);

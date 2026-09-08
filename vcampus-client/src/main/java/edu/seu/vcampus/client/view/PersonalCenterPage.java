@@ -20,7 +20,7 @@ public final class PersonalCenterPage extends BasePage {
         setHeaderContext(session.getActiveRole().getDisplayName());
         if (services == null) addBlock(summary(session));
         else {
-            addBlock(new IdentityProfilePanel(this, services.identity(), passwordChanged));
+            addBlock(new IdentityProfilePanel(this, session, services.identity(), passwordChanged));
             if (session.getActiveRole() != Role.SYSTEM_ADMIN) {
                 addBlock(new IdentityCancellationPanel(this, services.identity(), false));
             }

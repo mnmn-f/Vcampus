@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.identity.IdentityClientService;
+import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
@@ -27,14 +28,20 @@ public final class IdentityProfilePanel extends JPanel {
     private final JPasswordField currentPassword = password(); private final JPasswordField newPassword = password();
     private final JPasswordField confirmPassword = password(); private final JLabel state = UiFactory.muted("正在加载个人资料…");
     private final Runnable passwordChanged;
+    private final ClientSession session;
 
     public IdentityProfilePanel(BasePage page, IdentityClientService service) {
         this(page, service, null);
     }
 
     public IdentityProfilePanel(BasePage page, IdentityClientService service, Runnable passwordChanged) {
+        this(page, null, service, passwordChanged);
+    }
+
+    public IdentityProfilePanel(BasePage page, ClientSession session,
+                                IdentityClientService service, Runnable passwordChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
-        this.page = page; this.service = service; this.passwordChanged = passwordChanged;
+        this.page = page; this.session = session; this.service = service; this.passwordChanged = passwordChanged;
         add(profileCard()); add(passwordCard()); load();
     }
 
@@ -71,6 +78,7 @@ public final class IdentityProfilePanel extends JPanel {
             @Override public ProfileDto run() throws Exception { return service.getOwnProfile(); }
         }, new AsyncTask.Callback<ProfileDto>() {
             @Override public void onSuccess(ProfileDto value) {
+                if (session != null) session.updateDisplayName(value.getDisplayName());
                 displayName.setText(RealUi.input(value.getDisplayName())); email.setText(RealUi.input(value.getEmail()));
                 phone.setText(RealUi.input(value.getPhone())); avatar.setText(RealUi.input(value.getAvatarUrl()));
                 state.setText("资料状态：" + RealUi.status(value.getStatus())); page.showSuccess("个人资料已加载。");
@@ -82,12 +90,19 @@ public final class IdentityProfilePanel extends JPanel {
     private void save() {
         try {
             final String name = RealUi.required(displayName.getText(), "显示名");
-            final ProfileUpdateRequest request = new ProfileUpdateRequest(name, RealUi.optional(email.getText()), RealUi.optional(phone.getText()), RealUi.optional(avatar.getText()));
+            final String mobile = RealUi.optional(phone.getText());
+            if (mobile != null && !mobile.matches("[0-9]{6,32}")) {
+                throw new IllegalArgumentException("手机号只能填写数字");
+            }
+            final ProfileUpdateRequest request = new ProfileUpdateRequest(name, RealUi.optional(email.getText()), mobile, RealUi.optional(avatar.getText()));
             AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
                 @Override public ProfileDto run() throws Exception { return service.updateProfile(request); }
             },
                     new AsyncTask.Callback<ProfileDto>() {
-                        @Override public void onSuccess(ProfileDto value) { state.setText("资料已保存"); page.showSuccess("个人资料已保存。"); }
+                        @Override public void onSuccess(ProfileDto value) {
+                            if (session != null) session.updateDisplayName(value.getDisplayName());
+                            state.setText("资料已保存"); page.showSuccess("个人资料已保存。");
+                        }
                         @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
                     });
         } catch (IllegalArgumentException ex) { page.showError(ex.getMessage()); }
@@ -97,6 +112,10 @@ public final class IdentityProfilePanel extends JPanel {
         final String old = new String(currentPassword.getPassword()); final String next = new String(newPassword.getPassword());
         if (old.trim().isEmpty() || next.trim().isEmpty()) { page.showWarning("请填写当前密码和新密码。"); return; }
         if (!next.equals(new String(confirmPassword.getPassword()))) { page.showWarning("两次输入的新密码不一致。"); return; }
+        if (next.length() < 8 || next.length() > 72 || !next.matches(".*[A-Z].*")
+                || !next.matches(".*[a-z].*") || !next.matches(".*[0-9].*")) {
+            page.showWarning("新密码至少8位且须包含大小写字母和数字。"); return;
+        }
         final PasswordChangeRequest request = new PasswordChangeRequest(old, next);
         AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
             @Override public ProfileDto run() throws Exception { return service.changePassword(request); }
