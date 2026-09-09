@@ -4,7 +4,7 @@
 
 ## 设计依据
 
-信息架构参考 [seu-vcampus](https://github.com/zeroffa233/seu-vcampus) 的校园门户做法：品牌区与侧栏导航固定在左侧，内容区使用白色卡片，主导航按人员职责收敛，页面内再用二级任务切换。VCampus 用 Java Swing 和自绘线性图标实现同样的层次关系；角色、权限和数据范围仍以本项目的会话与服务端校验为准。
+信息架构参考 [seu-vcampus](https://github.com/zeroffa233/seu-vcampus) 的校园门户做法：品牌区与主导航固定在左侧，内容区使用白色卡片，主导航按人员职责收敛；进入模块后再用统一顶部页签切换二级任务。VCampus 用 Java Swing 和自绘线性图标实现；角色、权限和数据范围仍以本项目的会话与服务端校验为准。
 
 设计取舍遵循三个原则：
 
@@ -68,9 +68,9 @@
 
 登录后的 [AppShell.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/AppShell.java) 固定为三层：
 
-1. 左侧品牌与侧栏：显示 VCampus、东南大学校园服务、当前职责和按角色过滤的主导航；选中项使用主色和金色细线强调。
-2. 顶部栏：显示当前页面标题、姓名、当前工作身份和退出登录；多职责账号才显示角色切换器。
-3. 内容区：页面标题、简短任务说明、快捷操作或任务页签，以及可滚动的业务内容。
+1. 左侧品牌与主导航：显示 VCampus、东南大学校园服务、当前职责和按角色过滤的模块；选中项使用主色和金色细线强调。
+2. 顶部身份栏：显示当前页面标题、姓名、当前工作身份和退出登录；多职责账号才显示角色切换器。
+3. 内容区：页面标题、简短任务说明、统一顶部任务页签，以及可滚动的业务内容。
 
 侧栏分为“我的工作台”“校园业务”“系统管理”三组。主页快捷卡片只链接到当前职责可用的任务，不展示其他角色的操作。
 
@@ -107,7 +107,7 @@
 真实模块页统一由 `BasePage`、`TaskTabs` 和 `SectionCard` 组合：
 
 - 页面头部：职责化标题和必要的主操作。
-- `TaskTabs`：把同一模块中的查询、维护、审批、日志等任务放在二级页签内，选中页签使用主色背景和白色文字。
+- `TaskTabs`：把同一模块中的查询、维护、审批、日志等任务放在顶部二级页签内，统一使用 14px 无衬线字体；选中页签使用主色文字和底部指示条。
 - 筛选与工具栏：标签清楚、控件顺序符合查询流程，查询条件留在结果上方；分页和结果范围在同一区域可见。
 - `SectionCard`：白色圆角卡片承载表单、表格或详情，卡片之间保留 16–24px 间距。
 - 状态反馈：字段错误紧邻字段；页面级错误位于当前任务区；成功提示轻量显示并在刷新后消失。
@@ -126,8 +126,8 @@
 
 - 视觉令牌：[DesignTokens.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/DesignTokens.java)
 - 角色文案与快捷任务：[RoleWorkspace.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/RoleWorkspace.java)
-- 侧栏：[SidebarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/SidebarPanel.java)
-- 顶栏：[TopBarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/TopBarPanel.java)
+- 主导航侧栏：[SidebarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/SidebarPanel.java)
+- 顶部身份栏：[TopBarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/TopBarPanel.java)
 - 二级任务页签：[TaskTabs.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/components/TaskTabs.java)
 - 页面职责与命令边界：[PAGE_MAP.md](PAGE_MAP.md)
 - 视觉截图索引：[UI_PREVIEW_GALLERY.md](UI_PREVIEW_GALLERY.md)

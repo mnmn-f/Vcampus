@@ -12,7 +12,7 @@
 - 网络组合根：[ClientBusinessServices.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/composition/ClientBusinessServices.java)。登录成功后的业务页共用同一 `NetworkClientService`、`ClientSession` 和当前身份。
 - AI 桌宠：[SquirrelPetController.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetController.java)、[SquirrelPetWidget.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/pet/SquirrelPetWidget.java)。仅对可进入校园助手的职责显示；窗口内和最小化后的桌面形态均可拖动并分别保存位置，窗口内单击进入 AI 页面，桌面形态单击恢复原页面。
 
-主导航分为“我的工作台”“校园业务”“系统管理”三组。模块内的查询、维护、审批、日志等任务使用 [TaskTabs.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/components/TaskTabs.java) 切换，避免把互不相同的人员任务堆在同一长页面中。
+主导航保留固定侧栏。进入模块后，查询、维护、审批、日志等二级任务统一使用顶部 [TaskTabs.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/ui/components/TaskTabs.java)；图书馆也通过同一组件呈现，不再维护独立的模块内左栏。
 
 ## 按职责的真实页面入口
 

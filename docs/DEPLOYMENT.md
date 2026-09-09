@@ -22,20 +22,20 @@
 
 ## 2. 两台电脑启动
 
-在电脑 A（数据库所在或可访问数据库的服务端电脑）执行：
+在电脑 A（安装 MySQL、保存唯一业务数据库的电脑）执行：
 
 ```powershell
-.\scripts\start-server.ps1 -Port 8888 -MaxConnections 32 -ClientReadTimeoutMillis 30000
+.\scripts\start-lan-server.ps1
 ```
 
-服务端脚本也支持环境变量：`VCAMPUS_SERVER_PORT`、`VCAMPUS_SERVER_MAX_CONNECTIONS`、
-`VCAMPUS_SERVER_CLIENT_READ_TIMEOUT`。显式参数优先于环境变量。按 `Ctrl+C` 停止，服务端会关闭监听器、
-客户端连接和运行时会话，端口可再次绑定。
+脚本会隐藏读取 MySQL 密码、启动服务端，并打印当前电脑可用的局域网 IPv4 和队友命令。服务端监听
+所有本机网络接口；所有客户端请求最终读写电脑 A 上同一个 `vcampus` 数据库，因此不是每个人各自维护
+一份数据。服务端状态变更提交后，其他客户端刷新当前列表或重新进入页面即可读取最新结果。
 
 在电脑 B 执行：
 
 ```powershell
-.\scripts\start-client.ps1 -ServerHost 192.168.1.20 -ServerPort 8888
+.\scripts\start-lan-client.ps1 -ServerHost 192.168.1.20 -ServerPort 8888
 ```
 
 拥有校园助手权限的账号登录后会启用小松鼠桌宠。桌宠动画只在可见时运行；远程桌面、自动化测试或低性能终端可直接启动客户端 JAR 并增加 `-Dvcampus.pet.animation=false`：
@@ -47,7 +47,7 @@ java -Dvcampus.pet.animation=false -Dvcampus.server.host=192.168.1.20 `
 
 该属性只关闭呼吸、摇摆和状态动画，不影响点击入口、最小化收束、拖动恢复、AI 对话或业务功能。
 
-把 `192.168.1.20` 换成电脑 A 在局域网中的 IPv4 地址，不要使用客户端自己的 `127.0.0.1`。
+把 `192.168.1.20` 换成电脑 A 的脚本打印出的 IPv4 地址，不要使用客户端自己的 `127.0.0.1`。
 客户端可用 `VCAMPUS_SERVER_HOST`、`VCAMPUS_SERVER_PORT`、`VCAMPUS_CLIENT_CONNECT_TIMEOUT`、
 `VCAMPUS_CLIENT_READ_TIMEOUT` 环境变量；脚本会先检查 jar 文件存在。
 
@@ -56,6 +56,8 @@ java -Dvcampus.pet.animation=false -Dvcampus.server.host=192.168.1.20 `
 ```powershell
 Test-NetConnection 192.168.1.20 -Port 8888
 ```
+
+电脑 B 不需要安装或开放 MySQL，也不要把 MySQL 3306 暴露给队友；客户端只连接服务端 TCP 8888。
 
 ## 3. Windows 防火墙
 

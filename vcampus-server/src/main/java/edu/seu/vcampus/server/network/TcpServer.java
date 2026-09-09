@@ -4,6 +4,7 @@ import edu.seu.vcampus.server.router.CommandRouter;
 import edu.seu.vcampus.server.security.SessionManager;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -125,15 +126,17 @@ public final class TcpServer implements AutoCloseable {
         stop();
     }
 
-    public boolean isRunning() {
-        return running;
-    }
+    public boolean isRunning() { return running; }
 
     public int getBoundPort() {
         ServerSocket current = serverSocket;
         return current == null ? -1 : current.getLocalPort();
     }
 
+    public InetAddress getBoundAddress() {
+        ServerSocket current = serverSocket;
+        return current == null ? null : current.getInetAddress();
+    }
     public int getMaxConnections() {
         return maxConnections;
     }
@@ -146,7 +149,7 @@ public final class TcpServer implements AutoCloseable {
         }
         ServerSocket created = new ServerSocket();
         created.setReuseAddress(true);
-        created.bind(new InetSocketAddress(port));
+        created.bind(new InetSocketAddress(port)); // wildcard: all local IPv4/IPv6 interfaces
         serverSocket = created;
         running = true;
     }
@@ -184,17 +187,13 @@ public final class TcpServer implements AutoCloseable {
         if (current != null) {
             try {
                 current.close();
-            } catch (IOException ignored) {
-                // 停止路径中无需向调用方传播关闭异常。
-            }
+            } catch (IOException ignored) { /* stopping: best-effort close */ }
         }
     }
 
     private static void close(Socket socket) {
         try {
             socket.close();
-        } catch (IOException ignored) {
-            // 拒绝连接时尽力释放资源。
-        }
+        } catch (IOException ignored) { /* rejection: best-effort close */ }
     }
 }

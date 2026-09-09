@@ -19,6 +19,7 @@ import java.awt.Container;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /** 角色页面组合只暴露当前职责的校园扩展和系统操作。 */
@@ -76,6 +77,15 @@ public final class ClientRoleCompositionTest {
         PersonalCenterPage student = new PersonalCenterPage(session(Role.STUDENT),
                 services(Role.STUDENT), null);
         assertEquals(1, countType(student, IdentityCancellationPanel.class));
+        IdentityCancellationPanel cancellation = findType(student, IdentityCancellationPanel.class);
+        IdentityProfilePanel profile = findType(student, IdentityProfilePanel.class);
+        assertNotNull(cancellation); assertNotNull(profile);
+        assertFalse(cancellation.isVisible()); assertFalse(profile.isPasswordSettingsVisible());
+        findButton(student, "修改密码 ›").doClick();
+        assertTrue(profile.isPasswordSettingsVisible()); assertFalse(cancellation.isVisible());
+        findButton(student, "注销账号 ›").doClick();
+        assertFalse(profile.isPasswordSettingsVisible()); assertTrue(cancellation.isVisible());
+        assertNotNull(findType(student, AvatarImageView.class));
 
         PersonalCenterPage admin = new PersonalCenterPage(session(Role.SYSTEM_ADMIN),
                 services(Role.SYSTEM_ADMIN), null);
@@ -90,9 +100,29 @@ public final class ClientRoleCompositionTest {
     }
     private static boolean has(Component root, String text) {
         if (root instanceof JButton && text.equals(((JButton) root).getText())) return true;
+        if (root instanceof javax.swing.JTabbedPane) {
+            javax.swing.JTabbedPane tabs = (javax.swing.JTabbedPane) root;
+            for (int i = 0; i < tabs.getTabCount(); i++) {
+                if (text.equals(tabs.getTitleAt(i))) return true;
+            }
+        }
         if (!(root instanceof Container)) return false;
         for (Component child : ((Container) root).getComponents()) if (has(child, text)) return true;
         return false;
+    }
+    private static JButton findButton(Component root, String text) {
+        if (root instanceof JButton && text.equals(((JButton) root).getText())) return (JButton) root;
+        if (root instanceof Container) for (Component child : ((Container) root).getComponents()) {
+            JButton found = findButton(child, text); if (found != null) return found;
+        }
+        return null;
+    }
+    private static <T> T findType(Component root, Class<T> type) {
+        if (type.isInstance(root)) return type.cast(root);
+        if (root instanceof Container) for (Component child : ((Container) root).getComponents()) {
+            T found = findType(child, type); if (found != null) return found;
+        }
+        return null;
     }
     private static boolean hasType(Component root, Class<?> type) {
         if (type.isInstance(root)) return true;

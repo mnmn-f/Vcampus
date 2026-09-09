@@ -2,6 +2,8 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.student.StudentRecordClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.ResponsiveGridLayout;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
@@ -28,7 +30,9 @@ public final class StudentOwnPanel extends JPanel {
     private final BasePage page;
     private final StudentRecordClientService service;
     private final JLabel profileState = UiFactory.muted("正在加载档案…");
-    private final JLabel profile = UiFactory.body("");
+    private final JLabel studentNo = value(); private final JLabel name = value();
+    private final JLabel college = value(); private final JLabel major = value();
+    private final JLabel className = value(); private final JLabel status = value();
     private final JLabel weightedGpa = UiFactory.body("—");
     private final JLabel averageGpa = UiFactory.body("—");
     private final JLabel weightedScore = UiFactory.body("—");
@@ -57,9 +61,20 @@ public final class StudentOwnPanel extends JPanel {
 
     private SectionCard profileCard() {
         SectionCard card = new SectionCard("我的学籍档案", "仅显示本人档案和成绩。");
-        JPanel content = new JPanel(new BorderLayout(12, 8)); content.setOpaque(false);
-        content.add(profile, BorderLayout.CENTER); content.add(profileState, BorderLayout.SOUTH);
+        JPanel grid = new JPanel(new ResponsiveGridLayout(160, 3, 12)); grid.setOpaque(false);
+        grid.add(profileField("学号", studentNo)); grid.add(profileField("姓名", name));
+        grid.add(profileField("学院", college)); grid.add(profileField("专业", major));
+        grid.add(profileField("班级", className)); grid.add(profileField("状态", status));
+        JPanel content = new JPanel(new BorderLayout(0, 12)); content.setOpaque(false);
+        content.add(grid, BorderLayout.CENTER); content.add(profileState, BorderLayout.SOUTH);
         card.setContent(content); return card;
+    }
+
+    private JPanel profileField(String title, JLabel field) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5)); panel.setBackground(DesignTokens.PAGE_BACKGROUND);
+        panel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        panel.add(UiFactory.muted(title), BorderLayout.NORTH); panel.add(field, BorderLayout.CENTER);
+        return panel;
     }
 
     private SectionCard metricsCard() {
@@ -136,11 +151,9 @@ public final class StudentOwnPanel extends JPanel {
             @Override public StudentProfileDto run() throws Exception { return service.getOwnProfile(); }
         }, new AsyncTask.Callback<StudentProfileDto>() {
             @Override public void onSuccess(StudentProfileDto value) {
-                profile.setText("学号：" + RealUi.text(value.getStudentNo()) + "　姓名："
-                        + RealUi.text(value.getDisplayName()) + "　学院：" + RealUi.text(value.getCollege())
-                        + "　专业：" + RealUi.text(value.getMajor()) + "　班级："
-                        + RealUi.text(value.getClassName()) + "　状态："
-                        + RealUi.status(RealUi.text(value.getStatus())));
+                studentNo.setText(RealUi.text(value.getStudentNo())); name.setText(RealUi.text(value.getDisplayName()));
+                college.setText(RealUi.text(value.getCollege())); major.setText(RealUi.text(value.getMajor()));
+                className.setText(RealUi.text(value.getClassName())); status.setText(RealUi.status(RealUi.text(value.getStatus())));
                 profileState.setText("档案已加载"); page.showSuccess("已加载你的档案和成绩。");
             }
             @Override public void onFailure(Throwable error) { profileState.setText("档案加载失败：" + AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
@@ -148,4 +161,5 @@ public final class StudentOwnPanel extends JPanel {
     }
 
     private static String metricText(Object value) { return value == null ? "—" : String.valueOf(value); }
+    private static JLabel value() { JLabel label = UiFactory.body("—"); label.setFont(DesignTokens.medium(15)); return label; }
 }

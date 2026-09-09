@@ -128,7 +128,7 @@ final class IdentityProfileService {
         IdentityServiceSupport.length(request.getDisplayName(), 100, "姓名");
         IdentityServiceSupport.length(request.getEmail(), 255, "邮箱");
         validatePhone(request.getPhone());
-        IdentityServiceSupport.length(request.getAvatarUrl(), 500, "头像地址");
+        IdentityServiceSupport.length(request.getAvatarUrl(), 400000, "头像图片");
     }
 
     private static void validatePhone(String phone) throws IdentityServiceException {

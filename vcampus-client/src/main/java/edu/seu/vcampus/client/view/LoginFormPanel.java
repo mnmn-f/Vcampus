@@ -46,6 +46,8 @@ public final class LoginFormPanel extends JPanel {
         this.controller = controller;
         this.listener = listener;
         this.registerAction = registerAction;
+        UiFactory.styleLoginField(accountField);
+        UiFactory.styleLoginField(passwordField);
         setOpaque(false);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         add(feedback);
@@ -88,7 +90,6 @@ public final class LoginFormPanel extends JPanel {
         c.insets = new Insets(8, 0, 5, 0);
         fields.add(UiFactory.body("登录密码"), c);
         c.gridy++;
-        UiFactory.styleField(passwordField);
         fields.add(passwordField, c);
         c.gridy++;
         c.insets = new Insets(0, 0, 16, 0);

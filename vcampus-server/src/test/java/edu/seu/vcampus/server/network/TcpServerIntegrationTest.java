@@ -40,6 +40,8 @@ public class TcpServerIntegrationTest {
         server = new TcpServer(0, 2, router);
         server.startAsync();
         assertTrue(server.isRunning());
+        assertNotNull(server.getBoundAddress());
+        assertTrue(server.getBoundAddress().isAnyLocalAddress());
     }
 
     @After

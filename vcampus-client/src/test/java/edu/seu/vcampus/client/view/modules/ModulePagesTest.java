@@ -49,19 +49,36 @@ public final class ModulePagesTest {
     }
 
     @Test
-    public void demoModeCreatesOperableLibraryPage() {
+    public void demoModeCreatesTopNavigationLibraryPage() {
         String old = System.getProperty("vcampus.client.mode");
         try {
             System.setProperty("vcampus.client.mode", "demo");
             BasePage page = ModulePages.forModule(ModuleId.LIBRARY,
                     session(Role.STUDENT), null);
             assertTrue(page instanceof RealLibraryPage);
-            assertTrue(visibleText(page).contains("借阅此书"));
-            assertTrue(visibleText(page).contains("提交预约"));
+            javax.swing.JTabbedPane tabs = find(page, javax.swing.JTabbedPane.class);
+            assertTrue(tabs != null);
+            assertTrue(hasTab(tabs, "图书查阅"));
+            assertTrue(hasTab(tabs, "自习室预约"));
         } finally {
             if (old == null) System.clearProperty("vcampus.client.mode");
             else System.setProperty("vcampus.client.mode", old);
         }
+    }
+
+    private static boolean hasTab(javax.swing.JTabbedPane tabs, String title) {
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (title.equals(tabs.getTitleAt(i))) return true;
+        }
+        return false;
+    }
+
+    private static <T> T find(Component root, Class<T> type) {
+        if (type.isInstance(root)) return type.cast(root);
+        if (root instanceof Container) for (Component child : ((Container) root).getComponents()) {
+            T found = find(child, type); if (found != null) return found;
+        }
+        return null;
     }
 
     @Test

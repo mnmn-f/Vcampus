@@ -102,6 +102,7 @@ public final class RoleAwareShellUiTest {
         AppShell shell = new AppShell(new StubAuth(), session, new AppShell.Listener() {
             @Override public void onLogout() { }
         }, null);
+        assertNotNull(find(shell, SidebarPanel.class));
         session.updateDisplayName("新显示名");
         String view = text(shell);
         assertTrue(view.contains("新显示名"));

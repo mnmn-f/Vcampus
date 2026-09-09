@@ -24,9 +24,11 @@ import java.awt.GridLayout;
 public final class IdentityProfilePanel extends JPanel {
     private final BasePage page; private final IdentityClientService service;
     private final JTextField displayName = field(); private final JTextField email = field();
-    private final JTextField phone = field(); private final JTextField avatar = field();
+    private final JTextField phone = field(); private String avatarData;
     private final JPasswordField currentPassword = password(); private final JPasswordField newPassword = password();
     private final JPasswordField confirmPassword = password(); private final JLabel state = UiFactory.muted("正在加载个人资料…");
+    private final AvatarImageView avatarPreview = new AvatarImageView();
+    private final SectionCard passwordSettings;
     private final Runnable passwordChanged;
     private final ClientSession session;
 
@@ -42,15 +44,17 @@ public final class IdentityProfilePanel extends JPanel {
                                 IdentityClientService service, Runnable passwordChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.session = session; this.service = service; this.passwordChanged = passwordChanged;
-        add(profileCard()); add(passwordCard()); load();
+        add(profileCard()); passwordSettings = passwordCard(); passwordSettings.setVisible(false);
+        add(passwordSettings); load();
     }
 
     private SectionCard profileCard() {
-        SectionCard card = new SectionCard("个人资料", "编辑显示名、联系方式和头像地址。");
+        SectionCard card = new SectionCard("个人资料", "编辑姓名和联系方式；头像可从本地图片上传。");
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         fields.add(UiFactory.labelledField("显示名", displayName)); fields.add(UiFactory.labelledField("邮箱", email));
-        fields.add(UiFactory.labelledField("手机号", phone)); fields.add(UiFactory.labelledField("头像地址", avatar));
-        JPanel body = new JPanel(new BorderLayout(0, 10)); body.setOpaque(false); body.add(fields, BorderLayout.CENTER);
+        fields.add(UiFactory.labelledField("手机号", phone));
+        JPanel body = new JPanel(new BorderLayout(18, 10)); body.setOpaque(false);
+        body.add(avatarArea(), BorderLayout.WEST); body.add(fields, BorderLayout.CENTER);
         JPanel actions = UiFactory.horizontal(8); JButton refresh = new SecondaryButton("刷新"); refresh.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { load(); }
         });
@@ -58,6 +62,17 @@ public final class IdentityProfilePanel extends JPanel {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { save(); }
         }); actions.add(state); actions.add(refresh); actions.add(save); body.add(actions, BorderLayout.SOUTH);
         card.setContent(body); return card;
+    }
+
+    private JPanel avatarArea() {
+        JPanel area = new JPanel(new BorderLayout(0, 7)); area.setOpaque(false);
+        area.add(avatarPreview, BorderLayout.CENTER);
+        JButton upload = new SecondaryButton("上传头像");
+        upload.addActionListener(e -> uploadAvatar());
+        JButton remove = UiFactory.linkButton("移除");
+        remove.addActionListener(e -> { avatarData = null; avatarPreview.showProfile(displayName.getText(), null); });
+        JPanel actions = UiFactory.horizontal(2); actions.add(upload); actions.add(remove);
+        area.add(actions, BorderLayout.SOUTH); return area;
     }
 
     private SectionCard passwordCard() {
@@ -69,8 +84,23 @@ public final class IdentityProfilePanel extends JPanel {
         JButton change = new PrimaryButton("更新密码"); change.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { changePassword(); }
         });
-        JPanel actions = UiFactory.horizontal(8); actions.add(change); body.add(actions, BorderLayout.SOUTH); card.setContent(body); return card;
+        JButton close = UiFactory.linkButton("收起"); close.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { hidePasswordSettings(); }
+        });
+        JPanel actions = UiFactory.horizontal(8); actions.add(change); actions.add(close);
+        body.add(actions, BorderLayout.SOUTH); card.setContent(body); return card;
     }
+
+    public void showPasswordSettings() {
+        passwordSettings.setVisible(true); revalidate(); repaint(); currentPassword.requestFocusInWindow();
+    }
+
+    public void hidePasswordSettings() {
+        passwordSettings.setVisible(false); currentPassword.setText(""); newPassword.setText("");
+        confirmPassword.setText(""); revalidate(); repaint();
+    }
+
+    boolean isPasswordSettingsVisible() { return passwordSettings.isVisible(); }
 
     private void load() {
         state.setText("正在加载个人资料…");
@@ -80,7 +110,8 @@ public final class IdentityProfilePanel extends JPanel {
             @Override public void onSuccess(ProfileDto value) {
                 if (session != null) session.updateDisplayName(value.getDisplayName());
                 displayName.setText(RealUi.input(value.getDisplayName())); email.setText(RealUi.input(value.getEmail()));
-                phone.setText(RealUi.input(value.getPhone())); avatar.setText(RealUi.input(value.getAvatarUrl()));
+                phone.setText(RealUi.input(value.getPhone())); avatarData = value.getAvatarUrl();
+                avatarPreview.showProfile(value.getDisplayName(), avatarData);
                 state.setText("资料状态：" + RealUi.status(value.getStatus())); page.showSuccess("个人资料已加载。");
             }
             @Override public void onFailure(Throwable error) { state.setText("资料加载失败"); page.showError(AsyncTask.message(error)); }
@@ -94,18 +125,28 @@ public final class IdentityProfilePanel extends JPanel {
             if (mobile != null && !mobile.matches("[0-9]{6,32}")) {
                 throw new IllegalArgumentException("手机号只能填写数字");
             }
-            final ProfileUpdateRequest request = new ProfileUpdateRequest(name, RealUi.optional(email.getText()), mobile, RealUi.optional(avatar.getText()));
+            final ProfileUpdateRequest request = new ProfileUpdateRequest(name, RealUi.optional(email.getText()), mobile, avatarData);
             AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
                 @Override public ProfileDto run() throws Exception { return service.updateProfile(request); }
             },
                     new AsyncTask.Callback<ProfileDto>() {
                         @Override public void onSuccess(ProfileDto value) {
                             if (session != null) session.updateDisplayName(value.getDisplayName());
+                            avatarPreview.showProfile(value.getDisplayName(), value.getAvatarUrl());
                             state.setText("资料已保存"); page.showSuccess("个人资料已保存。");
                         }
                         @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
                     });
         } catch (IllegalArgumentException ex) { page.showError(ex.getMessage()); }
+    }
+
+    private void uploadAvatar() {
+        try {
+            String encoded = AvatarUploadSupport.chooseAndEncode(this);
+            if (encoded == null) return;
+            avatarData = encoded; avatarPreview.showProfile(displayName.getText(), avatarData);
+            state.setText("头像已选择，请保存资料");
+        } catch (Exception ex) { page.showError(ex.getMessage()); }
     }
 
     private void changePassword() {

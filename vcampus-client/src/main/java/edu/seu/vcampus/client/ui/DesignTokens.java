@@ -57,20 +57,6 @@ public final class DesignTokens {
 
     private static final String FONT_FAMILY = resolveFontFamily();
 
-    /**
-     * 顶部任务标签用的衬线字体。
-     *
-     * <p>界面里唯一一处刻意换字体的地方：标签栏是「选哪个板块」的导航，用华文中宋
-     * 和正文的雅黑拉开层次，比单纯加粗更容易一眼定位。其余所有文字仍走
-     * {@link #FONT_FAMILY}，不要在别处用它。</p>
-     *
-     * <p>候选按「最想要 → 最保底」排：华文中宋在不同 Windows 语言版本下注册的族名
-     * 可能是英文名也可能是中文名，两个都试；再往下退到宋体，最后退到 Java 的逻辑
-     * 衬线字体——逻辑字体一定存在，所以这条链不会落空。</p>
-     */
-    private static final String SERIF_FAMILY = resolveFamily(
-            new String[]{"STZhongsong", "华文中宋", "STSong", "SimSun", "宋体"}, Font.SERIF);
-
     private DesignTokens() {
     }
 
@@ -80,15 +66,6 @@ public final class DesignTokens {
 
     public static Font medium(int size) {
         return new Font(FONT_FAMILY, Font.BOLD, size);
-    }
-
-    /** 任务标签专用的华文中宋，取不到时按候选链回退。 */
-    public static Font serif(int size) {
-        return new Font(SERIF_FAMILY, Font.PLAIN, size);
-    }
-
-    public static Font serifBold(int size) {
-        return new Font(SERIF_FAMILY, Font.BOLD, size);
     }
 
     private static String resolveFontFamily() {

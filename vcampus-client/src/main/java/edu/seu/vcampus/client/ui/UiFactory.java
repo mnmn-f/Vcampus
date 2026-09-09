@@ -58,8 +58,13 @@ public final class UiFactory {
         javax.swing.UIManager.put("Label.font", DesignTokens.regular(15));
         javax.swing.UIManager.put("Button.font", DesignTokens.regular(14));
         javax.swing.UIManager.put("TextField.font", DesignTokens.regular(15));
+        javax.swing.UIManager.put("PasswordField.font", DesignTokens.regular(15));
+        javax.swing.UIManager.put("FormattedTextField.font", DesignTokens.regular(15));
         javax.swing.UIManager.put("TextArea.font", DesignTokens.regular(15));
         javax.swing.UIManager.put("ComboBox.font", DesignTokens.regular(15));
+        javax.swing.UIManager.put("Spinner.font", DesignTokens.regular(15));
+        javax.swing.UIManager.put("List.font", DesignTokens.regular(14));
+        javax.swing.UIManager.put("TabbedPane.font", DesignTokens.regular(14));
         javax.swing.UIManager.put("Table.font", DesignTokens.regular(14));
         // 表头退成「12 号灰字压在页面底色上」：它是列的说明，不是一条独立的灰带。
         javax.swing.UIManager.put("TableHeader.font", DesignTokens.medium(12));
@@ -166,6 +171,18 @@ public final class UiFactory {
                 BorderFactory.createLineBorder(DesignTokens.BORDER),
                 BorderFactory.createEmptyBorder(7, 10, 7, 10)));
         field.setPreferredSize(new Dimension(field.getPreferredSize().width, 36));
+    }
+
+    /** 登录页使用的横向输入线，避免在大面积留白里出现厚重的方框。 */
+    public static void styleLoginField(JTextField field) {
+        field.setFont(DesignTokens.regular(16));
+        field.setForeground(DesignTokens.TEXT_PRIMARY);
+        field.setBackground(Color.WHITE);
+        field.setCaretColor(DesignTokens.PRIMARY);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, DesignTokens.BORDER),
+                BorderFactory.createEmptyBorder(9, 2, 7, 2)));
+        field.setPreferredSize(new Dimension(field.getPreferredSize().width, 42));
     }
 
     public static JButton linkButton(String text) {

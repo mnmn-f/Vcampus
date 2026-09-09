@@ -16,8 +16,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 
 /** 网络模式登录页的匿名注册入口；注册请求由身份服务异步发送。 */
 public final class RegistrationPanel extends SectionCard {
@@ -28,18 +29,30 @@ public final class RegistrationPanel extends SectionCard {
 
     public RegistrationPanel(IdentityClientService service, final Runnable back) {
         super("注册校园账号", "注册成功后默认获得学生角色，请返回登录页使用新账号登录。"); this.service = service; this.back = back;
-        JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
-        fields.add(UiFactory.labelledField("校园账号", account)); fields.add(UiFactory.labelledField("显示名", name));
-        fields.add(UiFactory.labelledField("邮箱（可选）", email)); fields.add(UiFactory.labelledField("登录密码", password));
-        fields.add(UiFactory.labelledField("确认密码", confirm));
-        JPanel body = new JPanel(new BorderLayout(0, 12)); body.setOpaque(false); body.add(fields, BorderLayout.CENTER);
+        UiFactory.styleLoginField(account); UiFactory.styleLoginField(name); UiFactory.styleLoginField(email);
+        JPanel fields = fields();
         JPanel actions = UiFactory.horizontal(8); JButton submit = new PrimaryButton("提交注册"); submit.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { submit(); }
         });
         JButton cancel = new SecondaryButton("返回登录"); cancel.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { if (back != null) back.run(); }
         }); actions.add(submit); actions.add(cancel); actions.add(error);
-        body.add(actions, BorderLayout.SOUTH); setContent(body);
+        JPanel body = UiFactory.vertical(12); body.add(fields); body.add(actions); setContent(body);
+    }
+
+    private JPanel fields() {
+        JPanel fields = new JPanel(new GridBagLayout()); fields.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints(); c.gridx = 0; c.gridy = 0;
+        c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.anchor = GridBagConstraints.NORTH;
+        add(fields, c, "校园账号", account); add(fields, c, "显示名", name);
+        add(fields, c, "邮箱（可选）", email); add(fields, c, "登录密码", password);
+        add(fields, c, "确认密码", confirm); return fields;
+    }
+
+    private static void add(JPanel panel, GridBagConstraints c, String label,
+                            java.awt.Component field) {
+        c.insets = new Insets(0, 0, 11, 0);
+        panel.add(UiFactory.labelledField(label, field), c); c.gridy++;
     }
 
     private void submit() {
@@ -58,5 +71,5 @@ public final class RegistrationPanel extends SectionCard {
     }
 
     private void clear() { account.setText(""); name.setText(""); email.setText(""); password.setText(""); confirm.setText(""); }
-    private static JPasswordField password() { JPasswordField value = new JPasswordField(18); UiFactory.styleField(value); value.setFont(DesignTokens.regular(14)); return value; }
+    private static JPasswordField password() { JPasswordField value = new JPasswordField(18); UiFactory.styleLoginField(value); value.setFont(DesignTokens.regular(14)); return value; }
 }

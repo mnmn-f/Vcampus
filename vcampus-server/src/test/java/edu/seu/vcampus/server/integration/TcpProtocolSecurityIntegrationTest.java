@@ -76,6 +76,51 @@ public final class TcpProtocolSecurityIntegrationTest {
         }
     }
 
+    @Test
+    public void twoTcpClientsReadTheSameServerStateAfterManagerUpdate() throws Exception {
+        try (Connection manager = connect(); Connection student = connect()) {
+            String managerToken = login(manager, IntegrationFixture.MULTI_ACCOUNT);
+            assertTrue(manager.exchange(Message.request(Commands.AUTH_SWITCH_ROLE, managerToken,
+                    new SwitchRoleRequest(Role.STORE_MANAGER))).isSuccess());
+            String studentToken = login(student, "student2");
+
+            assertTrue(manager.exchange(Message.request(StoreCommands.PRODUCT_UPDATE,
+                    managerToken, product("局域网同步商品"))).isSuccess());
+            Message refreshed = student.exchange(Message.request(StoreCommands.PRODUCT_SEARCH,
+                    studentToken, new ProductQuery("局域网同步商品", null, "ON_SALE", 1, 20)));
+            assertTrue(refreshed.isSuccess());
+            edu.seu.vcampus.common.dto.store.ProductPage page =
+                    (edu.seu.vcampus.common.dto.store.ProductPage) refreshed.getPayload();
+            assertEquals("局域网同步商品", page.getItems().get(0).getName());
+        }
+    }
+
+    private Connection connect() throws Exception {
+        return new Connection(new Socket("127.0.0.1", server.getBoundPort()));
+    }
+
+    private static String login(Connection connection, String account) throws Exception {
+        Message response = connection.exchange(Message.request(Commands.AUTH_LOGIN, null,
+                new LoginRequest(account, IntegrationFixture.MULTI_PASSWORD)));
+        assertTrue(response.isSuccess());
+        return ((LoginResult) response.getPayload()).getSessionToken();
+    }
+
+    private static final class Connection implements AutoCloseable {
+        private final Socket socket;
+        private final ObjectOutputStream output;
+        private final ObjectInputStream input;
+        private Connection(Socket socket) throws Exception {
+            this.socket = socket; socket.setSoTimeout(3000);
+            output = new ObjectOutputStream(socket.getOutputStream()); output.flush();
+            input = new ObjectInputStream(socket.getInputStream());
+        }
+        private Message exchange(Message request) throws Exception {
+            return TcpProtocolSecurityIntegrationTest.exchange(output, input, request);
+        }
+        @Override public void close() throws Exception { socket.close(); }
+    }
+
     private static Message exchange(ObjectOutputStream output, ObjectInputStream input,
                                      Message request) throws Exception {
         output.writeObject(request);

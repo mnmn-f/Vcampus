@@ -164,6 +164,15 @@ public final class DatabaseCompatibilityTest {
         assertFalse(migration.contains("INSERT INTO"));
     }
 
+    @Test
+    public void avatarUploadMigrationKeepsExistingProfilesAndExpandsStorage() throws Exception {
+        String migration = resource("/db/migration/V17__identity_avatar_upload.sql");
+        assertTrue(migration.contains("information_schema.columns"));
+        assertTrue(migration.contains("MODIFY COLUMN avatar_url MEDIUMTEXT NULL"));
+        assertFalse(migration.contains("DROP TABLE"));
+        assertFalse(migration.contains("DELETE FROM"));
+    }
+
     private static String tableBlock(String schema, String table) {
         String marker = "CREATE TABLE IF NOT EXISTS `" + table + "` (";
         int start = schema.indexOf(marker);

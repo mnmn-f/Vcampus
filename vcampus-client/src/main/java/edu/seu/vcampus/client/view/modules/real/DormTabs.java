@@ -38,7 +38,7 @@ public final class DormTabs {
     public static TaskTabs create() {
         TaskTabs tabs = new TaskTabs();
         // 标签是导航，不是正文，用界面主字体即可；衬线只在 TaskTabs 的默认样式里用。
-        tabs.setFont(DesignTokens.regular(15));
+        tabs.setFont(DesignTokens.regular(14));
         tabs.setUI(new PillTabUi());
         return tabs;
     }

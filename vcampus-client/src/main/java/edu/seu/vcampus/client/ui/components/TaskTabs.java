@@ -20,16 +20,10 @@ import java.awt.Rectangle;
 
 /** 将一个业务模块拆成用户可识别的二级任务页。 */
 public final class TaskTabs extends JTabbedPane {
-    /**
-     * 标签栏是整个界面里唯一用衬线字体的地方。
-     *
-     * <p>它承担的是「现在在哪个板块」这件事，和下面所有正文都不是一类信息。用华文
-     * 中宋把这一层单独拎出来，比继续在雅黑里加粗、调色更省力，也更容易一眼扫到。
-     * 字体取不到时 {@link DesignTokens#serif(int)} 会自己往宋体、逻辑衬线体退。</p>
-     */
+    /** 顶部任务标签与全局导航共用同一套无衬线字体和选中态。 */
     public TaskTabs() {
         super(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
-        setFont(DesignTokens.serif(17));
+        setFont(DesignTokens.regular(14));
         setUI(new TaskTabUi());
         setForeground(DesignTokens.TEXT_PRIMARY);
         // 标签栏直接坐在页面底色上：白底加外框会在内容区外面再套一层「卡片」，
@@ -114,7 +108,7 @@ public final class TaskTabs extends JTabbedPane {
                 FontMetrics metrics, int index, String title, Rectangle bounds,
                 boolean selected) {
             // 选中项加粗并用主色，替代原来「白字压在绿块上」的对比方式。
-            Font actual = selected ? DesignTokens.serifBold(font.getSize()) : font;
+            Font actual = selected ? DesignTokens.medium(font.getSize()) : font;
             FontMetrics actualMetrics = g.getFontMetrics(actual);
             g.setFont(actual);
             g.setColor(selected ? DesignTokens.PRIMARY : DesignTokens.TEXT_SECONDARY);

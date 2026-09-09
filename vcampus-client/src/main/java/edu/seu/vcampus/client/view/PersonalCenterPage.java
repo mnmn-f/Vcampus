@@ -9,6 +9,7 @@ import edu.seu.vcampus.client.view.modules.real.IdentityProfilePanel;
 import edu.seu.vcampus.common.security.Role;
 
 import javax.swing.JLabel;
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import java.awt.GridLayout;
 
@@ -20,11 +21,37 @@ public final class PersonalCenterPage extends BasePage {
         setHeaderContext(session.getActiveRole().getDisplayName());
         if (services == null) addBlock(summary(session));
         else {
-            addBlock(new IdentityProfilePanel(this, session, services.identity(), passwordChanged));
+            final IdentityProfilePanel profile = new IdentityProfilePanel(this, session,
+                    services.identity(), passwordChanged);
+            addBlock(profile);
+            final IdentityCancellationPanel cancellation = session.getActiveRole() == Role.SYSTEM_ADMIN
+                    ? null : new IdentityCancellationPanel(this, services.identity(), false);
+            if (cancellation != null) cancellation.setVisible(false);
+            addBlock(accountLinks(profile, cancellation));
             if (session.getActiveRole() != Role.SYSTEM_ADMIN) {
-                addBlock(new IdentityCancellationPanel(this, services.identity(), false));
+                addBlock(cancellation);
             }
         }
+    }
+
+    private JPanel accountLinks(final IdentityProfilePanel profile,
+                                final IdentityCancellationPanel cancellation) {
+        JPanel links = UiFactory.horizontal(12);
+        JButton password = UiFactory.linkButton("修改密码 ›");
+        password.addActionListener(e -> {
+            if (cancellation != null) cancellation.setVisible(false);
+            profile.showPasswordSettings();
+        });
+        links.add(password);
+        if (cancellation != null) {
+            JButton cancel = UiFactory.linkButton("注销账号 ›");
+            cancel.addActionListener(e -> {
+                profile.hidePasswordSettings(); cancellation.setVisible(true);
+                cancellation.revalidate(); cancellation.repaint();
+            });
+            links.add(cancel);
+        }
+        return links;
     }
 
     private SectionCard summary(ClientSession current) {

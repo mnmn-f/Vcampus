@@ -7,7 +7,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 - [vcampus-common](vcampus-common)：客户端和服务端共享的协议、DTO、枚举、角色与权限。
 - [vcampus-client](vcampus-client)：Swing 视图、页面控制器、客户端服务和网络网关。
 - [vcampus-server](vcampus-server)：TCP 服务、命令路由、业务服务、事务、DAO 和 MySQL 访问。
-- [scripts/start-server.ps1](scripts/start-server.ps1)、[scripts/start-client.ps1](scripts/start-client.ps1)：Windows 服务端/客户端网络启动脚本。
+- [scripts/start-lan-server.ps1](scripts/start-lan-server.ps1)、[scripts/start-lan-client.ps1](scripts/start-lan-client.ps1)：Windows 局域网共享启动脚本；单机启动仍可使用 `start-server.ps1`、`start-client.ps1`。
 - 设计与验收文档：[ARCHITECTURE](docs/ARCHITECTURE.md)、[FEATURE_BASELINE](docs/FEATURE_BASELINE.md)、[PAGE_MAP](docs/PAGE_MAP.md)、[IMPLEMENTATION_ROADMAP](docs/IMPLEMENTATION_ROADMAP.md)、[DATABASE](docs/DATABASE.md)、[DEPLOYMENT](docs/DEPLOYMENT.md)、[ROLE_MATRIX](docs/ROLE_MATRIX.md)、[UI_SPEC](docs/UI_SPEC.md)、[UI_PREVIEW_GALLERY](docs/UI_PREVIEW_GALLERY.md)、[AI_MODULE](docs/AI_MODULE.md)。
 
 界面入口可先看 [UI 视觉证据画廊](docs/UI_PREVIEW_GALLERY.md)：其中包含登录页、九类职责主页和代表性业务页。画廊图片是离屏预览，用于核对布局与人员分流，不代替真实数据库验收。
@@ -146,7 +146,7 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 
     java -Dvcampus.client.mode=network -Dvcampus.server.host=127.0.0.1 -Dvcampus.server.port=8888 -jar vcampus-client\target\vCampusClient.jar
 
-局域网部署优先使用 [start-server.ps1](scripts/start-server.ps1) 和 [start-client.ps1](scripts/start-client.ps1)；参数、超时、防火墙和断线语义见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。跨电脑时把客户端的 server.host 改为服务端局域网 IPv4，不要把客户端自己的 127.0.0.1 当作服务端地址。
+局域网部署优先使用 [start-lan-server.ps1](scripts/start-lan-server.ps1) 和 [start-lan-client.ps1](scripts/start-lan-client.ps1)；参数、共享数据、防火墙和断线语义见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)。跨电脑时把客户端的 server.host 改为服务端局域网 IPv4，不要把客户端自己的 127.0.0.1 当作服务端地址。
 
 执行 V2 后可用于验收的本地账号为：
 
