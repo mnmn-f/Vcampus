@@ -95,7 +95,7 @@ public class AcademicServiceTest {
         CourseDto first = service.createCourse(academic, course("A-003", "操作系统", 10,
                 CourseStatus.PUBLISHED, 10L));
         final CourseDto second = service.createCourse(academic, course("A-004", "计算机网络", 10,
-                CourseStatus.PUBLISHED, 10L));
+                CourseStatus.PUBLISHED, 11L));
         service.createSchedule(academic, ScheduleSaveRequest.create(first.getId(), 3, 3, 4,
                 null, null, null));
         service.createSchedule(academic, ScheduleSaveRequest.create(second.getId(), 3, 4, 5,
@@ -114,7 +114,7 @@ public class AcademicServiceTest {
         CourseDto first = service.createCourse(academic, course("A-005", "软件测试", 10,
                 CourseStatus.PUBLISHED, 10L));
         final CourseDto second = service.createCourse(academic, course("A-006", "软件质量", 10,
-                CourseStatus.PUBLISHED, 10L));
+                CourseStatus.PUBLISHED, 11L));
         service.createSchedule(academic, ScheduleSaveRequest.create(first.getId(), 4, 1, 2,
                 null, null, 21L));
         assertCode(AcademicCommands.CLASSROOM_CONFLICT, new Operation() {

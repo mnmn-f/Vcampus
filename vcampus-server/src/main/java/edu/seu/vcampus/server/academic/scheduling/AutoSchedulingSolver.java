@@ -46,6 +46,13 @@ public final class AutoSchedulingSolver {
         Map<Long, Integer> used = new HashMap<Long, Integer>();
         Occupancy occupancy = new Occupancy(problem.fixed);
         for (AutoScheduleEntryDto value : values) {
+            if (value.getWeekday() < 1 || value.getWeekday() > 7
+                    || value.getStartPeriod() < 1
+                    || value.getEndPeriod() < value.getStartPeriod()
+                    || value.getEndPeriod() > 255 || value.getClassroomId() <= 0) {
+                errors.add("课程 " + value.getCourseName() + " 的星期、节次或教室编号不正确。");
+                continue;
+            }
             List<Session> sessions = byCourse.get(Long.valueOf(value.getCourseId()));
             int index = used.containsKey(Long.valueOf(value.getCourseId()))
                     ? used.get(Long.valueOf(value.getCourseId())).intValue() : 0;

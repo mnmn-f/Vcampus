@@ -71,13 +71,19 @@ final class AcademicScheduleService {
                                 "课程时段不存在");
                     }
                 }
+                repository.lockSchedules(connection);
                 if (!repository.classroomAvailable(connection, selected.getClassroomId())) {
                     throw AcademicServiceSupport.failure(AcademicCommands.CLASSROOM_NOT_FOUND,
                             "教室不存在或当前不可用");
                 }
+                if (!repository.classroomFitsCourse(connection, selected.getCourseId(),
+                        selected.getClassroomId())) {
+                    throw AcademicServiceSupport.failure(AcademicCommands.CLASSROOM_CONFLICT,
+                            "教室容量或类型不满足课程要求");
+                }
                 if (repository.hasScheduleConflict(connection, selected)) {
                     throw AcademicServiceSupport.failure(AcademicCommands.SCHEDULE_CONFLICT,
-                            "同一课程的时段存在冲突");
+                            "同一课程、授课教师或已选学生的时段存在冲突");
                 }
                 if (repository.hasClassroomConflict(connection, selected)) {
                     throw AcademicServiceSupport.failure(AcademicCommands.CLASSROOM_CONFLICT,

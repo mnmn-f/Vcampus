@@ -125,15 +125,18 @@ final class InMemoryCourseStore {
         return classroom != null && "AVAILABLE".equals(classroom.getStatus());
     }
 
+    boolean classroomFitsCourse(long courseId, Long id) {
+        if (id == null) return true;
+        InMemoryAcademicState.CourseState course = state.courses.get(courseId);
+        ClassroomDto classroom = state.classrooms.get(id);
+        if (course == null || classroom == null || !classroomAvailable(id)
+                || classroom.getCapacity() < course.capacity) return false;
+        String required = requiredRoomType(course.description);
+        return required == null || required.equalsIgnoreCase(classroom.getClassroomType());
+    }
+
     boolean hasScheduleConflict(ScheduleSaveRequest candidate) {
-        for (InMemoryAcademicState.ScheduleState old : state.schedules.values()) {
-            if (old.courseId == candidate.getCourseId()
-                    && notSame(old.id, candidate.getScheduleId())
-                    && overlaps(old, candidate)) {
-                return true;
-            }
-        }
-        return false;
+        return InMemoryScheduleRules.hasTeacherOrStudentConflict(state, candidate);
     }
 
     boolean hasClassroomConflict(ScheduleSaveRequest candidate) {
@@ -143,7 +146,7 @@ final class InMemoryCourseStore {
         for (InMemoryAcademicState.ScheduleState old : state.schedules.values()) {
             if (candidate.getClassroomId().equals(old.classroomId)
                     && notSame(old.id, candidate.getScheduleId())
-                    && overlaps(old, candidate)) {
+                    && InMemoryScheduleRules.overlaps(old, candidate)) {
                 return true;
             }
         }
@@ -165,28 +168,17 @@ final class InMemoryCourseStore {
                 && (query.getCourseType() == null || query.getCourseType().equals(source.type));
     }
 
-    private boolean overlaps(InMemoryAcademicState.ScheduleState old,
-                             ScheduleSaveRequest candidate) {
-        return old.weekday == candidate.getWeekday()
-                && old.startPeriod <= candidate.getEndPeriod()
-                && old.endPeriod >= candidate.getStartPeriod()
-                && datesOverlap(old.startDate, old.endDate,
-                candidate.getStartDate(), candidate.getEndDate());
-    }
-
-    private static boolean datesOverlap(org.threeten.bp.LocalDate firstStart,
-                                       org.threeten.bp.LocalDate firstEnd,
-                                       org.threeten.bp.LocalDate secondStart,
-                                       org.threeten.bp.LocalDate secondEnd) {
-        return (firstStart == null || secondEnd == null || !firstStart.isAfter(secondEnd))
-                && (firstEnd == null || secondStart == null || !firstEnd.isBefore(secondStart));
-    }
-
     private static boolean notSame(long id, Long other) {
         return other == null || id != other.longValue();
     }
 
     private static boolean contains(String value, String keyword) {
         return value != null && value.toLowerCase().contains(keyword.toLowerCase());
+    }
+
+    private static String requiredRoomType(String description) {
+        if (description == null) return null;
+        if (description.contains("【机房】") || description.contains("实验室")) return "LAB";
+        return description.contains("【会议室】") ? "MEETING" : null;
     }
 }

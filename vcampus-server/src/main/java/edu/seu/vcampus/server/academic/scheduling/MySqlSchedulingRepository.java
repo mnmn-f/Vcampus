@@ -109,10 +109,15 @@ public final class MySqlSchedulingRepository implements SchedulingRepository {
     }
 
     private static void loadGroups(Connection c, Map<Long, CourseSeed> courses) throws Exception {
-        String sql = "SELECT DISTINCT e.course_id,sp.class_name FROM enrollments e JOIN student_profiles sp "
-                + "ON sp.user_id=e.student_user_id WHERE e.status<>'DROPPED' AND sp.class_name IS NOT NULL";
+        String sql = "SELECT DISTINCT e.course_id,sp.class_name,e.student_user_id "
+                + "FROM enrollments e JOIN student_profiles sp ON sp.user_id=e.student_user_id "
+                + "WHERE e.status='ENROLLED'";
         try (PreparedStatement statement = c.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
-            while (rs.next()) { CourseSeed seed=courses.get(Long.valueOf(rs.getLong(1))); if(seed!=null)seed.groups.add(rs.getString(2)); }
+            while (rs.next()) {
+                CourseSeed seed=courses.get(Long.valueOf(rs.getLong(1)));
+                if(seed!=null){if(rs.getString(2)!=null)seed.groups.add("CLASS:"+rs.getString(2));
+                    seed.groups.add("STUDENT:"+rs.getLong(3));}
+            }
         }
         for (CourseSeed seed : courses.values()) if (seed.groups.isEmpty()) seed.groups.add("COURSE:" + seed.id);
     }

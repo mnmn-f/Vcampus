@@ -135,6 +135,11 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
     }
 
     @Override
+    public synchronized boolean classroomFitsCourse(Connection c, long courseId, Long id) {
+        return courseStore.classroomFitsCourse(courseId, id);
+    }
+
+    @Override
     public synchronized boolean hasScheduleConflict(Connection c, ScheduleSaveRequest r) {
         return courseStore.hasScheduleConflict(r);
     }
@@ -142,6 +147,11 @@ public final class InMemoryAcademicRepository implements AcademicRepository {
     @Override
     public synchronized boolean hasClassroomConflict(Connection c, ScheduleSaveRequest r) {
         return courseStore.hasClassroomConflict(r);
+    }
+
+    @Override
+    public synchronized void lockSchedules(Connection c) {
+        // The in-memory repository is synchronized at the service boundary.
     }
 
     @Override

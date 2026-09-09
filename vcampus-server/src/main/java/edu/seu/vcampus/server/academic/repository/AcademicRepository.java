@@ -55,11 +55,17 @@ public interface AcademicRepository {
 
     boolean classroomAvailable(Connection connection, Long classroomId) throws SQLException;
 
+    boolean classroomFitsCourse(Connection connection, long courseId, Long classroomId)
+            throws SQLException;
+
     boolean hasScheduleConflict(Connection connection, ScheduleSaveRequest request)
             throws SQLException;
 
     boolean hasClassroomConflict(Connection connection, ScheduleSaveRequest request)
             throws SQLException;
+
+    /** Serializes schedule writes so a conflict check cannot race another insert/update. */
+    void lockSchedules(Connection connection) throws SQLException;
 
     boolean isActiveStudent(Connection connection, long userId) throws SQLException;
 

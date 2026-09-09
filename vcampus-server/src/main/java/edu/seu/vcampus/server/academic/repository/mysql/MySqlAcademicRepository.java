@@ -101,6 +101,12 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     }
 
     @Override
+    public boolean classroomFitsCourse(Connection c, long courseId, Long id)
+            throws SQLException {
+        return courseRepository.classroomFitsCourse(c, courseId, id);
+    }
+
+    @Override
     public boolean hasScheduleConflict(Connection c, ScheduleSaveRequest r)
             throws SQLException {
         return courseRepository.hasScheduleConflict(c, r);
@@ -110,6 +116,11 @@ public final class MySqlAcademicRepository implements AcademicRepository {
     public boolean hasClassroomConflict(Connection c, ScheduleSaveRequest r)
             throws SQLException {
         return courseRepository.hasClassroomConflict(c, r);
+    }
+
+    @Override
+    public void lockSchedules(Connection c) throws SQLException {
+        courseRepository.lockSchedules(c);
     }
 
     @Override

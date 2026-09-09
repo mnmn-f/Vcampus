@@ -51,11 +51,19 @@ final class MySqlCourseRepository {
         return rules.classroomAvailable(c, id);
     }
 
+    boolean classroomFitsCourse(Connection c, long courseId, Long id) throws SQLException {
+        return rules.classroomFitsCourse(c, courseId, id);
+    }
+
     boolean hasScheduleConflict(Connection c, ScheduleSaveRequest r) throws SQLException {
         return rules.hasCourseConflict(c, r);
     }
 
     boolean hasClassroomConflict(Connection c, ScheduleSaveRequest r) throws SQLException {
         return rules.hasClassroomConflict(c, r);
+    }
+
+    void lockSchedules(Connection c) throws SQLException {
+        rules.lockSchedules(c);
     }
 }
