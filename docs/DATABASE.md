@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入演示数据，V3 增加学期/学分/绩点统计字段，V4 扩展商店，V5 扩展宿舍，V6 增加教师排课偏好，V7-V9 增加维修员、维修复核和住宿申请调整，V10/V11 增加 AI 知识片段，V12 增加 AI 知识版本和回答反馈，V13 续期演示欢迎券，V14 增加订单物流，V15 增加图书 PDF 与详情字段，V16 增加 AI 反馈处理状态和关联知识。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入基础演示数据，V3-V16 逐步扩展业务结构，V17 增加头像上传字段，V18 写入用于本地分页、筛选、多用户和多状态验收的扩展演示数据。
 
 执行顺序：
 
 ```text
-V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> V4__store_experience.sql -> V5__dorm_extension.sql -> V6__teacher_time_preferences.sql -> V7__dorm_repair_worker.sql -> V8__dorm_repair_review.sql -> V9__dorm_request_bed_optional.sql -> V10__ai_assistant_knowledge.sql -> V11__ai_knowledge_and_tools.sql -> V12__ai_quality_workbench.sql -> V13__store_coupon_refresh.sql -> V14__store_order_shipping.sql -> V15__library_pdf_and_book_details.sql -> V16__ai_admin_workflow.sql
+V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> ... -> V16__ai_admin_workflow.sql -> V17__identity_avatar_upload.sql -> V18__expanded_demo_data.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -45,9 +45,13 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
 ```
 
-脚本使用 `CREATE DATABASE IF NOT EXISTS`、`CREATE TABLE IF NOT EXISTS` 和自然键/幂等键，因此可以在同一个演示库重复执行。它面向全新库；如果已有表的结构与基线不一致，不应靠重复执行修复，而应新增后续版本迁移。生产环境不应直接执行演示数据脚本。
+脚本使用自然键和重复保护，因此可以在同一个演示库重复执行。V18 提供 20 个测试学生、6 个测试教师，以及大量课程、成绩、图书、订单、优惠券、宿舍和审批记录；测试账号统一使用本地演示密码 `student123`。它面向开发/验收库；生产环境不应执行 V2/V18。
 
 V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希，用于验证真实 TCP/MySQL 登录链路。正式部署必须修改密码或停用演示账号；任何注册、改密和重置密码流程都禁止写入明文。
 

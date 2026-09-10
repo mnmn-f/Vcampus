@@ -367,10 +367,14 @@ VALUES (@cart_id, @product_id, 1)
 AS new
 ON DUPLICATE KEY UPDATE `quantity` = new.quantity;
 
-INSERT INTO `store_orders` (`order_no`, `buyer_id`, `total_amount`, `status`, `paid_at`)
-VALUES ('DEMO-ORDER-0001', @student_id, 12.50, 'PAID', '2026-08-29 10:05:00')
+INSERT INTO `store_orders` (`order_no`, `buyer_id`, `total_amount`, `original_amount`,
+    `discount_amount`, `payment_mode`, `status`, `paid_at`)
+VALUES ('DEMO-ORDER-0001', @student_id, 12.50, 12.50, 0.00, 'SELF', 'PAID',
+    '2026-08-29 10:05:00')
 AS new
-ON DUPLICATE KEY UPDATE `total_amount` = new.total_amount, `status` = new.status, `paid_at` = new.paid_at;
+ON DUPLICATE KEY UPDATE `total_amount` = new.total_amount,
+    `original_amount` = new.original_amount, `discount_amount` = new.discount_amount,
+    `payment_mode` = new.payment_mode, `status` = new.status, `paid_at` = new.paid_at;
 SET @order_id = (SELECT `id` FROM `store_orders` WHERE `order_no` = 'DEMO-ORDER-0001');
 
 INSERT INTO `store_order_items` (`order_id`, `product_id`, `product_name_snapshot`, `unit_price_snapshot`, `quantity`, `line_amount`)

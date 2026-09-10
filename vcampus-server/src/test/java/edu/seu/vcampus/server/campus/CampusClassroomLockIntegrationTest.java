@@ -6,6 +6,7 @@ import edu.seu.vcampus.common.security.Role;
 import edu.seu.vcampus.server.campus.registry.CampusCommandRegistry;
 import edu.seu.vcampus.server.campus.service.CampusService;
 import edu.seu.vcampus.server.db.JdbcConnectionFactory;
+import edu.seu.vcampus.server.db.JdbcTemporal;
 import edu.seu.vcampus.server.db.TransactionManager;
 import edu.seu.vcampus.server.db.TransactionWork;
 import edu.seu.vcampus.server.security.SessionContext;
@@ -90,8 +91,8 @@ public final class CampusClassroomLockIntegrationTest {
                 + "VALUES(?,?,?,?,?,'PENDING')";
         try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setLong(1, classroom); ps.setLong(2, applicant); ps.setString(3, "并发锁序探针");
-            ps.setObject(4, LocalDateTime.of(2099, 1, 1, hour, 0));
-            ps.setObject(5, LocalDateTime.of(2099, 1, 1, hour + 1, 0));
+            ps.setTimestamp(4, JdbcTemporal.timestamp(LocalDateTime.of(2099, 1, 1, hour, 0)));
+            ps.setTimestamp(5, JdbcTemporal.timestamp(LocalDateTime.of(2099, 1, 1, hour + 1, 0)));
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) throw new SQLException("reservation id missing");
