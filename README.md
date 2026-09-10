@@ -22,7 +22,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务结构；V17 增加头像上传字段；V18 写入用于分页、筛选、并发和多状态验收的扩展演示数据。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V7-V9 增加维修员、维修复核和住宿申请调整；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈；V13 续期演示欢迎券；V14 增加订单物流；V15 增加图书 PDF 与详情字段；V16 增加 AI 反馈处理状态和关联知识；V17 扩展头像上传字段。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -41,7 +41,6 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
     vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
     vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
-    vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
@@ -62,9 +61,8 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
 
-脚本包含幂等键和重复保护；V18 可以在本地演示库重复执行。它额外提供 `test_student01`—`test_student20`、`test_teacher01`—`test_teacher06`（密码均为 `student123`），并让 `demo_student` 拥有多学期成绩、当前课表、多状态订单和借阅历史。正式环境不要执行 V2/V18。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券和库存同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
+脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
 服务端从 JVM 属性或环境变量读取数据库连接：
 
@@ -101,7 +99,9 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
 
 ## AI 校园助手与小松鼠桌宠
 
-校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、模式化快捷问题、校园知识检索、实时业务查询和需要二次确认的校园操作。聊天区使用右侧用户气泡、左侧助手气泡和独立业务结果卡；缺少代办参数时显示可填写的参数卡，自习室、教室和请假时间使用日期时间选择器。聊天模式可上传最多 3 个图片或文档，附件处理期间显示进度圈并禁止发送，首次模型初始化失败会在尚未输出内容时自动重试。会话侧栏默认收起，生成期间禁止切换会话；失败重试复用同一逻辑 requestId 并原位替换失败气泡，不重复保存用户消息。侧栏支持搜索、重命名、归档、恢复已归档会话和纯文本导出。每条助手回复可单独点赞、点踩或纠错。默认模型服务为 DeepSeek Responses API，服务端可配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY`。
+校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、校园知识检索、实时业务查询和需要二次确认的校园操作；聊天框上方不再显示横向滑动的快捷问题按钮。查询结果会结合问题中的对象和字段词做精细投影，例如“我的成绩”只返回成绩，“完整学籍信息”才展开学籍，“《书名》的作者”只突出作者；业务事实始终来自原业务服务，配置模型 API 后只允许模型在已授权的实时结果范围内整理和提取，API 不可用时由本地规则完成同样的字段收敛。问答模式收到写指令、代办模式收到查询指令、聊天模式收到 VCampus 查询或操作指令时，会提示切换到相应模式。
+
+聊天区使用右侧用户气泡、左侧助手气泡和独立业务结果卡；缺少代办参数时显示可填写的参数卡，自习室、教室和请假时间使用日期时间选择器。“补充并继续代办”会连同原始写指令重新提交已标注参数，保持原工具意图，参数齐全后进入二次确认而不是降级为查询。聊天模式可上传最多 3 个图片或文档，附件处理期间显示进度圈并禁止发送，首次模型初始化失败会在尚未输出内容时自动重试。会话侧栏默认收起，生成期间禁止切换会话；失败重试复用同一逻辑 requestId 并原位替换失败气泡，不重复保存用户消息。侧栏支持搜索、重命名、归档、恢复已归档会话和纯文本导出。每条助手回复可单独点赞、点踩或纠错。默认模型服务为 DeepSeek Responses API，服务端可配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY`。
 
 知识库迁移 `V11__ai_knowledge_and_tools.sql` 已录入学生公寓管理、学生违纪处分、系统操作与新增代办指南。课程、图书、订单、竞赛、学籍等动态事实不复制进知识库，而是继续通过原业务服务实时查询。
 
@@ -116,7 +116,7 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 - 桌宠控制器每 12 秒执行一次轻量连接探测（主窗口最小化后仍继续）；服务器断开后松鼠持续显示“网络离线”，连接恢复后自动回到待机状态。
 - 无 AI 权限的职责不显示松鼠，仍使用系统原生最小化行为；退出登录或关闭程序会释放桌宠窗口和动画计时器。
 
-桌宠使用内置透明 PNG 基础形象 [squirrel.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel.png) 和六姿势动作表 [squirrel-actions.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel-actions.png)。Swing 按状态循环切帧并叠加呼吸、摇摆、跳跃、倾斜和阴影补间，不依赖 GIF 播放库。自动化测试或低性能环境可添加 JVM 参数 `-Dvcampus.pet.animation=false` 禁用补间和循环切帧，但仍保留对应状态的静态姿势。完整设计、运行边界与扩展接口见 [AI_MODULE](docs/AI_MODULE.md) 和 [UI_SPEC](docs/UI_SPEC.md)。
+桌宠使用内置透明 PNG 基础形象 [squirrel.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel.png) 和六姿势动作表 [squirrel-actions.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel-actions.png)。登录页左侧品牌区使用正面趴扶、挥手且不露脚的 [squirrel-login-wave.png](vcampus-client/src/main/resources/edu/seu/vcampus/client/pet/squirrel-login-wave.png)，与放大的 `VCampus` 字样作为一组居中展示；该视觉调整不改变原登录表单、注册入口或注册流程。Swing 按状态循环切帧并叠加呼吸、摇摆、跳跃、倾斜和阴影补间，不依赖 GIF 播放库。自动化测试或低性能环境可添加 JVM 参数 `-Dvcampus.pet.animation=false` 禁用补间和循环切帧，但仍保留对应状态的静态姿势。完整设计、运行边界与扩展接口见 [AI_MODULE](docs/AI_MODULE.md) 和 [UI_SPEC](docs/UI_SPEC.md)。
 
 ## 本地界面预览
 
