@@ -30,6 +30,23 @@ public final class ToolResultFormatterTest {
         assertFalse(text.contains("- "));
     }
 
+    @Test public void fieldQuestionReturnsOnlyRequestedBookFieldAndIdentity() {
+        String text = new ToolResultFormatter().format(new Book("软件工程实践导论",
+                "张老师", "东大出版社", "TP311"), "这本书的作者是谁");
+        assertTrue(text.contains("标题：软件工程实践导论"));
+        assertTrue(text.contains("作者：张老师"));
+        assertFalse(text.contains("出版社"));
+        assertFalse(text.contains("ISBN"));
+    }
+
+    @Test public void completeInformationQuestionKeepsAllBookFields() {
+        String text = new ToolResultFormatter().format(new Book("软件工程实践导论",
+                "张老师", "东大出版社", "TP311"), "返回这本书的完整信息");
+        assertTrue(text.contains("作者：张老师"));
+        assertTrue(text.contains("出版社：东大出版社"));
+        assertTrue(text.contains("ISBN：TP311"));
+    }
+
     public static final class Page {
         private final Iterable<Course> items; private final int total;
         Page(Iterable<Course> items, int total) { this.items = items; this.total = total; }
@@ -61,5 +78,17 @@ public final class ToolResultFormatterTest {
         public LocalDateTime getStartAt() { return startAt; }
         public LocalDateTime getEndAt() { return endAt; }
         public String getStatus() { return status; }
+    }
+
+    public static final class Book {
+        private final String title; private final String author;
+        private final String publisher; private final String isbn;
+        Book(String title, String author, String publisher, String isbn) {
+            this.title = title; this.author = author; this.publisher = publisher; this.isbn = isbn;
+        }
+        public String getTitle() { return title; }
+        public String getAuthor() { return author; }
+        public String getPublisher() { return publisher; }
+        public String getIsbn() { return isbn; }
     }
 }

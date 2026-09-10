@@ -41,7 +41,6 @@ public final class AiChatPanel extends SectionCard {
     private final JButton attach = new SecondaryButton("+");
     private final JPanel attachmentChips = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
     private final JTextField sessionSearch = UiFactory.textField(10);
-    private final JPanel quickPrompts = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
     private final UploadProgress uploadProgress = new UploadProgress();
     private final JLabel uploadStatus = UiFactory.muted("");
     private final List<AiAttachment> attachments = new ArrayList<AiAttachment>();
@@ -150,12 +149,6 @@ public final class AiChatPanel extends SectionCard {
         conversationSplit.setDividerSize(0);
         conversationSplit.setDividerLocation(0);
         JPanel composer = new JPanel(new BorderLayout(8, 6)); composer.setOpaque(false);
-        JScrollPane promptScroll = new JScrollPane(quickPrompts,
-                JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        promptScroll.setBorder(null); promptScroll.setOpaque(false);
-        promptScroll.getViewport().setOpaque(false); promptScroll.setPreferredSize(new Dimension(100, 46));
-        quickPrompts.setOpaque(false);
-        composer.add(promptScroll, BorderLayout.NORTH);
         JPanel inputRow = new JPanel(new BorderLayout(8, 0)); inputRow.setOpaque(false);
         attach.setToolTipText("聊天模式可上传图片、PDF、DOCX、PPTX、表格、文本和代码（最多 3 个）");
         attach.setPreferredSize(new Dimension(46, 40));
@@ -366,25 +359,6 @@ public final class AiChatPanel extends SectionCard {
         boolean chat = mode == AiMode.CHAT;
         attach.setVisible(chat); attach.setEnabled(chat && requestId == null && !uploading);
         if (!chat) clearAttachments();
-        quickPrompts.removeAll();
-        String[] values = mode == AiMode.TASK
-                ? new String[] {"帮我归还图书 软件工程实践导论", "把 VCampus纪念马克杯加入购物车",
-                    "取消报名校园创新实践演示赛", "帮我预约自习室"}
-                : mode == AiMode.CHAT
-                ? new String[] {"帮我制定本周学习计划", "解释 Java 的多态",
-                    "帮我润色一封请假邮件", "总结番茄工作法的优缺点"}
-                : new String[] {"查看我的课表", "图书馆里有什么书？", "商店里有什么商品？",
-                    "查询可用自习室", "我报名了哪些竞赛？"};
-        for (final String value : values) {
-            JButton button = new SecondaryButton(value);
-            button.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    if (requestId == null) { input.setText(value); send(false); }
-                }
-            });
-            quickPrompts.add(button);
-        }
-        quickPrompts.revalidate(); quickPrompts.repaint();
     }
 
     private void clearAttachments() { attachments.clear(); updateAttachmentInfo(); }
@@ -678,7 +652,12 @@ public final class AiChatPanel extends SectionCard {
 
     private void submitParameters(String values) {
         if (requestId != null) return;
-        modes.setSelectedItem(AiMode.TASK); input.setText(values); send(false);
+        String original = lastSentText == null ? "" : lastSentText.trim();
+        String details = values == null ? "" : values.replace('；', '\n').trim();
+        modes.setSelectedItem(AiMode.TASK);
+        input.setText((original.isEmpty() ? "请继续执行原代办" : original)
+                + "\n" + details);
+        send(false);
     }
 
     private void appendTranscriptPrefix(String role) {

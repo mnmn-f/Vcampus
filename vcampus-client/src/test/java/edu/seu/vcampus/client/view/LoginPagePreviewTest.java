@@ -28,7 +28,7 @@ public final class LoginPagePreviewTest {
                 formArea.setBackground(DesignTokens.PAGE_BACKGROUND);
                 formArea.add(new LoginFormPanel(new LoginController(auth), new LoginFormPanel.Listener() {
                     @Override public void onLoginSuccess(edu.seu.vcampus.common.dto.auth.LoginResult result) { }
-                }));
+                }, new Runnable() { @Override public void run() { } }));
                 page.add(formArea);
                 page.setSize(1120, 760); page.validate(); layout(page);
                 BufferedImage image = new BufferedImage(1120, 760, BufferedImage.TYPE_INT_RGB);

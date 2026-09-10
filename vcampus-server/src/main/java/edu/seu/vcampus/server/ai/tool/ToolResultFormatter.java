@@ -15,6 +15,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,41 +30,47 @@ public final class ToolResultFormatter {
     private static final Map<String, String> LABELS = labels();
 
     public String format(Object value) {
+        return format(value, null);
+    }
+
+    /** 根据问题中的字段词裁剪结果；没有明确字段或要求详情时保持完整结果。 */
+    public String format(Object value, String question) {
+        Focus focus = Focus.from(question);
         StringBuilder out = new StringBuilder();
         Object items = getter(value, "getItems");
         if (items instanceof Iterable<?>) {
             Object total = first(value, "getTotal", "getTotalElements");
             if (total != null) out.append("共 ").append(total).append(" 条结果\n\n");
-            appendList(out, (Iterable<?>) items, 0);
-        } else append(out, value, 0);
+            appendList(out, (Iterable<?>) items, 0, focus);
+        } else append(out, value, 0, focus);
         if (out.length() > MAX_LENGTH) return out.substring(0, MAX_LENGTH) + "\n结果已截断";
         return out.length() == 0 ? "操作已完成。" : out.toString().trim();
     }
 
-    private void append(StringBuilder out, Object value, int depth) {
+    private void append(StringBuilder out, Object value, int depth, Focus focus) {
         if (value == null) { out.append("暂无数据"); return; }
         String scalar = scalar(value);
         if (scalar != null) { out.append(scalar); return; }
         if (value instanceof Map<?, ?>) {
-            appendMap(out, (Map<?, ?>) value, depth); return;
+            appendMap(out, (Map<?, ?>) value, depth, focus); return;
         }
         if (value instanceof Iterable<?>) {
-            appendList(out, (Iterable<?>) value, depth); return;
+            appendList(out, (Iterable<?>) value, depth, focus); return;
         }
         if (value.getClass().isArray()) {
             int length = Math.min(10, Array.getLength(value));
             for (int i = 0; i < length; i++) {
                 if (i > 0) out.append('\n');
                 out.append("第 ").append(i + 1).append(" 项\n");
-                append(out, Array.get(value, i), depth + 1);
+                append(out, Array.get(value, i), depth + 1, focus);
             }
             return;
         }
         if (depth >= 3) { out.append(String.valueOf(value)); return; }
-        appendObject(out, value, depth);
+        appendObject(out, value, depth, focus);
     }
 
-    private void appendObject(StringBuilder out, Object value, int depth) {
+    private void appendObject(StringBuilder out, Object value, int depth, Focus focus) {
         Method[] methods = value.getClass().getMethods();
         Arrays.sort(methods, new Comparator<Method>() {
             public int compare(Method left, Method right) {
@@ -76,7 +84,7 @@ public final class ToolResultFormatter {
             String name = method.getName();
             if (!Modifier.isPublic(method.getModifiers()) || method.getParameterTypes().length != 0
                     || !name.startsWith("get") || "getClass".equals(name) || sensitive(name)
-                    || alias(name)) continue;
+                    || alias(name) || !focus.includes(name)) continue;
             try {
                 Object child = method.invoke(value);
                 if (child == null) continue;
@@ -86,32 +94,32 @@ public final class ToolResultFormatter {
                 indent(out, depth);
                 out.append(field).append("：");
                 if ("状态".equals(field)) out.append(status(child));
-                else append(out, child, depth + 1);
+                else append(out, child, depth + 1, focus);
                 if (fields >= 12 || out.length() > MAX_LENGTH) break;
             } catch (Exception ignored) { }
         }
         if (fields == 0) out.append(String.valueOf(value));
     }
 
-    private void appendMap(StringBuilder out, Map<?, ?> values, int depth) {
+    private void appendMap(StringBuilder out, Map<?, ?> values, int depth, Focus focus) {
         int fields = 0;
         for (Map.Entry<?, ?> entry : values.entrySet()) {
             if (fields++ > 0) out.append('\n');
             indent(out, depth);
             out.append(String.valueOf(entry.getKey())).append("：");
-            append(out, entry.getValue(), depth + 1);
+            append(out, entry.getValue(), depth + 1, focus);
             if (fields >= 12 || out.length() > MAX_LENGTH) break;
         }
         if (fields == 0) out.append("暂无数据");
     }
 
-    private void appendList(StringBuilder out, Iterable<?> values, int depth) {
+    private void appendList(StringBuilder out, Iterable<?> values, int depth, Focus focus) {
         Iterator<?> it = values.iterator();
         int index = 1;
         while (it.hasNext() && index <= 10) {
             if (index > 1) out.append("\n\n");
             out.append("第 ").append(index++).append(" 条\n");
-            append(out, it.next(), depth + 1);
+            append(out, it.next(), depth + 1, focus);
         }
         if (index == 1) out.append("暂无数据");
         else if (it.hasNext()) out.append("\n\n仅展示前 10 条");
@@ -187,7 +195,8 @@ public final class ToolResultFormatter {
                 || "getCompetitionId".equals(name) || "getStartTime".equals(name)
                 || "getEndTime".equals(name) || "getRegistrationCount".equals(name)
                 || "getTotalElements".equals(name) || "getPageNumber".equals(name)
-                || "getTotalPages".equals(name) || "getUserId".equals(name);
+                || "getTotalPages".equals(name) || "getUserId".equals(name)
+                || "getCoverImage".equals(name);
     }
 
     private boolean sensitive(String name) {
@@ -241,5 +250,85 @@ public final class ToolResultFormatter {
         labels.put("roomId", "自习室编号"); labels.put("roomName", "自习室");
         labels.put("openTime", "开放时间"); labels.put("closeTime", "关闭时间");
         return labels;
+    }
+
+    private static final class Focus {
+        private final Set<String> getters;
+
+        private Focus(Set<String> getters) { this.getters = getters; }
+
+        private boolean includes(String getter) {
+            return getters.isEmpty() || structural(getter) || identity(getter)
+                    || getters.contains(getter);
+        }
+
+        private static Focus from(String question) {
+            Set<String> fields = new LinkedHashSet<String>();
+            String q = question == null ? "" : question.toLowerCase(Locale.ROOT);
+            if (contains(q, "完整", "全部信息", "所有信息", "详细信息", "详情")) {
+                return new Focus(fields);
+            }
+            add(fields, q, new String[] {"成绩", "分数"}, "getScore", "getAverageScore",
+                    "getWeightedAverageScore");
+            add(fields, q, new String[] {"绩点", "gpa"}, "getGradePoint", "getAverageGpa",
+                    "getWeightedGpa");
+            add(fields, q, new String[] {"作者", "谁写", "谁著"}, "getAuthor");
+            add(fields, q, new String[] {"出版社"}, "getPublisher");
+            add(fields, q, new String[] {"isbn", "书号"}, "getIsbn");
+            add(fields, q, new String[] {"出版年份", "哪年出版"}, "getPublicationYear");
+            add(fields, q, new String[] {"可借", "馆藏数量", "库存", "有几本"},
+                    "getAvailableCopies", "getTotalCopies");
+            add(fields, q, new String[] {"位置", "在哪", "哪里"}, "getLocation");
+            add(fields, q, new String[] {"分类", "类别"}, "getCategory");
+            add(fields, q, new String[] {"简介", "介绍", "说明"}, "getDescription");
+            add(fields, q, new String[] {"学院"}, "getCollege");
+            add(fields, q, new String[] {"专业"}, "getMajor");
+            add(fields, q, new String[] {"班级"}, "getClassName");
+            add(fields, q, new String[] {"学号"}, "getStudentNo");
+            add(fields, q, new String[] {"入学年份", "哪年入学"}, "getEnrollmentYear");
+            add(fields, q, new String[] {"毕业年份", "哪年毕业"}, "getExpectedGraduationYear");
+            add(fields, q, new String[] {"培养层次", "学历"}, "getDegreeLevel");
+            add(fields, q, new String[] {"教师", "老师"}, "getTeacherName");
+            add(fields, q, new String[] {"教室"}, "getClassroom", "getBuildingName", "getRoomNo");
+            add(fields, q, new String[] {"学分"}, "getCredits");
+            add(fields, q, new String[] {"价格", "多少钱", "金额"}, "getUnitPrice",
+                    "getAmount", "getTotalAmount");
+            add(fields, q, new String[] {"数量"}, "getQuantity", "getAvailableCopies",
+                    "getTotalCopies", "getCapacity", "getRegisteredCount");
+            add(fields, q, new String[] {"应还", "到期"}, "getDueAt");
+            add(fields, q, new String[] {"借阅时间", "什么时候借"}, "getBorrowedAt", "getIssuedAt");
+            add(fields, q, new String[] {"备注"}, "getRemark");
+            add(fields, q, new String[] {"地址"}, "getAddress");
+            add(fields, q, new String[] {"紧急联系人"}, "getEmergencyContact", "getEmergencyPhone");
+            add(fields, q, new String[] {"余额"}, "getBalance");
+            add(fields, q, new String[] {"状态", "进度"}, "getStatus", "getEnrollmentStatus");
+            add(fields, q, new String[] {"时间", "什么时候"}, "getStartAt", "getEndAt",
+                    "getStartTime", "getEndTime", "getOpenTime", "getCloseTime", "getDueAt");
+            return new Focus(fields);
+        }
+
+        private static void add(Set<String> target, String question, String[] keywords,
+                                String... getters) {
+            if (!contains(question, keywords)) return;
+            target.addAll(Arrays.asList(getters));
+        }
+
+        private static boolean contains(String value, String... words) {
+            for (String word : words) if (value.contains(word)) return true;
+            return false;
+        }
+
+        private static boolean structural(String getter) {
+            return "getItems".equals(getter) || "getGrades".equals(getter)
+                    || "getMetrics".equals(getter) || "getEntries".equals(getter);
+        }
+
+        private static boolean identity(String getter) {
+            return "getTitle".equals(getter) || "getName".equals(getter)
+                    || "getBookTitle".equals(getter) || "getCourseName".equals(getter)
+                    || "getCourseCode".equals(getter) || "getProductName".equals(getter)
+                    || "getRoomName".equals(getter) || "getRoomNo".equals(getter)
+                    || "getOrderNo".equals(getter);
+        }
     }
 }

@@ -47,7 +47,7 @@ public final class ToolIntentParserTest {
         assertEquals("store.cart.add", cart.getToolName());
         assertTrue(cart.getArgumentsJson().contains("\"quantity\":3"));
         assertEquals("store.order.create", parser.parse("从购物车创建订单").getToolName());
-        assertEquals("library.borrow.mine", parser.parse("帮我还书").getToolName());
+        assertEquals("library.book.return", parser.parse("帮我还书").getToolName());
         assertEquals("library.book.return", parser.parse("还书3").getToolName());
         AiToolInvocation namedCompetition = parser.parse("帮我报名数学建模竞赛");
         assertEquals("campus.competition.register", namedCompetition.getToolName());
@@ -91,5 +91,28 @@ public final class ToolIntentParserTest {
                 parser.parse("商店里有什么商品").getArgumentsJson());
         assertEquals("{\"keyword\":\"\"}",
                 parser.parse("商店里有什么商品？").getArgumentsJson());
+    }
+
+    @Test public void fieldQuestionsKeepOnlyTheBookNameAsSearchKeyword() {
+        String arguments = parser.parse("图书馆里《软件工程实践导论》的作者是谁？")
+                .getArgumentsJson();
+        assertEquals("{\"keyword\":\"软件工程实践导论\"}", arguments);
+    }
+
+    @Test public void supplementedReservationKeepsWriteIntentAndStructuredFields() {
+        AiToolInvocation invocation = parser.parse("帮我预约自习室\n自习室编号：12\n"
+                + "开始时间：2026-09-11T14:00\n结束时间：2026-09-11T16:00");
+        assertEquals("library.study-room.reserve", invocation.getToolName());
+        assertTrue(invocation.getArgumentsJson().contains("\"roomId\":12"));
+        assertTrue(invocation.getArgumentsJson().contains("\"startAt\":\"2026-09-11T14:00\""));
+        assertTrue(invocation.getArgumentsJson().contains("\"endAt\":\"2026-09-11T16:00\""));
+    }
+
+    @Test public void incompleteWritesNeverDowngradeToReadTools() {
+        assertEquals("academic.course.enroll", parser.parse("帮我选课").getToolName());
+        assertEquals("library.book.borrow", parser.parse("帮我借书").getToolName());
+        assertEquals("library.book.return", parser.parse("帮我还书").getToolName());
+        assertEquals("campus.competition.register", parser.parse("帮我报名竞赛").getToolName());
+        assertEquals("library.study-room.cancel", parser.parse("取消自习室预约").getToolName());
     }
 }
