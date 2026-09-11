@@ -26,7 +26,7 @@ public final class RealLibraryPage extends BasePage {
     private RealLibraryPage(ClientSession session, LibraryClientService library,
                             CampusClientService campus) {
         super(session, RoleWorkspace.navigationLabel(session.getActiveRole(), ModuleId.LIBRARY),
-                "图书查询与借阅、自习室预约、公告和线上资源服务。");
+                "");
         Role role = session.getActiveRole(); setHeaderContext(role.getDisplayName());
         final LibraryTaskTabs tabs = new LibraryTaskTabs(role == Role.LIBRARIAN);
         tabs.setDisplayName(session.getDisplayName());
@@ -67,10 +67,7 @@ public final class RealLibraryPage extends BasePage {
             tabs.addTask("线上资源", LineIcon.Kind.STUDENT_RECORD,
                     new LibraryOnlinePanel(this, library, session));
         }
-        removeAll();
-        setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        add(feedback, java.awt.BorderLayout.NORTH);
-        add(tabs, java.awt.BorderLayout.CENTER);
+        addBlock(tabs);
     }
 
     static boolean showsBorrowingLedger(Role role) { return role == Role.LIBRARIAN; }
