@@ -1,9 +1,14 @@
 package edu.seu.vcampus.client.view.modules.real;
 
+import edu.seu.vcampus.client.service.dorm.DormClientService;
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
+import edu.seu.vcampus.common.dto.dorm.AccessRecordDto;
+import edu.seu.vcampus.common.dto.dorm.AccessRecordRequest;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import edu.seu.vcampus.common.dto.dorm.ext.AccessRecordExtDto;
@@ -12,9 +17,12 @@ import edu.seu.vcampus.common.dto.dorm.ext.StayStatusDto;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import org.threeten.bp.LocalDateTime;
 
 /**
  * 学生端在宿状态与进出记录。
@@ -22,26 +30,38 @@ import java.awt.event.ActionListener;
  * <p>在宿状态不是库里存的字段，而是服务端按最近一次进出流水加请假记录实时算出来
  * 的；晚归标记同理，按宿管当前设定的门禁时段判定。因此这两项都会随门禁策略调整
  * 而变化，页面每次刷新看到的都是按当前策略重算的结果。</p>
+ *
+ * <p>进出流水本来该由门禁闸机自动写入，学生不需要也不应该手填。这里保留一个「自助
+ * 登记」入口是为了没有闸机的演示环境：学生点一下「登记出门 / 登记归宿」，服务端照
+ * 闸机的方式记一条流水，归宿时刻晚于门禁时段会当场生成晚归预警，宿管端「未归管理」
+ * 里立刻能看到——与真实闸机走的是同一条链路。登记人永远是当前登录账号，服务端不接受
+ * 客户端指定别人。</p>
  */
 public final class DormExtStayPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 
     private final BasePage page;
     private final DormExtClientService service;
+    private final DormClientService dorm;
     private final AsyncPagedTable<AccessRecordExtDto> records;
 
     private final JPanel statsRow = new JPanel(new BorderLayout());
+    private final DormDateTimeField occurredAt = new DormDateTimeField();
+    private final JTextField doorName = UiFactory.textField(10);
+    private final JTextField note = UiFactory.textField(14);
 
-    public DormExtStayPanel(BasePage page, DormExtClientService service) {
+    public DormExtStayPanel(BasePage page, DormClientService dorm, DormExtClientService service) {
         super();
         setOpaque(false);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.page = page;
+        this.dorm = dorm;
         this.service = service;
         statsRow.setOpaque(false);
         renderStats("加载中…", "—", "—", "—");
         this.records = recordTable();
         add(summary());
+        if (dorm != null) add(checkInForm());
         add(records);
         loadStatus();
     }
@@ -71,6 +91,87 @@ public final class DormExtStayPanel extends JPanel {
         column.add(statsRow);
         column.add(javax.swing.Box.createVerticalStrut(22));
         return column;
+    }
+
+    /**
+     * 自助进出登记。
+     *
+     * <p>时间默认填当前时刻，但允许改：演示晚归时不可能真等到夜里十一点，把时刻拨到
+     * 23:40 再点「登记归宿」，服务端会按门禁策略判成晚归并开预警。门禁点和备注可空。</p>
+     */
+    private JPanel checkInForm() {
+        occurredAt.setValue(LocalDateTime.now());
+        JPanel fields = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        fields.setOpaque(false);
+        fields.add(DormFormUi.field("进出时间", occurredAt, 330));
+        fields.add(DormFormUi.field("门禁点（可空）", doorName, 150));
+        fields.add(DormFormUi.field("备注（可空）", note, 200));
+
+        JButton exit = new SecondaryButton("登记出门");
+        exit.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { record("EXIT"); }
+        });
+        JButton entry = new PrimaryButton("登记归宿");
+        entry.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { record("ENTRY"); }
+        });
+        JButton now = new SecondaryButton("回到当前时刻");
+        now.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { occurredAt.setValue(LocalDateTime.now()); }
+        });
+        JPanel buttons = UiFactory.horizontal(9);
+        buttons.add(entry);
+        buttons.add(exit);
+        buttons.add(now);
+
+        JPanel rows = new JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
+        fields.setAlignmentX(LEFT_ALIGNMENT);
+        buttons.setAlignmentX(LEFT_ALIGNMENT);
+        rows.add(fields);
+        rows.add(javax.swing.Box.createVerticalStrut(14));
+        rows.add(buttons);
+
+        JPanel box = DormUi.panel();
+        box.add(rows, BorderLayout.CENTER);
+        box.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.add(DormUi.header("进出登记",
+                "正式环境由门禁闸机自动记录；这里供无闸机时自助登记。归宿时刻晚于门禁时间会记为晚归并通知宿管。",
+                null, false));
+        section.add(box);
+        section.add(javax.swing.Box.createVerticalStrut(22));
+        section.setAlignmentX(LEFT_ALIGNMENT);
+        return section;
+    }
+
+    private void record(final String type) {
+        final LocalDateTime at;
+        try {
+            at = occurredAt.required("进出时间");
+        } catch (IllegalArgumentException error) {
+            page.showError(error.getMessage());
+            return;
+        }
+        final String door = doorName.getText().trim().isEmpty() ? null : doorName.getText().trim();
+        final String remark = note.getText().trim().isEmpty() ? null : note.getText().trim();
+        AsyncTask.run(new AsyncTask.Work<AccessRecordDto>() {
+            @Override public AccessRecordDto run() throws Exception {
+                return dorm.recordAccess(new AccessRecordRequest(type, at, door, "SELF", remark));
+            }
+        }, new AsyncTask.Callback<AccessRecordDto>() {
+            @Override public void onSuccess(AccessRecordDto value) {
+                page.showSuccess(("EXIT".equals(type) ? "已登记出门 " : "已登记归宿 ") + RealUi.dateTime(at)
+                        + "。列表中的「晚归」列按当前门禁时段判定。");
+                note.setText("");
+                reload();
+            }
+            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+        });
     }
 
     /** 把四个值刷进统计条；状态本身用语义色，一眼看出在不在宿。 */

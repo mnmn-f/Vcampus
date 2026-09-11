@@ -105,7 +105,13 @@ final class JdbcDormSupport {
                 r.getString("request_type"), longOrNull(r, "current_record_id"),
                 longOrNull(r, "requested_bed_id"), r.getString("reason"), r.getString("status"),
                 reviewer, localTimestamp(r, "reviewed_at"),
-                r.getString("review_remark"), localTimestamp(r, "created_at"));
+                r.getString("review_remark"), localTimestamp(r, "created_at"),
+                stringOrNull(r, "student_name"), stringOrNull(r, "current_location"));
+    }
+
+    /** 列不在结果集里（旧查询没 JOIN）时返回 null，而不是抛 SQLException。 */
+    private static String stringOrNull(ResultSet r, String column) {
+        try { return r.getString(column); } catch (SQLException missing) { return null; }
     }
 
     static AccessRecordDto access(ResultSet r) throws SQLException {

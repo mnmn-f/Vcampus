@@ -36,6 +36,23 @@ final class InMemoryDormGovernanceRepository implements DormGovernanceRepository
     }
 
     @Override
+    public synchronized org.threeten.bp.LocalTime[] accessPolicy(Connection c) {
+        return new org.threeten.bp.LocalTime[]{org.threeten.bp.LocalTime.of(23, 0), org.threeten.bp.LocalTime.of(5, 0)};
+    }
+
+    @Override
+    public synchronized boolean openLateAlert(Connection c, long studentId, org.threeten.bp.LocalDate date,
+                                              LocalDateTime detectedAt) {
+        for (LateReturnAlertDto item : state.alerts.values()) {
+            if (item.getStudentUserId() == studentId && date.equals(item.getAlertDate())) return false;
+        }
+        long id = state.nextAlert++;
+        state.alerts.put(Long.valueOf(id), new LateReturnAlertDto(id, studentId, date,
+                detectedAt == null ? LocalDateTime.now() : detectedAt, "OPEN", null, null, null));
+        return true;
+    }
+
+    @Override
     public synchronized DormPage<AccessRecordDto> listAccess(Connection c, Long studentId,
                                                               DormPageQuery q) {
         DormPageQuery query = q == null ? DormPageQuery.all() : q;

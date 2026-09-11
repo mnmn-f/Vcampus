@@ -99,9 +99,16 @@ public final class DormManagerHousingRequestPanel extends JPanel {
     }
 
     private AsyncPagedTable<AccommodationRequestDto> table() {
+        AsyncPagedTable<AccommodationRequestDto> table = requestTable();
+        // 申请理由是这张表的正文，列宽按内容给足、整表左右滚，不跟其他宿舍表一起压缩
+        table.setNaturalColumnWidths(900);
+        return table;
+    }
+
+    private AsyncPagedTable<AccommodationRequestDto> requestTable() {
         return new AsyncPagedTable<AccommodationRequestDto>("", "", "搜索学生或申请原因",
                 new String[]{"待审批", "全部状态", "已通过", "已驳回", "已取消"},
-                new String[]{"编号", "学生", "类型", "原因", "状态", "提交时间"},
+                new String[]{"学生", "现住", "类型", "原因", "状态", "提交时间"},
                 new AsyncPagedTable.Loader<AccommodationRequestDto>() {
                     @Override public PageSlice<AccommodationRequestDto> load(int p, String k, String f) throws Exception {
                         return RealUi.page(service.requests(
@@ -109,7 +116,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<AccommodationRequestDto>() {
                     @Override public Object[] values(AccommodationRequestDto row) {
-                        return new Object[]{Long.valueOf(row.getId()), Long.valueOf(row.getStudentUserId()),
+                        return new Object[]{row.studentLabel(), RealUi.text(row.getCurrentLocation()),
                                 RealUi.status(row.getRequestType()),
                                 RealUi.text(row.getReason()), RealUi.status(row.getStatus()),
                                 RealUi.dateTime(row.getCreatedAt())};
@@ -172,13 +179,26 @@ public final class DormManagerHousingRequestPanel extends JPanel {
             return;
         }
         boolean checkout = "CHECK_OUT".equalsIgnoreCase(selected.getRequestType());
+        String where = selected.getCurrentLocation() == null || selected.getCurrentLocation().trim().isEmpty()
+                ? "尚无住宿记录" : "现住 " + selected.getCurrentLocation().trim();
         side.add(DormUi.header("受理申请 · " + RealUi.status(selected.getRequestType())
-                        + " · 学生 " + selected.getStudentUserId(),
-                RealUi.status(selected.getStatus()) + "　·　提交于 "
-                        + RealUi.dateTime(selected.getCreatedAt())
-                        + (selected.getReason() == null || selected.getReason().trim().isEmpty()
-                                ? "" : "　·　" + selected.getReason().trim()),
+                        + " · " + selected.studentLabel(),
+                RealUi.status(selected.getStatus()) + "　·　" + where + "　·　提交于 "
+                        + RealUi.dateTime(selected.getCreatedAt()),
                 null, false));
+        // 申请理由整段展示：表格那一格只够看个开头，而理由是宿管判断批不批的主要依据
+        if (selected.getReason() != null && !selected.getReason().trim().isEmpty()) {
+            side.add(DormUi.caption("申请理由"));
+            side.add(Box.createVerticalStrut(4));
+            side.add(DormUi.paragraph(selected.getReason().trim()));
+            side.add(Box.createVerticalStrut(14));
+        }
+        if (selected.getReviewRemark() != null && !selected.getReviewRemark().trim().isEmpty()) {
+            side.add(DormUi.caption("审批意见"));
+            side.add(Box.createVerticalStrut(4));
+            side.add(DormUi.paragraph(selected.getReviewRemark().trim()));
+            side.add(Box.createVerticalStrut(14));
+        }
         if (!checkout) {
             side.add(roomPicker);
             side.add(Box.createVerticalStrut(16));

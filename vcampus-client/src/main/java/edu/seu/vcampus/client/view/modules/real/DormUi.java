@@ -136,6 +136,27 @@ public final class DormUi {
         return label;
     }
 
+    /**
+     * 会自动换行的一段说明文字。
+     *
+     * <p>{@link #sub} 是单行 JLabel，塞一段几十字的申请理由会被裁成一行末尾带省略号；
+     * 表格里同样装不下。申请理由、审批意见这种整段的话就用这个：只读文本域，跟着
+     * 栏宽折行，看起来仍是一段灰字而不是输入框。</p>
+     */
+    public static javax.swing.JTextArea paragraph(String text) {
+        javax.swing.JTextArea area = new javax.swing.JTextArea(text == null ? "" : text);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setOpaque(false);
+        area.setBorder(null);
+        area.setFont(DesignTokens.regular(13));
+        area.setForeground(DesignTokens.TEXT_PRIMARY);
+        area.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return area;
+    }
+
     public static JLabel caption(String text) {
         JLabel label = new JLabel(text);
         label.setFont(DesignTokens.regular(12));
