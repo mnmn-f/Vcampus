@@ -93,7 +93,7 @@ public final class LoginBrandPanel extends JPanel {
         }
     }
 
-    /** 原图带烘焙棋盘格，只清除与边缘连通的灰白格，保留眼白等内部白色。 */
+    /** 原图带烘焙棋盘格：清除外部及脸颊/挥手形成的封闭背景，保留眼白等内部白色。 */
     private static BufferedImage removeConnectedCheckerboard(BufferedImage source) {
         int width = source.getWidth(); int height = source.getHeight(); int size = width * height;
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -116,7 +116,24 @@ public final class LoginBrandPanel extends JPanel {
             if (y > 0) tail = seed(result, x, y - 1, width, visited, queue, tail);
             if (y + 1 < height) tail = seed(result, x, y + 1, width, visited, queue, tail);
         }
+        clearEnclosedCheckerboard(result);
         return result;
+    }
+
+    /** 脸颊与挥手手臂围成的孔洞不连接画布边缘，需要单独清除其中的棋盘格。 */
+    private static void clearEnclosedCheckerboard(BufferedImage image) {
+        int width = image.getWidth(); int height = image.getHeight();
+        clearNeutralRegion(image, width * 69 / 100, height * 61 / 100,
+                width * 88 / 100, height * 90 / 100);
+        clearNeutralRegion(image, width * 80 / 100, height * 45 / 100,
+                width * 98 / 100, height * 78 / 100);
+    }
+
+    private static void clearNeutralRegion(BufferedImage image, int left, int top,
+                                           int right, int bottom) {
+        for (int y = top; y < bottom; y++) for (int x = left; x < right; x++) {
+            if (isCheckerPixel(image.getRGB(x, y))) image.setRGB(x, y, 0);
+        }
     }
 
     private static int seed(BufferedImage image, int x, int y, int width,
@@ -124,11 +141,16 @@ public final class LoginBrandPanel extends JPanel {
         int index = y * width + x;
         if (visited[index]) return tail;
         visited[index] = true;
-        int rgb = image.getRGB(x, y); int red = (rgb >>> 16) & 255;
+        int rgb = image.getRGB(x, y);
+        if (isCheckerPixel(rgb)) queue[tail++] = index;
+        return tail;
+    }
+
+    private static boolean isCheckerPixel(int rgb) {
+        int red = (rgb >>> 16) & 255;
         int green = (rgb >>> 8) & 255; int blue = rgb & 255;
         int max = Math.max(red, Math.max(green, blue));
         int min = Math.min(red, Math.min(green, blue));
-        if (max - min <= 12 && min >= 175) queue[tail++] = index;
-        return tail;
+        return max - min <= 12 && min >= 175;
     }
 }
