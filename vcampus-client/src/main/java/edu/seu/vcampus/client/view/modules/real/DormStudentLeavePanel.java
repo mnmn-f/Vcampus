@@ -109,7 +109,7 @@ public final class DormStudentLeavePanel extends JPanel {
     }
 
     private AsyncPagedTable<LeaveRequestDto> history() {
-        return new AsyncPagedTable<LeaveRequestDto>("我的请假记录", "仅显示本人申请，不能填写或筛选其他学生编号。",
+        return new AsyncPagedTable<LeaveRequestDto>("我的请假记录", "仅显示本人申请。",
                 "按状态筛选", new String[]{"全部状态", "待审批", "已通过", "已驳回", "已取消"},
                 new String[]{"编号", "类型", "开始", "结束", "原因", "状态", "审核备注"},
                 new AsyncPagedTable.Loader<LeaveRequestDto>() {

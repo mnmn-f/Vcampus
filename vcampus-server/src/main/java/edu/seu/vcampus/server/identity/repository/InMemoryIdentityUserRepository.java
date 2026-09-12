@@ -46,7 +46,7 @@ final class InMemoryIdentityUserRepository implements IdentityUserRepository {
             }
             Collections.sort(found, new Comparator<ProfileDto>() {
                 @Override public int compare(ProfileDto a, ProfileDto b) {
-                    return Long.compare(a.getUserId(), b.getUserId());
+                    return Long.compare(b.getUserId(), a.getUserId());
                 }
             });
             int from = Math.min(q.getOffset(), found.size());

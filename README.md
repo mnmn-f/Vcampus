@@ -22,7 +22,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务结构；V17 增加头像上传字段；V18 写入用于分页、筛选、并发和多状态验收的扩展演示数据。执行顺序固定为：
+V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务结构；V17 增加头像上传字段；V18 写入扩展演示数据；V19 将成绩核对权限归入教务管理。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -42,6 +42,7 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
     vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
     vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
+    vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
 
 在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
@@ -63,6 +64,7 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
 
 脚本包含幂等键和重复保护；V18 可以在本地演示库重复执行。它额外提供 `test_student01`—`test_student20`、`test_teacher01`—`test_teacher06`（密码均为 `student123`），并让 `demo_student` 拥有多学期成绩、当前课表、多状态订单和借阅历史。正式环境不要执行 V2/V18。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券和库存同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
@@ -135,6 +137,7 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 | `demo_librarian` | `library123` | 图书管理员 |
 | `demo_store` | `store123` | 商店管理员 |
 | `demo_dorm` | `dorm123` | 宿管员 |
+| `demo_repair` | 由 V7 创建，口令按本地环境设置 | 维修员 |
 | `demo_ai` | `ai123` | AI 知识管理员 |
 | `demo_system` | `system123` | 系统管理员 |
 
@@ -161,6 +164,7 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 - demo_librarian/library123
 - demo_store/store123
 - demo_dorm/dorm123
+- demo_repair（V7 创建，维修员工作台；口令不写入仓库）
 - demo_ai/ai123
 - demo_system/system123
 

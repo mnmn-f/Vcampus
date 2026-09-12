@@ -33,7 +33,6 @@ public final class TopBarPanel extends JPanel {
     private final JLabel identityValue = UiFactory.body("—");
     private final JLabel nameValue = UiFactory.body("—");
     private final JLabel accountValue = UiFactory.body("—");
-    private final JLabel userIdValue = UiFactory.body("—");
     private ModuleId activeModule = ModuleId.DASHBOARD;
     private boolean changing;
 
@@ -70,9 +69,7 @@ public final class TopBarPanel extends JPanel {
         String name = readName();
         nameValue.setText(name == null || name.trim().length() == 0 ? "—" : name);
         String account = readAccount();
-        long userId = readUserId();
         accountValue.setText(account == null || account.trim().length() == 0 ? "—" : account);
-        userIdValue.setText(userId < 0 ? "—" : Long.toString(userId));
         changing = false;
     }
 
@@ -118,7 +115,6 @@ public final class TopBarPanel extends JPanel {
         right.add(roleSelector);
         right.add(nameBlock());
         right.add(accountBlock());
-        right.add(userIdBlock());
         JButton logout = new SecondaryButton("退出登录");
         logout.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { listener.onLogout(); }
@@ -142,15 +138,6 @@ public final class TopBarPanel extends JPanel {
         block.add(UiFactory.muted("校园账号"), BorderLayout.NORTH);
         accountValue.setFont(DesignTokens.medium(13));
         block.add(accountValue, BorderLayout.SOUTH);
-        return block;
-    }
-
-    private JPanel userIdBlock() {
-        JPanel block = new JPanel(new BorderLayout(0, 1));
-        block.setOpaque(false);
-        block.add(UiFactory.muted("用户编号"), BorderLayout.NORTH);
-        userIdValue.setFont(DesignTokens.medium(13));
-        block.add(userIdValue, BorderLayout.SOUTH);
         return block;
     }
 
@@ -186,10 +173,6 @@ public final class TopBarPanel extends JPanel {
         catch (IllegalStateException ignored) { return null; }
     }
 
-    private long readUserId() {
-        try { return session.userId(); }
-        catch (IllegalStateException ignored) { return -1L; }
-    }
     public interface SessionView {
         java.util.Set<Role> roles();
         Role activeRole();

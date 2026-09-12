@@ -201,7 +201,7 @@ public final class DormRoomPlan extends JPanel {
             g.fillRoundRect(x, y, w, h, 6, 6);
             if (chosen) outline(g, x, y, w, h);
             centeredBold(g, no + " 号床", x + w / 2, y + 30, Color.WHITE);
-            String who = bed.getOccupantUserId() == null ? "已占用" : "学号 " + bed.getOccupantUserId();
+            String who = "OCCUPIED".equals(bed.getStatus()) ? "已入住" : RealUi.status(bed.getStatus());
             centered(g, who, x + w / 2, y + 52, new Color(0xDD, 0xE4, 0xCE));
             return;
         }

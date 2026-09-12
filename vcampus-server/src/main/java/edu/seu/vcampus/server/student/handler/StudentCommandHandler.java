@@ -1,6 +1,8 @@
 package edu.seu.vcampus.server.student.handler;
 
 import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
@@ -51,10 +53,12 @@ public final class StudentCommandHandler implements CommandHandler {
                     service.exportOwnGrades(session, exportQuery(request)));
             if (is(StudentCommands.PROFILE_SEARCH)) return Message.success(request,
                     service.searchProfiles(session, profileQuery(request)));
+            if (is(StudentCommands.PROFILE_CANDIDATES)) return Message.success(request,
+                    service.searchPendingAccounts(session, candidateQuery(request)));
             if (is(StudentCommands.PROFILE_DETAIL)) return Message.success(request,
                     service.getProfileDetail(session, targetId(request)));
             if (is(StudentCommands.PROFILE_CREATE)) return Message.success(request,
-                    service.createProfile(session, writeRequest(request)));
+                    service.createProfile(session, createRequest(request)));
             if (is(StudentCommands.PROFILE_UPDATE)) return Message.success(request,
                     service.updateProfile(session, writeRequest(request)));
             if (is(StudentCommands.GRADE_RECORD)) return Message.success(request,
@@ -81,6 +85,12 @@ public final class StudentCommandHandler implements CommandHandler {
         return (StudentProfileQuery) request.getPayload();
     }
 
+    private static StudentAccountCandidateQuery candidateQuery(Message request) {
+        if (request.getPayload() == null) return StudentAccountCandidateQuery.firstPage();
+        if (!(request.getPayload() instanceof StudentAccountCandidateQuery)) throw bad();
+        return (StudentAccountCandidateQuery) request.getPayload();
+    }
+
     private static StudentGradeQuery gradeQuery(Message request) {
         if (request.getPayload() == null) return StudentGradeQuery.firstPage();
         if (!(request.getPayload() instanceof StudentGradeQuery)) throw bad();
@@ -102,6 +112,11 @@ public final class StudentCommandHandler implements CommandHandler {
     private static StudentProfileWriteRequest writeRequest(Message request) {
         if (!(request.getPayload() instanceof StudentProfileWriteRequest)) throw bad();
         return (StudentProfileWriteRequest) request.getPayload();
+    }
+
+    private static StudentProfileCreateRequest createRequest(Message request) {
+        if (!(request.getPayload() instanceof StudentProfileCreateRequest)) throw bad();
+        return (StudentProfileCreateRequest) request.getPayload();
     }
 
     private static StudentGradeRecordRequest gradeRecord(Message request) {

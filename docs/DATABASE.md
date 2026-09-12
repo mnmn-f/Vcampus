@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入基础演示数据，V3-V16 逐步扩展业务结构，V17 增加头像上传字段，V18 写入用于本地分页、筛选、多用户和多状态验收的扩展演示数据。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入基础演示数据，V3-V16 逐步扩展业务结构，V17 增加头像上传字段，V18 写入扩展演示数据，V19 调整成绩管理权限。
 
 执行顺序：
 
 ```text
-V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> ... -> V16__ai_admin_workflow.sql -> V17__identity_avatar_upload.sql -> V18__expanded_demo_data.sql
+V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> ... -> V18__expanded_demo_data.sql -> V19__academic_grade_permissions.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -49,9 +49,11 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
 ```
 
-脚本使用自然键和重复保护，因此可以在同一个演示库重复执行。V18 提供 20 个测试学生、6 个测试教师，以及大量课程、成绩、图书、订单、优惠券、宿舍和审批记录；测试账号统一使用本地演示密码 `student123`。它面向开发/验收库；生产环境不应执行 V2/V18。
+脚本使用自然键和重复保护，因此可以在同一个演示库重复执行。V7 会创建 `demo_repair` 并授予维修员角色，登录后进入宿舍的维修员工作台。V18 提供 20 个测试学生、6 个测试教师，以及大量课程、成绩、图书、订单、优惠券、宿舍和审批记录；测试账号统一使用本地演示密码 `student123`。V19 将成绩登记保留给任课教师，并将成绩核对权限交给教务管理员。演示数据面向开发/验收库，生产环境不应执行 V2/V18。
 
 V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希，用于验证真实 TCP/MySQL 登录链路。正式部署必须修改密码或停用演示账号；任何注册、改密和重置密码流程都禁止写入明文。
 

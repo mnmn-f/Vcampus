@@ -10,6 +10,7 @@ public final class StudentCommands {
     public static final String PROFILE_SEARCH = "student.profile.search";
     public static final String PROFILE_DETAIL = "student.profile.detail";
     public static final String PROFILE_CREATE = "student.profile.create";
+    public static final String PROFILE_CANDIDATES = "student.profile.candidates";
     public static final String PROFILE_UPDATE = "student.profile.update";
     public static final String GRADE_RECORD = "student.grade.record";
     public static final String GRADE_REVIEW = "student.grade.review";

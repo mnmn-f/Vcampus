@@ -32,6 +32,7 @@ public class StudentGradeServiceTest {
     private SessionContext otherTeacher;
     private SessionContext student;
     private SessionContext registrar;
+    private SessionContext academicAdmin;
 
     @Before
     public void setUp() throws Exception {
@@ -41,6 +42,7 @@ public class StudentGradeServiceTest {
         repository.addUser(7L, "teacher", "任课教师");
         repository.addUser(8L, "teacher2", "另一教师");
         repository.addUser(9L, "registrar", "学籍管理员");
+        repository.addUser(10L, "academic", "教务老师");
         service = new StudentRecordService(repository, immediateTransactions());
         service.createProfile(session(9L, Role.REGISTRAR), profile(1L, "S001"));
         service.createProfile(session(9L, Role.REGISTRAR), profile(2L, "S002"));
@@ -55,6 +57,7 @@ public class StudentGradeServiceTest {
         otherTeacher = session(8L, Role.TEACHER);
         student = session(1L, Role.STUDENT);
         registrar = session(9L, Role.REGISTRAR);
+        academicAdmin = session(10L, Role.ACADEMIC_ADMIN);
     }
 
     @Test
@@ -102,14 +105,14 @@ public class StudentGradeServiceTest {
     }
 
     @Test
-    public void registrarCanReviewGradesButCannotPretendToBeTeacher() throws Exception {
+    public void academicAdminCanReviewGradesButRegistrarCannot() throws Exception {
         service.recordGrade(teacher, grade(1001L, "92"));
-        StudentGradePage page = service.reviewGrades(registrar,
+        StudentGradePage page = service.reviewGrades(academicAdmin,
                 new StudentGradeReviewQuery(1L, 101L, 1, 20));
 
         assertEquals(1L, page.getTotal());
         try {
-            service.reviewGrades(teacher, StudentGradeReviewQuery.firstPage());
+            service.reviewGrades(registrar, StudentGradeReviewQuery.firstPage());
         } catch (StudentRecordException ex) {
             assertEquals(ResultCodes.FORBIDDEN, ex.getResultCode());
             return;

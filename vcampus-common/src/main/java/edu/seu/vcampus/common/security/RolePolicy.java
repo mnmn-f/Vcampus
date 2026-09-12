@@ -56,10 +56,11 @@ public final class RolePolicy {
                 Permission.CLASSROOM_RESERVE, Permission.LIBRARY_READ));
         result.put(Role.REGISTRAR, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE, Permission.STUDENT_RECORD_MANAGE,
-                Permission.SCORE_RECORD, Permission.ANNOUNCEMENT_READ));
+                Permission.ANNOUNCEMENT_READ));
         result.put(Role.ACADEMIC_ADMIN, immutable(
                 Permission.PROFILE_READ, Permission.PROFILE_UPDATE, Permission.COURSE_READ,
                 Permission.COURSE_MANAGE, Permission.ANNOUNCEMENT_MANAGE,
+                Permission.SCORE_AUDIT,
                 Permission.COMPETITION_MANAGE, Permission.SRTP_MANAGE,
                 Permission.CLASSROOM_APPROVE));
         result.put(Role.LIBRARIAN, immutable(

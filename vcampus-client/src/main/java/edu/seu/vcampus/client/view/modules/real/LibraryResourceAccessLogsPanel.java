@@ -24,7 +24,6 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
     private final BasePage page;
     private final LibraryClientService service;
     private final JTextField resourceId = UiFactory.textField(10);
-    private final JTextField userId = UiFactory.textField(10);
     private final JTextField from = UiFactory.textField(16);
     private final JTextField to = UiFactory.textField(16);
     private final AsyncPagedTable<OnlineResourceAccessLogDto> table;
@@ -35,14 +34,14 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
         this.page = page; this.service = service;
         add(filters());
         table = new AsyncPagedTable<OnlineResourceAccessLogDto>("线上资源访问日志",
-                "仅显示资源标题、账号、姓名和访问时间，不返回访问设备地址或登录凭据。",
+                "",
                 "请使用上方条件筛选", new String[0],
-                new String[]{"资源", "资源编号", "账号", "姓名", "用户编号", "访问时间"},
+                new String[]{"资源", "资源编号", "账号", "姓名", "访问时间"},
                 new AsyncPagedTable.Loader<OnlineResourceAccessLogDto>() {
                     @Override public PageSlice<OnlineResourceAccessLogDto> load(int number, String keyword, String ignored) throws Exception { return LibraryResourceAccessLogsPanel.this.load(number); }
                 }, new AsyncPagedTable.RowMapper<OnlineResourceAccessLogDto>() {
                     @Override public Object[] values(OnlineResourceAccessLogDto row) { return new Object[]{RealUi.text(row.getResourceTitle()), row.getResourceId(),
-                            RealUi.text(row.getAccount()), RealUi.text(row.getDisplayName()), row.getUserId(), RealUi.dateTime(row.getAccessedAt())}; }
+                            RealUi.text(row.getAccount()), RealUi.text(row.getDisplayName()), RealUi.dateTime(row.getAccessedAt())}; }
                 }, null);
         add(table);
     }
@@ -51,7 +50,6 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
         SectionCard card = new SectionCard("访问日志筛选", "按资源、用户和访问时间筛选。");
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         fields.add(UiFactory.labelledField("资源编号", resourceId));
-        fields.add(UiFactory.labelledField("用户编号", userId));
         fields.add(UiFactory.labelledField("开始时间", from));
         fields.add(UiFactory.labelledField("结束时间", to));
         JPanel actions = UiFactory.horizontal(8);
@@ -69,7 +67,7 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
 
     private PageSlice<OnlineResourceAccessLogDto> load(int pageNumber) throws Exception {
         OnlineResourceAccessLogPage result = service.searchResourceAccessLogs(
-                new OnlineResourceAccessLogQuery(filter.resourceId, filter.userId,
+                new OnlineResourceAccessLogQuery(filter.resourceId, null,
                         filter.from, filter.to, pageNumber, 20));
         return new PageSlice<OnlineResourceAccessLogDto>(result.getItems(), result.getTotal(),
                 result.getPage(), result.getPageSize());
@@ -78,14 +76,14 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
     private void apply() {
         try {
             filter = new FilterState(number(resourceId.getText(), "资源编号"),
-                    number(userId.getText(), "用户编号"), time(from.getText(), "开始时间"),
+                    time(from.getText(), "开始时间"),
                     time(to.getText(), "结束时间"));
             table.reload();
         } catch (IllegalArgumentException ex) { page.showError(ex.getMessage()); }
     }
 
     private void clear() {
-        resourceId.setText(""); userId.setText(""); from.setText(""); to.setText("");
+        resourceId.setText(""); from.setText(""); to.setText("");
         filter = FilterState.empty(); table.reload();
     }
 
@@ -105,12 +103,12 @@ public final class LibraryResourceAccessLogsPanel extends JPanel {
     }
 
     private static final class FilterState {
-        private final Long resourceId; private final Long userId;
+        private final Long resourceId;
         private final LocalDateTime from; private final LocalDateTime to;
-        private FilterState(Long resourceId, Long userId, LocalDateTime from, LocalDateTime to) {
+        private FilterState(Long resourceId, LocalDateTime from, LocalDateTime to) {
             if (from != null && to != null && from.isAfter(to)) throw new IllegalArgumentException("开始时间不能晚于结束时间");
-            this.resourceId = resourceId; this.userId = userId; this.from = from; this.to = to;
+            this.resourceId = resourceId; this.from = from; this.to = to;
         }
-        private static FilterState empty() { return new FilterState(null, null, null, null); }
+        private static FilterState empty() { return new FilterState(null, null, null); }
     }
 }

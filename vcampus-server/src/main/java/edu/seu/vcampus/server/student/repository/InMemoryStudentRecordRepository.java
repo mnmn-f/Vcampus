@@ -26,6 +26,10 @@ public final class InMemoryStudentRecordRepository
         profileStore.addUser(userId, account, displayName);
     }
 
+    public void addStaffUser(long userId, String account, String displayName) {
+        profileStore.addStaffUser(userId, account, displayName);
+    }
+
     public void addUser(long userId) {
         addUser(userId, "user" + userId, "用户" + userId);
     }

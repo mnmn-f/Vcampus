@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** 学籍管理员查看的档案详情及其成绩。 */
+/** 学籍管理员查看的档案详情；成绩由教务模块单独提供。 */
 public final class StudentDetailDto implements Serializable {
     private static final long serialVersionUID = 1L;
     private final StudentProfileDto profile;

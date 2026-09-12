@@ -32,7 +32,7 @@ SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
 WHERE r.`code` = 'REPAIR_WORKER'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
--- 演示维修员账号；口令与其他 demo 账号同一套开发约定：repair123
+-- 演示维修员账号；仅保存不可逆的密码哈希，实际口令不写入迁移文件。
 INSERT INTO `users` (`username`, `password_hash`, `display_name`, `email`, `status`)
 VALUES ('demo_repair', '$2a$10$nzRizN//GQ1wCYMq23.O4OdHV6kHrOCSKOa3t3QIpPyZXW5h.xhFm',
         '演示维修员', 'demo.repair@vcampus.local', 'ACTIVE')
@@ -48,6 +48,15 @@ SET @granting_admin_id = (SELECT `id` FROM `users` WHERE `username` = 'demo_syst
 INSERT INTO `user_roles` (`user_id`, `role_id`, `assigned_by`)
 SELECT @repair_worker_id, `id`, @granting_admin_id FROM `roles` WHERE `code` = 'REPAIR_WORKER'
 ON DUPLICATE KEY UPDATE `assigned_by` = @granting_admin_id;
+
+-- 兼容先执行扩展演示数据、后补 V7 的旧库：已有扩展工单也归到演示维修员名下，
+-- 让维修员登录后能直接看到可处理的样例。新库按迁移顺序执行时这条语句没有匹配行。
+UPDATE `repair_orders`
+SET `handler_id` = @repair_worker_id,
+    `accepted_at` = COALESCE(`accepted_at`, CURRENT_TIMESTAMP(3))
+WHERE `handler_id` IS NULL
+  AND `status` IN ('ACCEPTED', 'IN_PROGRESS', 'COMPLETED')
+  AND `description` LIKE 'EXPANDED-SEED-REPAIR-%';
 
 -- 演示学生留个电话，否则维修员端「联系电话」一列永远是空的，看不出这个字段有没有接通。
 -- NOT EXISTS 套一层派生表是 MySQL 的写法要求：不能在 UPDATE 的子查询里直接引用目标表。

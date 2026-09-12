@@ -116,8 +116,10 @@ public class StudentProfileServiceTest {
 
         assertEquals("S001-R", updated.getStudentNo());
         assertEquals("计算机科学", updated.getCollege());
-        assertEquals("S001-R", service.getProfileDetail(registrar, 1L)
-                .getProfile().getStudentNo());
+        edu.seu.vcampus.common.dto.student.StudentDetailDto detail =
+                service.getProfileDetail(registrar, 1L);
+        assertEquals("S001-R", detail.getProfile().getStudentNo());
+        assertTrue(detail.getGrades().isEmpty());
     }
 
     @Test

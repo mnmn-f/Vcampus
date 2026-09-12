@@ -21,14 +21,14 @@ public final class IdentitySessionsPanel extends JPanel {
     }
 
     private AsyncPagedTable<SessionDto> createTable() {
-        AsyncPagedTable<SessionDto> value = new AsyncPagedTable<SessionDto>("有效登录会话", "登录凭据不显示；管理员可让指定设备退出登录。", "搜索用户编号",
-                new String[]{"有效会话", "包含已撤销"}, new String[]{"账号", "用户编号", "身份", "最后活动", "状态"},
+        AsyncPagedTable<SessionDto> value = new AsyncPagedTable<SessionDto>("有效登录会话", "", null,
+                new String[]{"有效会话", "包含已撤销"}, new String[]{"账号", "身份", "最后活动", "状态"},
                 new AsyncPagedTable.Loader<SessionDto>() {
                     @Override public PageSlice<SessionDto> load(int p, String keyword, String filter) throws Exception {
-                        return slice(service.searchSessions(new SessionQuery(userId(keyword), "包含已撤销".equals(filter), p, 20)));
+                        return slice(service.searchSessions(new SessionQuery(null, "包含已撤销".equals(filter), p, 20)));
                     }
                 }, new AsyncPagedTable.RowMapper<SessionDto>() {
-                    @Override public Object[] values(SessionDto row) { return new Object[]{row.getAccount(), row.getUserId(), row.getActiveRole() == null ? "--" : row.getActiveRole().getDisplayName(),
+                    @Override public Object[] values(SessionDto row) { return new Object[]{row.getAccount(), row.getActiveRole() == null ? "--" : row.getActiveRole().getDisplayName(),
                             RealUi.dateTime(row.getLastSeenAt()), row.isRevoked() ? "已撤销" : "有效"}; }
                 }, new AsyncPagedTable.SelectionListener<SessionDto>() {
                     @Override public void onSelected(SessionDto row) { select(row); }
@@ -53,5 +53,4 @@ public final class IdentitySessionsPanel extends JPanel {
     }
 
     private static PageSlice<SessionDto> slice(SessionPage value) { return RealUi.page(value); }
-    private static Long userId(String value) { return value != null && value.trim().matches("\\d+") ? Long.valueOf(value.trim()) : null; }
 }

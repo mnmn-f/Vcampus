@@ -6,6 +6,8 @@ import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
@@ -18,6 +20,8 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
     public interface ProfileStore {
         StudentProfileDto find(Connection c, long id);
         StudentProfilePage search(Connection c, StudentProfileQuery q);
+        StudentAccountCandidatePage pendingAccounts(Connection c, StudentAccountCandidateQuery q);
+        long pendingAccountId(Connection c, String account);
         boolean userExists(Connection c, long id);
         boolean profileExists(Connection c, long id);
         boolean studentNoExists(Connection c, String no, long excluded);
@@ -57,6 +61,17 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
     @Override
     public final StudentProfilePage searchProfiles(Connection c, StudentProfileQuery q) {
         return profiles.search(c, q);
+    }
+
+    @Override
+    public final StudentAccountCandidatePage searchPendingAccounts(
+            Connection c, StudentAccountCandidateQuery q) {
+        return profiles.pendingAccounts(c, q);
+    }
+
+    @Override
+    public final long findPendingAccountId(Connection c, String account) {
+        return profiles.pendingAccountId(c, account);
     }
 
     @Override

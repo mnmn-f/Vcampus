@@ -34,7 +34,7 @@ public final class DormExtStayAdminPanel extends JPanel {
     private AsyncPagedTable<StayStatusDto> stayTable(final DormExtClientService service) {
         return new AsyncPagedTable<StayStatusDto>("在宿一览",
                 "按最近一次进出记录实时判定，不是库里存的状态字段。",
-                "搜索楼栋、房间或学号",
+                "搜索楼栋或房间",
                 new String[]{"全部状态", "在宿", "离宿", "离校登记中"},
                 new String[]{"学生", "楼栋", "房间", "状态", "最近离宿", "最近归宿"},
                 new AsyncPagedTable.Loader<StayStatusDto>() {
@@ -47,7 +47,7 @@ public final class DormExtStayAdminPanel extends JPanel {
                 new AsyncPagedTable.RowMapper<StayStatusDto>() {
                     @Override
                     public Object[] values(StayStatusDto row) {
-                        return new Object[]{Long.valueOf(row.getStudentUserId()),
+                        return new Object[]{"在住学生",
                                 RealUi.text(row.getBuildingCode()), RealUi.text(row.getRoomNo()),
                                 StayStatusDto.statusName(row.getStatus()),
                                 RealUi.dateTime(row.getLastExitAt()),
@@ -76,8 +76,7 @@ public final class DormExtStayAdminPanel extends JPanel {
     }
 
     private static boolean matches(StayStatusDto item, String needle) {
-        return contains(item.getBuildingCode(), needle) || contains(item.getRoomNo(), needle)
-                || contains(String.valueOf(item.getStudentUserId()), needle);
+        return contains(item.getBuildingCode(), needle) || contains(item.getRoomNo(), needle);
     }
 
     private static boolean contains(String value, String needle) {

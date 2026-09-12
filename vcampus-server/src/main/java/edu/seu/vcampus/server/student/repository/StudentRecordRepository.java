@@ -6,6 +6,8 @@ import edu.seu.vcampus.common.dto.student.StudentGradeQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeReviewQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeRecordRequest;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
@@ -18,6 +20,11 @@ public interface StudentRecordRepository {
     StudentProfileDto findProfile(Connection connection, long userId);
 
     StudentProfilePage searchProfiles(Connection connection, StudentProfileQuery query);
+
+    StudentAccountCandidatePage searchPendingAccounts(Connection connection,
+                                                       StudentAccountCandidateQuery query);
+
+    long findPendingAccountId(Connection connection, String account);
 
     StudentGradePage findGrades(Connection connection, long studentUserId,
                                 StudentGradeQuery query);

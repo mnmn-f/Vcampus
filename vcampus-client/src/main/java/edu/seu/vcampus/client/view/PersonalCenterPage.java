@@ -58,7 +58,6 @@ public final class PersonalCenterPage extends BasePage {
         SectionCard card = new SectionCard("账号信息", "");
         JPanel fields = new JPanel(new GridLayout(0, 2, 18, 12));
         fields.setOpaque(false);
-        fields.add(label("用户 ID")); fields.add(value(String.valueOf(current.getUserId())));
         fields.add(label("账号")); fields.add(value(current.getLoginResult().getAccount()));
         fields.add(label("姓名")); fields.add(value(current.getDisplayName()));
         fields.add(label("身份")); fields.add(value(current.getActiveRole().getDisplayName()));

@@ -45,9 +45,8 @@ public final class IdentityCancellationPanel extends JPanel {
 
     private AsyncPagedTable<AccountCancellationDto> createTable() {
         String title = admin ? "账号注销审批" : "账号注销申请";
-        String subtitle = admin ? "系统管理员审核账号注销申请。"
-                : "提交后由系统管理员审核；这里只显示当前账号的申请历史。";
-        String[] columns = admin ? new String[]{"账号", "用户编号", "原因", "状态", "提交时间"}
+        String subtitle = "";
+        String[] columns = admin ? new String[]{"账号", "原因", "状态", "提交时间"}
                 : new String[]{"原因", "状态", "审核意见", "提交时间", "更新时间"};
         return new AsyncPagedTable<AccountCancellationDto>(title, subtitle, "按状态筛选",
                 new String[]{"全部状态", "待审批", "已通过", "已驳回", "已撤回"}, columns,
@@ -58,7 +57,7 @@ public final class IdentityCancellationPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<AccountCancellationDto>() {
                     @Override public Object[] values(AccountCancellationDto row) { return admin
-                            ? new Object[]{RealUi.text(row.getAccount()), row.getUserId(), RealUi.text(row.getReason()), displayStatus(row.getStatus()), RealUi.dateTime(row.getCreatedAt())}
+                            ? new Object[]{RealUi.text(row.getAccount()), RealUi.text(row.getReason()), displayStatus(row.getStatus()), RealUi.dateTime(row.getCreatedAt())}
                             : new Object[]{RealUi.text(row.getReason()), displayStatus(row.getStatus()), RealUi.text(row.getReviewRemark()),
                             RealUi.dateTime(row.getCreatedAt()), RealUi.dateTime(row.getUpdatedAt())}; }
                 }, new AsyncPagedTable.SelectionListener<AccountCancellationDto>() {
@@ -67,7 +66,7 @@ public final class IdentityCancellationPanel extends JPanel {
     }
 
     private SectionCard ownActions() {
-        SectionCard card = new SectionCard("提交注销申请", "填写申请原因；提交或撤回申请。 ");
+        SectionCard card = new SectionCard("提交注销申请", "");
         JPanel body = new JPanel(new BorderLayout(0, 8));
         body.setOpaque(false);
         body.add(UiFactory.labelledField("申请原因", reason), BorderLayout.CENTER);
@@ -88,7 +87,7 @@ public final class IdentityCancellationPanel extends JPanel {
     }
 
     private SectionCard adminActions() {
-        SectionCard card = new SectionCard("注销申请处理", "审批或驳回会改变账号生命周期；操作前请确认申请记录和审核意见。 ");
+        SectionCard card = new SectionCard("注销申请处理", "");
         JPanel body = new JPanel(new BorderLayout(0, 8));
         body.setOpaque(false);
         body.add(UiFactory.labelledField("审核意见", remark), BorderLayout.CENTER);

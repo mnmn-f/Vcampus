@@ -5,6 +5,9 @@ import edu.seu.vcampus.client.network.NetworkClientService;
 import edu.seu.vcampus.client.network.ClientGateway;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
@@ -76,6 +79,13 @@ public final class NetworkStudentRecordClientService implements StudentRecordCli
     }
 
     @Override
+    public StudentAccountCandidatePage searchPendingAccounts(StudentAccountCandidateQuery query)
+            throws NetworkClientException {
+        return payload(request(StudentCommands.PROFILE_CANDIDATES, query),
+                StudentAccountCandidatePage.class);
+    }
+
+    @Override
     public StudentDetailDto getProfileDetail(long studentUserId)
             throws NetworkClientException {
         return payload(request(StudentCommands.PROFILE_DETAIL,
@@ -84,6 +94,13 @@ public final class NetworkStudentRecordClientService implements StudentRecordCli
 
     @Override
     public StudentProfileDto createProfile(StudentProfileWriteRequest request)
+            throws NetworkClientException {
+        return payload(request(StudentCommands.PROFILE_CREATE, request),
+                StudentProfileDto.class);
+    }
+
+    @Override
+    public StudentProfileDto createProfile(StudentProfileCreateRequest request)
             throws NetworkClientException {
         return payload(request(StudentCommands.PROFILE_CREATE, request),
                 StudentProfileDto.class);

@@ -122,17 +122,17 @@ public final class DormRepairWorkPanel extends JPanel {
 
     private Object[] row(RepairWorkOrderDto value) {
         if (view == View.ASSIGNED) {
-            return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.text(value.getCategory()),
+            return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.status(value.getCategory()),
                     RealUi.status(value.getPriority()), RealUi.status(value.getStatus()), entryText(value),
                     value.getContactPhone() == null ? "—" : value.getContactPhone(),
                     RealUi.dateTime(value.getAcceptedAt())};
         }
         if (view == View.HISTORY) {
-            return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.text(value.getCategory()),
+            return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.status(value.getCategory()),
                     RealUi.status(value.getStatus()), RealUi.dateTime(value.getCompletedAt()),
                     value.getEvaluationScore() == null ? "未评价" : value.getEvaluationScore() + " 分"};
         }
-        return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.text(value.getCategory()),
+        return new Object[]{Long.valueOf(value.getOrderId()), value.location(), RealUi.status(value.getCategory()),
                 RealUi.status(value.getPriority()), RealUi.status(value.getStatus()), entryText(value),
                 RealUi.dateTime(value.getSubmittedAt())};
     }
@@ -241,7 +241,7 @@ public final class DormRepairWorkPanel extends JPanel {
         // 不再写 font-size：字号交给 detail 这个 JLabel 的字体，HTML 里只管排版。
         StringBuilder text = new StringBuilder("<html><body style='width:" + width + "px'>");
         text.append("<b>").append(escape(value.location())).append("　·　")
-                .append(escape(RealUi.text(value.getCategory()))).append("　·　")
+                .append(escape(RealUi.status(value.getCategory()))).append("　·　")
                 .append(escape(RealUi.status(value.getStatus()))).append("</b>");
         text.append("<br><br>")
                 .append(escape(value.getDescription() == null || value.getDescription().trim().isEmpty()

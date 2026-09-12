@@ -8,6 +8,7 @@ public enum Permission {
     STUDENT_RECORD_MANAGE,
     SCORE_SELF_READ,
     SCORE_RECORD,
+    SCORE_AUDIT,
     COURSE_READ,
     COURSE_MANAGE,
     COURSE_ENROLL,

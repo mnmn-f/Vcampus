@@ -67,8 +67,9 @@ public final class DormStudentRepairPage extends JPanel {
     /** 新建报修的表单：展开在页面正下方，不另开窗口。 */
     private final JPanel compose = new JPanel();
     private final JLabel composeRoom = UiFactory.body("");
-    private final JTextField composeRoomId = UiFactory.textField(8);
-    private final JTextField composeCategory = UiFactory.textField(10);
+    private final JComboBox<RealUi.CodeOption> composeCategory = new JComboBox<RealUi.CodeOption>(
+            RealUi.options("WATER", "LIGHTING", "ELECTRIC", "NETWORK", "FURNITURE", "APPLIANCE",
+                    "AIR_CONDITIONING", "DOOR_WINDOW", "EQUIPMENT"));
     private final JComboBox<RealUi.CodeOption> composePriority =
             new JComboBox<RealUi.CodeOption>(RealUi.options("NORMAL", "HIGH", "LOW"));
     /**
@@ -369,16 +370,15 @@ public final class DormStudentRepairPage extends JPanel {
         }, new AsyncTask.Callback<DormHomeSummaryDto>() {
             @Override public void onSuccess(DormHomeSummaryDto value) {
                 if (value == null || !value.isResident()) {
-                    composeRoom.setText("没有读到你的住宿记录，提交时请手动填写房间编号。");
+                    composeRoom.setText("暂无住宿记录，暂不能提交报修");
                     return;
                 }
                 myRoomId = value.getRoomId();
                 myRoomLabel = RealUi.text(value.getBuildingName()) + " " + RealUi.text(value.getRoomNo());
-                composeRoom.setText("报修房间：" + myRoomLabel + "（房间编号 " + myRoomId + "）");
-                composeRoomId.setEnabled(false);
+                composeRoom.setText("报修房间：" + myRoomLabel);
             }
             @Override public void onFailure(Throwable error) {
-                composeRoom.setText("没有读到你的住宿记录，提交时请手动填写房间编号。");
+                composeRoom.setText("暂无住宿记录，暂不能提交报修");
             }
         });
     }
@@ -399,7 +399,6 @@ public final class DormStudentRepairPage extends JPanel {
         row.setOpaque(false);
         row.add(labelled("问题类别", composeCategory, 180));
         row.add(labelled("优先级", composePriority, 130));
-        row.add(labelled("房间编号（读不到住宿记录时填）", composeRoomId, 230));
         JPanel entryRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
         entryRow.setOpaque(false);
         entryRow.add(labelled("你不在时能否进门", composeEntry, 300));
@@ -434,14 +433,14 @@ public final class DormStudentRepairPage extends JPanel {
         box.add(rows, BorderLayout.CENTER);
 
         compose.add(Box.createVerticalStrut(26));
-        compose.add(DormUi.header("新建报修", "只能给自己住的房间报修，房间由住宿记录自动带出。", null, true));
+        compose.add(DormUi.header("新建报修", "填写问题类别、优先级和描述。", null, true));
         compose.add(box);
     }
 
     private void toggleCompose(boolean show) {
         compose.setVisible(show);
         if (!show) {
-            composeCategory.setText("");
+            composeCategory.setSelectedItem(RealUi.option("WATER"));
             composeDescription.setText("");
         }
         revalidate();
@@ -450,11 +449,9 @@ public final class DormStudentRepairPage extends JPanel {
 
     private void create() {
         try {
-            Long room = myRoomId > 0L ? Long.valueOf(myRoomId)
-                    : RealUi.number(RealUi.required(composeRoomId.getText(), "房间编号"));
-            if (room == null) throw new IllegalArgumentException("房间编号必须是整数");
-            final RepairCreateRequest request = new RepairCreateRequest(room.longValue(),
-                    RealUi.required(composeCategory.getText(), "问题类别"),
+            if (myRoomId <= 0L) throw new IllegalArgumentException("暂无住宿记录，暂不能提交报修");
+            final RepairCreateRequest request = new RepairCreateRequest(myRoomId,
+                    RealUi.code(composeCategory.getSelectedItem()),
                     RealUi.required(composeDescription.getText(), "问题描述"),
                     RealUi.code(composePriority.getSelectedItem()));
             final boolean allowEnter = composeEntry.getSelectedIndex() == 1;

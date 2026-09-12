@@ -109,7 +109,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<AccommodationRequestDto>() {
                     @Override public Object[] values(AccommodationRequestDto row) {
-                        return new Object[]{Long.valueOf(row.getId()), Long.valueOf(row.getStudentUserId()),
+                        return new Object[]{Long.valueOf(row.getId()), "住宿申请",
                                 RealUi.status(row.getRequestType()),
                                 RealUi.text(row.getReason()), RealUi.status(row.getStatus()),
                                 RealUi.dateTime(row.getCreatedAt())};
@@ -172,8 +172,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
             return;
         }
         boolean checkout = "CHECK_OUT".equalsIgnoreCase(selected.getRequestType());
-        side.add(DormUi.header("受理申请 · " + RealUi.status(selected.getRequestType())
-                        + " · 学生 " + selected.getStudentUserId(),
+        side.add(DormUi.header("受理申请 · " + RealUi.status(selected.getRequestType()),
                 RealUi.status(selected.getStatus()) + "　·　提交于 "
                         + RealUi.dateTime(selected.getCreatedAt())
                         + (selected.getReason() == null || selected.getReason().trim().isEmpty()

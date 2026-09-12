@@ -148,7 +148,7 @@ public final class DormManagerSpacePanel extends JPanel {
     }
 
     private AsyncPagedTable<DormBedDto> bedTable() {
-        return new AsyncPagedTable<DormBedDto>("床位台账", "占用人信息仅管理员可见。", "搜索房间或床位号",
+        return new AsyncPagedTable<DormBedDto>("床位台账", "查看床位状态。", "搜索房间或床位号",
                 new String[]{"全部状态", "空闲", "已占用", "维护中"},
                 new String[]{"楼栋", "房间", "床位", "状态", "占用人"},
                 new AsyncPagedTable.Loader<DormBedDto>() {
@@ -158,7 +158,7 @@ public final class DormManagerSpacePanel extends JPanel {
                 }, new AsyncPagedTable.RowMapper<DormBedDto>() {
                     @Override public Object[] values(DormBedDto row) {
                         return new Object[]{row.getBuildingCode(), row.getRoomNo(), row.getBedNo(),
-                                RealUi.status(row.getStatus()), RealUi.text(row.getOccupantUserId())};
+                                RealUi.status(row.getStatus()), "OCCUPIED".equals(row.getStatus()) ? "已入住" : "空床"};
                     }
                 }, new AsyncPagedTable.SelectionListener<DormBedDto>() {
                     @Override public void onSelected(DormBedDto value) {

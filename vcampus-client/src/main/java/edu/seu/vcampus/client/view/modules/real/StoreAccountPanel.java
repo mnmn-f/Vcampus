@@ -51,7 +51,7 @@ public final class StoreAccountPanel extends JPanel {
     }
 
     private AsyncPagedTable<AccountTransactionDto> ledger() {
-        return new AsyncPagedTable<AccountTransactionDto>("账户流水", "仅显示本人流水，金额含正负号。",
+        return new AsyncPagedTable<AccountTransactionDto>("账户流水", "",
                 "按类型筛选", new String[]{"全部流水", "充值", "消费", "退款"},
                 new String[]{"流水号", "类型", "金额", "余额后", "关联业务", "时间"},
                 new AsyncPagedTable.Loader<AccountTransactionDto>() {

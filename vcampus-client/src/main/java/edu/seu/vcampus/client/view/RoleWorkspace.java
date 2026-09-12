@@ -68,7 +68,7 @@ public final class RoleWorkspace {
                     action("我的教学", "课程、成绩和教室使用", ModuleId.ACADEMIC),
                     action("图书馆", "检索图书与线上资源", ModuleId.LIBRARY));
             case REGISTRAR: return list(
-                    action("学籍管理", "维护学生档案与成绩记录", ModuleId.STUDENT_RECORD));
+                    action("学籍管理", "维护学生档案", ModuleId.STUDENT_RECORD));
             case ACADEMIC_ADMIN: return list(
                     action("教务管理", "课程、排课、教室和校园活动", ModuleId.ACADEMIC));
             case LIBRARIAN: return list(

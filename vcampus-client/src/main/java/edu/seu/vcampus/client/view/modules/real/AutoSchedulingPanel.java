@@ -46,7 +46,7 @@ public final class AutoSchedulingPanel extends JPanel {
     private final JTable preferenceTable = table(preferenceModel);
     private final DefaultTableModel previewModel = model(new String[]{"课程","教师","班级/教学班","星期","节次","教室"});
     private final JTable previewTable = table(previewModel);
-    private final JLabel state = UiFactory.muted("先配置教师约束，再生成预览；生成过程不会写数据库。");
+    private final JLabel state = UiFactory.muted(" ");
     private List<TeacherTimePreferenceDto> preferences = Collections.emptyList();
     private List<AutoScheduleEntryDto> preview = Collections.emptyList();
     private final JButton generate = new PrimaryButton("开始自动排课");
@@ -61,7 +61,7 @@ public final class AutoSchedulingPanel extends JPanel {
     }
 
     private SectionCard preferenceCard() {
-        SectionCard card=new SectionCard("教师时间偏好 / 不可用时间","UNAVAILABLE 为硬约束；AVOID 与 PREFERRED 用于方案排序。");
+        SectionCard card=new SectionCard("教师时间偏好 / 不可用时间","");
         JPanel fields=new JPanel(new GridLayout(2,3,8,8));fields.setOpaque(false);
         fields.add(UiFactory.labelledField("教师",teacher));fields.add(UiFactory.labelledField("星期",weekday));
         fields.add(UiFactory.labelledField("开始节次",start));fields.add(UiFactory.labelledField("结束节次",end));fields.add(UiFactory.labelledField("类型",type));
@@ -72,7 +72,7 @@ public final class AutoSchedulingPanel extends JPanel {
     }
 
     private SectionCard previewCard() {
-        SectionCard card=new SectionCard("一键自动排课","CSP + MRV + 回溯 + 前向检查；确认保存前会使用数据库最新状态二次校验。");
+        SectionCard card=new SectionCard("一键自动排课","");
         JPanel actions=UiFactory.horizontal(8);actions.add(generate);actions.add(regenerate);actions.add(confirm);actions.add(state);
         JScrollPane scroll=new JScrollPane(previewTable);scroll.setPreferredSize(new Dimension(900,260));
         JPanel content=new JPanel(new BorderLayout(0,8));content.setOpaque(false);content.add(actions,BorderLayout.NORTH);content.add(scroll,BorderLayout.CENTER);card.setContent(content);return card;

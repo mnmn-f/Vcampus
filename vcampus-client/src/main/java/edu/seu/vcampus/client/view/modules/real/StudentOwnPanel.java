@@ -60,7 +60,7 @@ public final class StudentOwnPanel extends JPanel {
     }
 
     private SectionCard profileCard() {
-        SectionCard card = new SectionCard("我的学籍档案", "仅显示本人档案和成绩。");
+        SectionCard card = new SectionCard("我的学籍档案", "");
         JPanel grid = new JPanel(new ResponsiveGridLayout(160, 3, 12)); grid.setOpaque(false);
         grid.add(profileField("学号", studentNo)); grid.add(profileField("姓名", name));
         grid.add(profileField("学院", college)); grid.add(profileField("专业", major));
@@ -78,7 +78,7 @@ public final class StudentOwnPanel extends JPanel {
     }
 
     private SectionCard metricsCard() {
-        SectionCard card = new SectionCard("成绩指标", "按东南大学4.8制映射计算；不计入课程由服务端标记。");
+        SectionCard card = new SectionCard("成绩指标", "按东南大学 4.8 制计算");
         JPanel grid = new JPanel(new GridLayout(1, 4, 10, 0)); grid.setOpaque(false);
         grid.add(metric("加权绩点/平均学分绩点", weightedGpa));
         grid.add(metric("平均绩点", averageGpa));

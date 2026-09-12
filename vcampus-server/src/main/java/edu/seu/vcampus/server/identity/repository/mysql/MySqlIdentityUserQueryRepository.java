@@ -37,7 +37,7 @@ public final class MySqlIdentityUserQueryRepository {
         UserQuery q = query == null ? new UserQuery() : query;
         String where = filters(q);
         List<ProfileDto> items = new ArrayList<ProfileDto>();
-        String sql = "SELECT " + COLUMNS + FROM + where + " ORDER BY u.id LIMIT ? OFFSET ?";
+        String sql = "SELECT " + COLUMNS + FROM + where + " ORDER BY u.id DESC LIMIT ? OFFSET ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             int i = bindFilters(ps, q, 1);
             ps.setInt(i++, q.getPageSize());

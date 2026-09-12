@@ -10,13 +10,18 @@ import edu.seu.vcampus.common.dto.store.ProductPage;
 import edu.seu.vcampus.common.dto.store.ProductQuery;
 import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
 import edu.seu.vcampus.common.dto.store.StockAdjustRequest;
+import edu.seu.vcampus.common.dto.store.StoreCategoryDto;
+import edu.seu.vcampus.common.dto.store.StoreCategoryPage;
 import edu.seu.vcampus.common.security.Role;
 
+import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import java.awt.BorderLayout;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /** 商品检索、详情、购物车入口和商店管理员库存维护。 */
 public final class StoreProductsPanel extends JPanel {
@@ -25,10 +30,11 @@ public final class StoreProductsPanel extends JPanel {
     private final Role role;
     private final JLabel detail = UiFactory.muted("选择商品查看详情。");
     private final ProductImageView image = new ProductImageView();
-    private final JTextField category = UiFactory.textField(12);
+    private final JComboBox<StoreCategoryOption> category = new JComboBox<StoreCategoryOption>();
     private final AsyncPagedTable<ProductDto> products;
     private final StoreProductEditorPanel editor;
     private final Runnable cartChanged;
+    private final Map<String, String> categoryNames = new HashMap<String, String>();
     private long selectedProductId;
 
     public StoreProductsPanel(BasePage page, StoreClientService service, Role role) {
@@ -40,13 +46,14 @@ public final class StoreProductsPanel extends JPanel {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.role = role; this.cartChanged = cartChanged;
         editor = role == Role.STORE_MANAGER ? new StoreProductEditorPanel(new EditorListener()) : null;
-        JPanel filter = UiFactory.horizontal(8); filter.add(UiFactory.body("分类编码")); filter.add(category);
+        JPanel filter = UiFactory.horizontal(8); filter.add(UiFactory.body("商品分类")); filter.add(category);
         JButton apply = new edu.seu.vcampus.client.ui.components.SecondaryButton("按分类筛选");
         apply.addActionListener(new java.awt.event.ActionListener() { @Override public void actionPerformed(java.awt.event.ActionEvent e) { products.reload(); } });
         filter.add(apply); add(filter);
         products = table(); add(products);
         JPanel info = new JPanel(new BorderLayout(12, 0)); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); info.add(image, BorderLayout.EAST); add(info);
         if (editor != null) add(editor);
+        loadCategories();
     }
 
     private AsyncPagedTable<ProductDto> table() {
@@ -58,10 +65,12 @@ public final class StoreProductsPanel extends JPanel {
                 new String[]{"编码", "商品", "分类", "单价", "库存", "状态"},
                 new AsyncPagedTable.Loader<ProductDto>() {
                     @Override public PageSlice<ProductDto> load(int p, String keyword, String filter) throws Exception {
-                        return slice(service.searchProducts(new ProductQuery(keyword, RealUi.optional(category.getText()), status(filter), p, 20)));
+                        StoreCategoryOption selected = (StoreCategoryOption) category.getSelectedItem();
+                        String code = selected == null ? null : selected.getCode();
+                        return slice(service.searchProducts(new ProductQuery(keyword, code, status(filter), p, 20)));
                     }
                 }, new AsyncPagedTable.RowMapper<ProductDto>() {
-                    @Override public Object[] values(ProductDto row) { return new Object[]{RealUi.text(row.getSku()), row.getName(), RealUi.status(row.getCategory()),
+                    @Override public Object[] values(ProductDto row) { return new Object[]{RealUi.text(row.getSku()), row.getName(), categoryLabel(row.getCategory()),
                             "¥" + RealUi.text(row.getPrice()), lowStock(row.getStockQty()), RealUi.status(row.getStatus())}; }
                 }, new AsyncPagedTable.SelectionListener<ProductDto>() {
                     @Override public void onSelected(ProductDto row) { select(row); }
@@ -109,6 +118,35 @@ public final class StoreProductsPanel extends JPanel {
                     @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
                 });
     }
+
+    private void loadCategories() {
+        category.removeAllItems(); category.addItem(StoreCategoryOption.all());
+        AsyncTask.run(new AsyncTask.Work<StoreCategoryPage>() {
+            @Override public StoreCategoryPage run() throws Exception { return service.listCategories(); }
+        }, new AsyncTask.Callback<StoreCategoryPage>() {
+            @Override public void onSuccess(StoreCategoryPage result) {
+                categoryNames.clear();
+                category.removeAllItems(); category.addItem(StoreCategoryOption.all());
+                if (result != null) for (StoreCategoryDto value : result.getItems()) {
+                    if (value != null) {
+                        categoryNames.put(normalize(value.getCode()), value.getName());
+                        if (value.isActive()) category.addItem(StoreCategoryOption.from(value));
+                    }
+                }
+                if (editor != null) editor.setCategories(result == null ? null : result.getItems());
+                products.reload();
+            }
+            @Override public void onFailure(Throwable error) {
+                if (editor != null) editor.setCategories(null);
+            }
+        });
+    }
+
+    private String categoryLabel(String code) {
+        String label = code == null ? null : categoryNames.get(normalize(code));
+        return label == null || label.trim().isEmpty() ? RealUi.status(code) : label;
+    }
+    private static String normalize(String value) { return value == null ? "" : value.trim().toUpperCase(Locale.ROOT); }
 
     private void save(final ProductWriteRequest request) {
         AsyncTask.run(new AsyncTask.Work<ProductDto>() {

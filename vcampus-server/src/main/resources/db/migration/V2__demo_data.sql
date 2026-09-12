@@ -39,7 +39,8 @@ VALUES
     ('STUDENT_RECORD_SELF_READ', '查看本人学籍', '学生读取本人学籍档案'),
     ('STUDENT_RECORD_MANAGE', '管理学籍档案', '学籍管理员维护学生档案'),
     ('SCORE_SELF_READ', '查看本人成绩', '学生读取本人成绩'),
-    ('SCORE_RECORD', '登记或核对成绩', '教师登记本人课程成绩或管理员核对'),
+    ('SCORE_RECORD', '登记成绩', '任课教师登记本人课程成绩'),
+    ('SCORE_AUDIT', '核对成绩', '教务管理员核对课程成绩'),
     ('COURSE_READ', '查看课程', '查询课程和课程时段'),
     ('COURSE_MANAGE', '管理课程', '教务老师维护课程与排课'),
     ('COURSE_ENROLL', '选退课程', '学生办理选课和退课'),
@@ -97,14 +98,14 @@ ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
-  ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'STUDENT_RECORD_MANAGE', 'SCORE_RECORD', 'ANNOUNCEMENT_READ')
+  ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'STUDENT_RECORD_MANAGE', 'ANNOUNCEMENT_READ')
 WHERE r.`code` = 'REGISTRAR'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p
   ON p.`code` IN ('PROFILE_READ', 'PROFILE_UPDATE', 'COURSE_READ', 'COURSE_MANAGE', 'ANNOUNCEMENT_MANAGE',
-                  'COMPETITION_MANAGE', 'SRTP_MANAGE', 'CLASSROOM_APPROVE')
+                  'SCORE_AUDIT', 'COMPETITION_MANAGE', 'SRTP_MANAGE', 'CLASSROOM_APPROVE')
 WHERE r.`code` = 'ACADEMIC_ADMIN'
 ON DUPLICATE KEY UPDATE `granted_at` = `granted_at`;
 

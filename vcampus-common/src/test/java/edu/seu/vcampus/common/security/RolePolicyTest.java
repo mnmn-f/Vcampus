@@ -28,4 +28,12 @@ public class RolePolicyTest {
             assertTrue(role.name(), RolePolicy.allows(role, Permission.PROFILE_UPDATE));
         }
     }
+
+    @Test
+    public void gradesBelongToTeachingAndAcademicAdministration() {
+        assertTrue(RolePolicy.allows(Role.TEACHER, Permission.SCORE_RECORD));
+        assertTrue(RolePolicy.allows(Role.ACADEMIC_ADMIN, Permission.SCORE_AUDIT));
+        assertFalse(RolePolicy.allows(Role.REGISTRAR, Permission.SCORE_RECORD));
+        assertFalse(RolePolicy.allows(Role.REGISTRAR, Permission.SCORE_AUDIT));
+    }
 }

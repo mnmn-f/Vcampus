@@ -2,6 +2,9 @@ package edu.seu.vcampus.client.service.student;
 
 import edu.seu.vcampus.client.network.NetworkClientException;
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
@@ -24,9 +27,17 @@ public interface StudentRecordClientService {
     StudentGradeExportDto exportOwnGrades(StudentGradeExportQuery query)
             throws NetworkClientException;
     StudentProfilePage searchProfiles(StudentProfileQuery query) throws NetworkClientException;
+    default StudentAccountCandidatePage searchPendingAccounts(StudentAccountCandidateQuery query)
+            throws NetworkClientException {
+        return new StudentAccountCandidatePage(java.util.Collections.emptyList(), 0L, 1, 100);
+    }
     StudentDetailDto getProfileDetail(long studentUserId) throws NetworkClientException;
     StudentProfileDto createProfile(StudentProfileWriteRequest request)
             throws NetworkClientException;
+    default StudentProfileDto createProfile(StudentProfileCreateRequest request)
+            throws NetworkClientException {
+        throw new NetworkClientException("COMMON.NOT_SUPPORTED", "待建档接口不可用");
+    }
     StudentProfileDto updateProfile(StudentProfileWriteRequest request)
             throws NetworkClientException;
     StudentGradeDto recordGrade(StudentGradeRecordRequest request)

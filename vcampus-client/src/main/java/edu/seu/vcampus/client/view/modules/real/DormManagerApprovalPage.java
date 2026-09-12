@@ -74,7 +74,7 @@ public final class DormManagerApprovalPage extends JPanel {
 
     private AsyncPagedTable<ApprovalRow> table() {
         AsyncPagedTable<ApprovalRow> value = new AsyncPagedTable<ApprovalRow>("", "",
-                "搜索学生编号或内容",
+                "搜索学生或内容",
                 new String[]{"待审批", "全部状态", "仅住宿", "仅请假", "仅来访"},
                 new String[]{"类别", "学生", "位置", "内容", "提交时间", "状态"},
                 new AsyncPagedTable.Loader<ApprovalRow>() {
@@ -83,7 +83,7 @@ public final class DormManagerApprovalPage extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<ApprovalRow>() {
                     @Override public Object[] values(ApprovalRow row) {
-                        return new Object[]{row.kind, Long.valueOf(row.studentId), row.where, row.content,
+                        return new Object[]{row.kind, "申请人", row.where, row.content,
                                 RealUi.dateTime(row.submittedAt), RealUi.status(row.status)};
                     }
                 }, null);
@@ -179,7 +179,6 @@ public final class DormManagerApprovalPage extends JPanel {
         ApprovalRow row = new ApprovalRow();
         row.kind = KIND_ACCOMMODATION;
         row.id = item.getId();
-        row.studentId = item.getStudentUserId();
         row.where = item.getRequestedBedId() == null ? "—" : "床位 " + item.getRequestedBedId();
         row.content = RealUi.status(item.getRequestType())
                 + (item.getReason() == null || item.getReason().trim().isEmpty()
@@ -193,7 +192,6 @@ public final class DormManagerApprovalPage extends JPanel {
         ApprovalRow row = new ApprovalRow();
         row.kind = KIND_LEAVE;
         row.id = item.getId();
-        row.studentId = item.getStudentUserId();
         row.where = "—";
         row.content = RealUi.status(item.getLeaveType()) + " " + RealUi.dateTime(item.getStartAt())
                 + " → " + RealUi.dateTime(item.getEndAt());
@@ -206,7 +204,6 @@ public final class DormManagerApprovalPage extends JPanel {
         ApprovalRow row = new ApprovalRow();
         row.kind = KIND_VISITOR;
         row.id = item.getId();
-        row.studentId = item.getStudentUserId();
         row.where = RealUi.text(item.getBuildingCode()) + " " + RealUi.text(item.getRoomNo());
         row.content = RealUi.text(item.getVisitorName()) + " · " + RealUi.text(item.getVisitorIdCardMasked())
                 + " · " + RealUi.text(item.getVisitReason());
@@ -247,15 +244,13 @@ public final class DormManagerApprovalPage extends JPanel {
     private static final class ApprovalRow {
         private String kind;
         private long id;
-        private long studentId;
         private String where;
         private String content;
         private LocalDateTime submittedAt;
         private String status;
 
         boolean matches(String needle) {
-            return String.valueOf(studentId).contains(needle)
-                    || (content != null && content.contains(needle))
+            return (content != null && content.contains(needle))
                     || (where != null && where.contains(needle));
         }
     }

@@ -26,6 +26,8 @@ public final class StudentCommandRegistry {
                 Permission.SCORE_SELF_READ, service);
         register(router, StudentCommands.PROFILE_SEARCH,
                 Permission.STUDENT_RECORD_MANAGE, service);
+        register(router, StudentCommands.PROFILE_CANDIDATES,
+                Permission.STUDENT_RECORD_MANAGE, service);
         register(router, StudentCommands.PROFILE_DETAIL,
                 Permission.STUDENT_RECORD_MANAGE, service);
         register(router, StudentCommands.PROFILE_CREATE,
@@ -35,7 +37,7 @@ public final class StudentCommandRegistry {
         register(router, StudentCommands.GRADE_RECORD,
                 Permission.SCORE_RECORD, service);
         register(router, StudentCommands.GRADE_REVIEW,
-                Permission.SCORE_RECORD, service);
+                Permission.SCORE_AUDIT, service);
         return router;
     }
 

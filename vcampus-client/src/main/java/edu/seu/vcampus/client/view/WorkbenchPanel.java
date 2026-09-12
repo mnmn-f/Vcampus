@@ -62,8 +62,7 @@ public final class WorkbenchPanel extends BasePage {
         greeting.setForeground(Color.WHITE);
         String account = current.getLoginResult() == null
                 ? "" : current.getLoginResult().getAccount();
-        JLabel line = new JLabel("校园账号：" + (account == null ? "" : account)
-                + "　用户编号：" + current.getUserId());
+        JLabel line = new JLabel("校园账号：" + (account == null ? "" : account));
         line.setFont(DesignTokens.regular(14));
         line.setForeground(new Color(0xDF, 0xF2, 0xEA));
         words.add(greeting);

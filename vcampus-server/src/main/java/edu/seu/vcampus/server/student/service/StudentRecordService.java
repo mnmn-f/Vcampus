@@ -1,6 +1,9 @@
 package edu.seu.vcampus.server.student.service;
 
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportDto;
 import edu.seu.vcampus.common.dto.student.StudentGradeExportQuery;
 import edu.seu.vcampus.common.dto.student.StudentGradeDto;
@@ -60,6 +63,12 @@ public final class StudentRecordService {
         return profiles.search(session, query);
     }
 
+    public StudentAccountCandidatePage searchPendingAccounts(SessionContext session,
+                                                             StudentAccountCandidateQuery query)
+            throws StudentRecordException {
+        return profiles.pendingAccounts(session, query);
+    }
+
     public StudentDetailDto getProfileDetail(SessionContext session, long studentUserId)
             throws StudentRecordException {
         return profiles.detail(session, studentUserId);
@@ -69,6 +78,12 @@ public final class StudentRecordService {
                                            StudentProfileWriteRequest request)
             throws StudentRecordException {
         return profiles.create(session, request);
+    }
+
+    public StudentProfileDto createProfile(SessionContext session,
+                                           StudentProfileCreateRequest request)
+            throws StudentRecordException {
+        return profiles.createFromAccount(session, request);
     }
 
     public StudentProfileDto updateProfile(SessionContext session,

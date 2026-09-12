@@ -26,12 +26,15 @@ public class DataTableToolbar extends JPanel {
         super(new BorderLayout(0, 2));
         setOpaque(false);
         setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 2, 0));
+        boolean searchVisible = searchHint != null && !searchHint.trim().isEmpty();
         searchField.setToolTipText(searchHint);
         searchField.putClientProperty("JTextField.placeholderText", searchHint);
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         left.setOpaque(false);
-        left.add(label("搜索"));
-        left.add(searchField);
+        if (searchVisible) {
+            left.add(label("搜索"));
+            left.add(searchField);
+        }
         if (filters != null && filters.length > 0) {
             filterBox = new JComboBox<String>(filters);
             filterBox.setFont(DesignTokens.regular(13));

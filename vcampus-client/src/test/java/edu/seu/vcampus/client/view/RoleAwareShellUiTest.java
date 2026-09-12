@@ -83,10 +83,9 @@ public final class RoleAwareShellUiTest {
         assertTrue(view.contains("学生"));
         assertTrue(view.contains("多职责用户"));
         assertTrue(view.contains("qa"));
-        assertTrue(view.contains("7"));
         assertTrue(view.contains("姓名"));
         assertTrue(view.contains("校园账号"));
-        assertTrue(view.contains("用户编号"));
+        assertFalse(view.contains("用户编号"));
         assertTrue(view.contains("宿舍生活"));
         assertFalse(view.contains("演示模式"));
         assertFalse(view.contains("已连接"));

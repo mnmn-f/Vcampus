@@ -65,7 +65,7 @@ public final class DormManagerAbsencePanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<LateReturnAlertDto>() {
                     @Override public Object[] values(LateReturnAlertDto row) {
-                        return new Object[]{Long.valueOf(row.getId()), Long.valueOf(row.getStudentUserId()),
+                        return new Object[]{Long.valueOf(row.getId()), "晚归学生",
                                 RealUi.date(row.getAlertDate()), RealUi.dateTime(row.getDetectedAt()),
                                 alertLabel(row.getStatus()), RealUi.text(row.getNote())};
                     }

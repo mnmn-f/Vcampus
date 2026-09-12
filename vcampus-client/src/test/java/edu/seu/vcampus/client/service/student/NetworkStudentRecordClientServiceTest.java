@@ -7,6 +7,10 @@ import edu.seu.vcampus.common.dto.auth.LoginResult;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
 import edu.seu.vcampus.common.protocol.Message;
 import edu.seu.vcampus.common.protocol.command.StudentCommands;
@@ -57,6 +61,34 @@ public class NetworkStudentRecordClientServiceTest {
         assertEquals(StudentCommands.PROFILE_SEARCH, gateway.lastRequest.getCommand());
         assertEquals("token-9", gateway.lastRequest.getSessionToken());
         assertSame(query, gateway.lastRequest.getPayload());
+    }
+
+    @Test
+    public void onboardingUsesAccountPayloadAndCandidateCommand() throws Exception {
+        RecordingGateway gateway = new RecordingGateway();
+        ClientSession session = new ClientSession();
+        session.open(new LoginResult(9L, "registrar", "教务", Role.REGISTRAR, "token-9"));
+        NetworkStudentRecordClientService service = new NetworkStudentRecordClientService(
+                new NetworkClientService(gateway), session);
+        StudentAccountCandidateQuery query = new StudentAccountCandidateQuery("学生", 1, 100);
+        StudentAccountCandidatePage candidates = new StudentAccountCandidatePage(
+                java.util.Collections.singletonList(new StudentAccountCandidateDto(
+                        "student01", "测试学生", null, null, null)), 1L, 1, 100);
+        gateway.payload = candidates;
+        assertSame(candidates, service.searchPendingAccounts(query));
+        assertEquals(StudentCommands.PROFILE_CANDIDATES, gateway.lastRequest.getCommand());
+        assertSame(query, gateway.lastRequest.getPayload());
+
+        StudentProfileCreateRequest create = new StudentProfileCreateRequest("student01", "S-01",
+                "计算机科学与工程学院", "软件工程", "软工2601", 2026, 2030,
+                "UNDERGRADUATE", "MALE", null, null, null, null, StudentStatus.ENROLLED);
+        gateway.payload = new StudentProfileDto(11L, "测试学生", "student01", "S-01",
+                "计算机科学与工程学院", "软件工程", "软工2601", 2026, 2030,
+                "UNDERGRADUATE", "MALE", null, null, null, null, StudentStatus.ENROLLED);
+        service.createProfile(create);
+        assertEquals(StudentCommands.PROFILE_CREATE, gateway.lastRequest.getCommand());
+        assertSame(create, gateway.lastRequest.getPayload());
+        assertEquals("token-9", gateway.lastRequest.getSessionToken());
     }
 
     private static final class RecordingGateway implements ClientGateway {

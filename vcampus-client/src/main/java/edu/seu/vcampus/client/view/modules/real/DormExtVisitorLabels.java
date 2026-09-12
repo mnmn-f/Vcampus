@@ -27,7 +27,7 @@ final class DormExtVisitorLabels {
     /** 宿管视图多两列：提交学生和所在房间。 */
     static Object[] row(VisitorRegistrationDto row, boolean includeStudent) {
         if (includeStudent) {
-            return new Object[]{row.getId(), row.getStudentUserId(),
+            return new Object[]{row.getId(), "登记学生",
                     RealUi.text(row.getBuildingCode()) + " " + RealUi.text(row.getRoomNo()),
                     RealUi.text(row.getVisitorName()), RealUi.text(row.getVisitorIdCardMasked()),
                     RealUi.text(row.getVisitReason()), RealUi.dateTime(row.getStartAt()),

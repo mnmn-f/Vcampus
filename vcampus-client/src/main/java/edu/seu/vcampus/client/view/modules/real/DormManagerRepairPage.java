@@ -2,7 +2,6 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.dorm.DormClientService;
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
-import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
@@ -19,11 +18,10 @@ import edu.seu.vcampus.common.dto.dorm.ext.RepairWorkerDto;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
+import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import java.awt.BorderLayout;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +47,7 @@ public final class DormManagerRepairPage extends JPanel {
     private final AsyncPagedTable<RepairOrderDto> repairs;
     private final JPanel side = new JPanel();
     private final List<RepairWorkerDto> workers = new ArrayList<RepairWorkerDto>();
-    private final ButtonGroup workerGroup = new ButtonGroup();
+    private final JComboBox<WorkerOption> workerSelect = new JComboBox<WorkerOption>();
     private RepairOrderDto selected;
     private RepairWorkOrderDto detail;
 
@@ -93,11 +91,10 @@ public final class DormManagerRepairPage extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<RepairOrderDto>() {
                     @Override public Object[] values(RepairOrderDto row) {
-                        return new Object[]{Long.valueOf(row.getId()), Long.valueOf(row.getRoomId()),
-                                Long.valueOf(row.getReporterId()), RealUi.status(row.getCategory()),
+                        return new Object[]{Long.valueOf(row.getId()), row.location(), reporter(row), RealUi.status(row.getCategory()),
                                 RealUi.text(row.getDescription()), RealUi.status(row.getPriority()),
                                 RealUi.status(row.getStatus()),
-                                row.getHandlerId() == null ? "未派单" : RealUi.text(row.getHandlerId())};
+                                handler(row)};
                     }
                 }, new AsyncPagedTable.SelectionListener<RepairOrderDto>() {
                     @Override public void onSelected(RepairOrderDto row) { select(row); }
@@ -148,7 +145,7 @@ public final class DormManagerRepairPage extends JPanel {
             return;
         }
         side.add(DormUi.header("派单 · 工单 " + selected.getId(),
-                RealUi.status(selected.getCategory()) + "　·　房间 " + selected.getRoomId()
+                RealUi.status(selected.getCategory()) + "　·　" + selected.location()
                         + "　·　" + RealUi.dateTime(selected.getSubmittedAt()), null, false));
 
         if (detail != null) {
@@ -248,31 +245,25 @@ public final class DormManagerRepairPage extends JPanel {
         JPanel column = new JPanel();
         column.setOpaque(false);
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
-        JLabel caption = DormUi.caption("选择维修员：名字后面是他手头未结的工单数，少的排在前面");
+        JLabel caption = DormUi.caption("选择维修员");
         column.add(caption);
         column.add(Box.createVerticalStrut(8));
-        // 每次重建单选组：上一批按钮已经不在界面上了，留在组里会让选中状态串到新按钮上。
-        java.util.Enumeration<javax.swing.AbstractButton> old = workerGroup.getElements();
-        while (old.hasMoreElements()) workerGroup.remove(old.nextElement());
+        workerSelect.removeAllItems();
         if (workers.isEmpty()) {
-            JLabel empty = DormUi.sub("还没有启用的维修员账号。先用系统管理员给某个账号加上「维修员」角色，这里就能派单了。");
+            JLabel empty = DormUi.sub("当前没有可派单的维修员。");
             column.add(empty);
             return column;
         }
-        boolean first = true;
+        WorkerOption selectedOption = null;
         for (RepairWorkerDto worker : workers) {
-            JRadioButton option = new JRadioButton(worker.summary());
-            option.setOpaque(false);
-            option.setFont(DesignTokens.regular(15));
-            option.setForeground(DesignTokens.TEXT_PRIMARY);
-            option.putClientProperty("worker", worker);
-            option.setSelected(first
-                    || (detail != null && detail.getHandlerId() != null
-                        && detail.getHandlerId().longValue() == worker.getUserId()));
-            workerGroup.add(option);
-            column.add(option);
-            first = false;
+            WorkerOption option = new WorkerOption(worker);
+            workerSelect.addItem(option);
+            if (detail != null && detail.getHandlerId() != null
+                    && detail.getHandlerId().longValue() == worker.getUserId()) selectedOption = option;
         }
+        if (selectedOption != null) workerSelect.setSelectedItem(selectedOption);
+        else workerSelect.setSelectedIndex(0);
+        column.add(workerSelect);
         column.add(Box.createVerticalStrut(12));
         JButton assign = new PrimaryButton(detail != null && detail.getHandlerId() != null
                 ? "改派给选中的维修员" : "派给选中的维修员");
@@ -305,12 +296,14 @@ public final class DormManagerRepairPage extends JPanel {
     }
 
     private RepairWorkerDto selectedWorker() {
-        java.util.Enumeration<javax.swing.AbstractButton> items = workerGroup.getElements();
-        while (items.hasMoreElements()) {
-            javax.swing.AbstractButton item = items.nextElement();
-            if (item.isSelected()) return (RepairWorkerDto) ((javax.swing.JComponent) item).getClientProperty("worker");
-        }
-        return null;
+        WorkerOption option = (WorkerOption) workerSelect.getSelectedItem();
+        return option == null ? null : option.worker;
+    }
+
+    private static final class WorkerOption {
+        private final RepairWorkerDto worker;
+        private WorkerOption(RepairWorkerDto worker) { this.worker = worker; }
+        @Override public String toString() { return worker.summary(); }
     }
 
     private void update(final DormRepairStatus target, boolean confirm) {
@@ -339,5 +332,18 @@ public final class DormManagerRepairPage extends JPanel {
         if ("已完成".equals(filter)) return DormRepairStatus.COMPLETED.name();
         if ("已取消".equals(filter)) return DormRepairStatus.CANCELLED.name();
         return null;
+    }
+
+    private static String reporter(RepairOrderDto row) {
+        if (row.getReporterName() != null && !row.getReporterName().trim().isEmpty()) return row.getReporterName();
+        if (row.getReporterUsername() != null && !row.getReporterUsername().trim().isEmpty()) return row.getReporterUsername();
+        return "学生";
+    }
+
+    private static String handler(RepairOrderDto row) {
+        if (row.getHandlerId() == null) return "未派单";
+        if (row.getHandlerName() != null && !row.getHandlerName().trim().isEmpty()) return row.getHandlerName();
+        if (row.getHandlerUsername() != null && !row.getHandlerUsername().trim().isEmpty()) return row.getHandlerUsername();
+        return "维修员";
     }
 }

@@ -137,7 +137,7 @@ public final class StoreCartPanel extends SectionCard {
         AsyncTask.run(new AsyncTask.Work<CheckoutPreviewDto>() {
             @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(RealUi.optional(coupon.getText())); }
         }, new AsyncTask.Callback<CheckoutPreviewDto>() {
-            @Override public void onSuccess(CheckoutPreviewDto result) { preview.setText("应付 " + money(result.getPayable())); if (RealUi.confirm(StoreCartPanel.this, "确认按服务端结算金额提交？")) confirmOrder(); }
+            @Override public void onSuccess(CheckoutPreviewDto result) { preview.setText("应付 " + money(result.getPayable())); if (RealUi.confirm(StoreCartPanel.this, "确认提交订单？")) confirmOrder(); }
             @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
         });
     }

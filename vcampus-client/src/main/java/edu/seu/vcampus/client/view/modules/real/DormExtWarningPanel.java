@@ -67,7 +67,7 @@ public final class DormExtWarningPanel extends JPanel {
     private AsyncPagedTable<AbsenceWarningDto> warningTable() {
         return new AsyncPagedTable<AbsenceWarningDto>("连续未归预警",
                 "按扫描日记录，同一学生同一扫描日只留一条。",
-                "搜索房间、楼栋或学号",
+                "搜索房间或楼栋",
                 new String[]{"全部状态", "待处理", "已通知", "已核实"},
                 new String[]{"编号", "学生", "楼栋", "房间", "扫描日", "未归天数", "级别", "状态", "已通知"},
                 new AsyncPagedTable.Loader<AbsenceWarningDto>() {
@@ -82,11 +82,11 @@ public final class DormExtWarningPanel extends JPanel {
                 new AsyncPagedTable.RowMapper<AbsenceWarningDto>() {
                     @Override
                     public Object[] values(AbsenceWarningDto row) {
-                        return new Object[]{row.getId(), row.getStudentUserId(),
+                        return new Object[]{row.getId(), "预警学生",
                                 RealUi.text(row.getBuildingCode()), RealUi.text(row.getRoomNo()),
                                 RealUi.date(row.getScanDate()), Integer.valueOf(row.getAbsenceDays()),
                                 levelLabel(row.getWarningLevel()), statusLabel(row.getHandleStatus()),
-                                RealUi.text(row.getNotifiedTeacherId())};
+                                row.getNotifiedTeacherId() == null ? "未通知" : "已通知"};
                     }
                 }, null);
     }
@@ -95,7 +95,7 @@ public final class DormExtWarningPanel extends JPanel {
         JPanel fields = new JPanel();
         fields.setOpaque(false);
         fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
-        fields.add(labelled("辅导员用户号", teacher));
+        fields.add(labelled("辅导员账号", teacher));
         fields.add(javax.swing.Box.createVerticalStrut(11));
         fields.add(labelled("处理备注", note));
 
@@ -166,7 +166,7 @@ public final class DormExtWarningPanel extends JPanel {
         if (selected == null) { page.showWarning("请先选择一条预警。"); return; }
         final Long teacherId;
         try {
-            teacherId = Long.valueOf(positive(teacher.getText(), "辅导员用户号"));
+            teacherId = Long.valueOf(positive(teacher.getText(), "辅导员账号"));
         } catch (IllegalArgumentException ex) {
             page.showWarning(ex.getMessage());
             return;

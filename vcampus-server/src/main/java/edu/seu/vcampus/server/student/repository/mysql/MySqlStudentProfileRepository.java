@@ -1,6 +1,8 @@
 package edu.seu.vcampus.server.student.repository.mysql;
 
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
 import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
@@ -39,6 +41,8 @@ final class MySqlStudentProfileRepository
                     + "enrollment_year = ?, expected_graduation_year = ?, degree_level = ?, "
                     + "gender = ?, birth_date = ?, address = ?, emergency_contact = ?, "
                     + "emergency_phone = ?, status = ? WHERE user_id = ?";
+    private final MySqlStudentAccountCandidateRepository candidates =
+            new MySqlStudentAccountCandidateRepository();
 
     @Override
     public StudentProfileDto find(Connection connection, long userId) {
@@ -73,6 +77,17 @@ final class MySqlStudentProfileRepository
         return new StudentProfilePage(items, total, query.getPage(), query.getPageSize());
     }
 
+    @Override
+    public StudentAccountCandidatePage pendingAccounts(Connection connection,
+                                                       StudentAccountCandidateQuery query) {
+        return candidates.search(connection, query);
+    }
+
+    @Override
+    public long pendingAccountId(Connection connection, String account) {
+        return candidates.findId(connection, account);
+    }
+
     private long count(Connection connection, StudentProfileQuery query, String where) {
         try (PreparedStatement statement = connection.prepareStatement(COUNT_PROFILE + where)) {
             MySqlStudentProfileSql.bindFilters(statement, query, 1);
@@ -84,6 +99,7 @@ final class MySqlStudentProfileRepository
             throw failure("failed to count student profiles", ex);
         }
     }
+
 
     @Override
     public boolean userExists(Connection connection, long userId) {

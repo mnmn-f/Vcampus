@@ -22,7 +22,7 @@ import edu.seu.vcampus.server.student.repository.StudentRecordRepository;
 import java.math.BigDecimal;
 import java.sql.Connection;
 
-/** 学生查分、任课教师登记和学籍管理员核对成绩服务。 */
+/** 学生查分、任课教师登记和教务管理员核对成绩服务。 */
 public final class StudentGradeService {
     private final StudentRecordRepository repository;
     private final StudentTransactionRunner transactions;
@@ -125,10 +125,10 @@ public final class StudentGradeService {
     public StudentGradePage review(final SessionContext session,
                                    final StudentGradeReviewQuery query)
             throws StudentRecordException {
-        StudentServiceSupport.requirePermission(session, Permission.SCORE_RECORD);
-        if (session.getActiveRole() != Role.REGISTRAR) {
+        StudentServiceSupport.requirePermission(session, Permission.SCORE_AUDIT);
+        if (session.getActiveRole() != Role.ACADEMIC_ADMIN) {
             throw new StudentRecordException(ResultCodes.FORBIDDEN,
-                    "只有学籍管理员可以核对成绩档案");
+                    "只有教务管理员可以核对成绩档案");
         }
         final StudentGradeReviewQuery safe = query == null
                 ? StudentGradeReviewQuery.firstPage() : query;

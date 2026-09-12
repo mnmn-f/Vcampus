@@ -1,7 +1,9 @@
 package edu.seu.vcampus.server.student.service;
 
 import edu.seu.vcampus.common.dto.student.StudentDetailDto;
-import edu.seu.vcampus.common.dto.student.StudentGradeDto;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidatePage;
+import edu.seu.vcampus.common.dto.student.StudentAccountCandidateQuery;
+import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfilePage;
 import edu.seu.vcampus.common.dto.student.StudentProfileQuery;
@@ -14,8 +16,7 @@ import edu.seu.vcampus.server.security.SessionContext;
 import edu.seu.vcampus.server.student.repository.StudentRecordRepository;
 
 import java.sql.Connection;
-import org.threeten.bp.LocalDate;
-import java.util.List;
+import java.util.Collections;
 
 /** 学生档案的本人读取与学籍管理员维护服务。 */
 public final class StudentProfileService {
@@ -65,11 +66,25 @@ public final class StudentProfileService {
                 });
     }
 
+    public StudentAccountCandidatePage pendingAccounts(final SessionContext session,
+                                                       final StudentAccountCandidateQuery query)
+            throws StudentRecordException {
+        StudentServiceSupport.requirePermission(session, Permission.STUDENT_RECORD_MANAGE);
+        final StudentAccountCandidateQuery safe = query == null
+                ? StudentAccountCandidateQuery.firstPage() : query;
+        return StudentServiceSupport.inTransaction(transactions,
+                new TransactionWork<StudentAccountCandidatePage>() {
+                    @Override public StudentAccountCandidatePage execute(Connection connection) {
+                        return repository.searchPendingAccounts(connection, safe);
+                    }
+                });
+    }
+
     public StudentDetailDto detail(final SessionContext session, final long studentUserId)
             throws StudentRecordException {
         StudentServiceSupport.requirePermission(session, Permission.STUDENT_RECORD_MANAGE);
         if (studentUserId <= 0) {
-            throw invalid("学生编号必须为正数");
+            throw StudentProfileValidation.invalid("学生档案不存在");
         }
         return StudentServiceSupport.inTransaction(transactions,
                 new TransactionWork<StudentDetailDto>() {
@@ -77,9 +92,7 @@ public final class StudentProfileService {
                     public StudentDetailDto execute(Connection connection)
                             throws StudentRecordException {
                         StudentProfileDto profile = findProfile(connection, studentUserId);
-                        List<StudentGradeDto> grades =
-                                repository.findAllGrades(connection, studentUserId);
-                        return new StudentDetailDto(profile, grades);
+                        return new StudentDetailDto(profile, Collections.emptyList());
                     }
                 });
     }
@@ -88,7 +101,7 @@ public final class StudentProfileService {
                                     final StudentProfileWriteRequest request)
             throws StudentRecordException {
         StudentServiceSupport.requirePermission(session, Permission.STUDENT_RECORD_MANAGE);
-        validateRequest(request);
+        StudentProfileValidation.validate(request);
         return StudentServiceSupport.inTransaction(transactions,
                 new TransactionWork<StudentProfileDto>() {
                     @Override
@@ -102,11 +115,38 @@ public final class StudentProfileService {
                 });
     }
 
+    public StudentProfileDto createFromAccount(final SessionContext session,
+                                               final StudentProfileCreateRequest request)
+            throws StudentRecordException {
+        StudentServiceSupport.requirePermission(session, Permission.STUDENT_RECORD_MANAGE);
+        if (request == null || request.getAccount() == null
+                || request.getAccount().trim().isEmpty()) {
+            throw StudentProfileValidation.invalid("请选择待建档学生账号");
+        }
+        return StudentServiceSupport.inTransaction(transactions,
+                new TransactionWork<StudentProfileDto>() {
+                    @Override public StudentProfileDto execute(Connection connection)
+                            throws StudentRecordException {
+                        long userId = repository.findPendingAccountId(connection,
+                                request.getAccount());
+                        if (userId <= 0L) {
+                            throw new StudentRecordException(ResultCodes.NOT_FOUND,
+                                    "学生账号不存在或已有学籍");
+                        }
+                        StudentProfileWriteRequest write = request.withUserId(userId);
+                        StudentProfileValidation.validate(write);
+                        ensureNoStudentNo(connection, write.getStudentNo(), 0L);
+                        repository.insertProfile(connection, write);
+                        return findProfile(connection, userId);
+                    }
+                });
+    }
+
     public StudentProfileDto update(final SessionContext session,
                                     final StudentProfileWriteRequest request)
             throws StudentRecordException {
         StudentServiceSupport.requirePermission(session, Permission.STUDENT_RECORD_MANAGE);
-        validateRequest(request);
+        StudentProfileValidation.validate(request);
         return StudentServiceSupport.inTransaction(transactions,
                 new TransactionWork<StudentProfileDto>() {
                     @Override
@@ -150,42 +190,4 @@ public final class StudentProfileService {
         }
     }
 
-    private static void validateRequest(StudentProfileWriteRequest request)
-            throws StudentRecordException {
-        if (request == null || request.getUserId() <= 0) {
-            throw invalid("学生账号编号必须为正数");
-        }
-        StudentServiceSupport.required(request.getStudentNo(), "学号");
-        StudentServiceSupport.maxLength(request.getStudentNo(), 32, "学号");
-        StudentServiceSupport.maxLength(request.getCollege(), 120, "学院");
-        StudentServiceSupport.maxLength(request.getMajor(), 120, "专业");
-        StudentServiceSupport.maxLength(request.getClassName(), 120, "班级");
-        StudentServiceSupport.maxLength(request.getDegreeLevel(), 20, "学位层次");
-        StudentServiceSupport.maxLength(request.getGender(), 16, "性别");
-        StudentServiceSupport.maxLength(request.getAddress(), 255, "地址");
-        StudentServiceSupport.maxLength(request.getEmergencyContact(), 100, "紧急联系人");
-        StudentServiceSupport.maxLength(request.getEmergencyPhone(), 32, "紧急联系电话");
-        validateYear(request.getEnrollmentYear(), "入学年份");
-        validateYear(request.getExpectedGraduationYear(), "预计毕业年份");
-        if (request.getEnrollmentYear() != null && request.getExpectedGraduationYear() != null
-                && request.getExpectedGraduationYear() < request.getEnrollmentYear()) {
-            throw invalid("预计毕业年份不能早于入学年份");
-        }
-        if (request.getBirthDate() != null && request.getBirthDate().isAfter(LocalDate.now())) {
-            throw invalid("出生日期不能晚于今天");
-        }
-        if (request.getStatus() == null) {
-            throw invalid("请选择学籍状态");
-        }
-    }
-
-    private static void validateYear(Integer year, String field) throws StudentRecordException {
-        if (year != null && (year < 1900 || year > 2200)) {
-            throw invalid(field + "不在有效范围内");
-        }
-    }
-
-    private static StudentRecordException invalid(String message) {
-        return new StudentRecordException(ResultCodes.INVALID_INPUT, message);
-    }
 }

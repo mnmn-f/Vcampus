@@ -36,10 +36,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-/** 教务学籍页应把六项筛选原样交给现有 PROFILE_SEARCH 客户端服务。 */
+/** 学籍页保留档案查询，建档和账号选择不暴露内部编号。 */
 public final class StudentRegistrarPanelTest {
     @Test
-    public void combinedFiltersAndResetUseFirstPage() throws Exception {
+    public void combinedFiltersUseFirstPage() throws Exception {
         final RecordingService service = new RecordingService();
         final AtomicReference<StudentRegistrarPanel> reference = new AtomicReference<StudentRegistrarPanel>();
         SwingUtilities.invokeAndWait(new Runnable() {
@@ -50,10 +50,10 @@ public final class StudentRegistrarPanelTest {
 
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override public void run() {
-                field(panel, "studentNo").setText(" S001 ");
-                field(panel, "college").setText("电气工程学院");
-                field(panel, "major").setText("电气工程及其自动化");
-                field(panel, "className").setText("电气2601");
+                textField(panel, "studentNo").setText(" S001 ");
+                combo(panel, "college").setSelectedItem("电气工程学院");
+                combo(panel, "major").setSelectedItem("电气工程及其自动化");
+                combo(panel, "className").setSelectedItem("电气2601");
                 findSearchField(panel).setText("学生一");
                 findStatusBox(panel).setSelectedItem("在读");
             }
@@ -70,20 +70,25 @@ public final class StudentRegistrarPanelTest {
         assertEquals(StudentStatus.ENROLLED, combined.getStatus());
         assertEquals(1, combined.getPage());
 
-        click(panel, "重置");
-        StudentProfileQuery reset = service.queries.poll(2, TimeUnit.SECONDS);
-        assertNull(reset.getStudentNo()); assertNull(reset.getDisplayName());
-        assertNull(reset.getCollege()); assertNull(reset.getMajor());
-        assertNull(reset.getClassName()); assertNull(reset.getStatus());
-        assertEquals(1, reset.getPage());
+        assertNull(findButton(panel, "重置"));
+        assertNull(findButton(panel, "新建档案"));
+        assertNull(findButton(panel, "成绩档案核对"));
     }
 
     @SuppressWarnings("unchecked")
-    private static JTextField field(StudentRegistrarPanel panel, String name) {
+    private static <T> T field(StudentRegistrarPanel panel, String name) {
         try {
             Field field = StudentRegistrarPanel.class.getDeclaredField(name);
-            field.setAccessible(true); return (JTextField) field.get(panel);
+            field.setAccessible(true); return (T) field.get(panel);
         } catch (Exception ex) { throw new AssertionError(ex); }
+    }
+
+    private static JTextField textField(StudentRegistrarPanel panel, String name) {
+        return field(panel, name);
+    }
+
+    private static JComboBox<?> combo(StudentRegistrarPanel panel, String name) {
+        return field(panel, name);
     }
 
     private static JTextField findSearchField(Component root) {

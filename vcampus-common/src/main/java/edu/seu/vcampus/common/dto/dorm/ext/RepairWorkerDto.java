@@ -27,6 +27,6 @@ public final class RepairWorkerDto implements Serializable {
 
     /** 派单列表里显示成「张师傅 · 手头 2 单」。 */
     public String summary() {
-        return (displayName == null ? "维修员 " + userId : displayName) + " · 手头 " + activeOrders + " 单";
+        return (displayName == null ? "维修员" : displayName) + " · 手头 " + activeOrders + " 单";
     }
 }

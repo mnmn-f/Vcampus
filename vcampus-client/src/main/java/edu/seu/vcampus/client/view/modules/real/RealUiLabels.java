@@ -25,6 +25,7 @@ final class RealUiLabels {
         put("CANCELLED", "已取消"); put("CONFIRMED", "已确认"); put("IGNORED", "已忽略");
         put("ENROLLED", "在读"); put("DROPPED", "已退选"); put("SUSPENDED", "休学"); put("GRADUATED", "毕业");
         put("WITHDRAWN", "退学"); put("ENDED", "已结束"); put("PUBLISHED", "已发布"); put("DRAFT", "草稿");
+        put("UNDERGRADUATE", "本科"); put("MASTER", "硕士"); put("DOCTORATE", "博士");
         put("PREPARING", "备货中"); put("SHIPPED", "已发货"); put("IN_TRANSIT", "运输中");
         put("READY_FOR_PICKUP", "待取货"); put("DELIVERED", "已送达");
         put("SCHEDULED", "定时发布"); put("REVOKED", "已撤回"); put("EXPIRED", "已过期");
@@ -41,6 +42,8 @@ final class RealUiLabels {
         put("DAILY", "日用百货"); put("FOOD", "食品饮料"); put("STATIONERY", "文具用品"); put("CULTURE", "校园文创");
         put("FULL", "满员"); put("STANDARD", "标准间"); put("SUITE", "套间"); put("SPECIAL", "特殊房型");
         put("TEACHING", "教学"); put("LAB", "实验"); put("MEETING", "会议"); put("PASS", "通过"); put("FAIL", "不通过");
+        put("THRESHOLD", "满减"); put("PERCENT", "折扣"); put("FIXED", "立减");
+        put("PRODUCT", "指定商品"); put("CATEGORY", "指定分类");
         put("WATER", "给排水"); put("PLUMBING", "给排水"); put("LIGHTING", "照明");
         put("ELECTRIC", "电气"); put("ELECTRICAL", "电气"); put("NETWORK", "网络");
         put("FURNITURE", "家具"); put("APPLIANCE", "家电"); put("AIR_CONDITIONING", "空调");

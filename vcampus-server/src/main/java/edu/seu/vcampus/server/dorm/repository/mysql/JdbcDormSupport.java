@@ -139,7 +139,10 @@ final class JdbcDormSupport {
                 r.getString("status"), handler,
                 localTimestamp(r, "submitted_at"), localTimestamp(r, "accepted_at"),
                 localTimestamp(r, "completed_at"), scoreNull ? null : Integer.valueOf(score),
-                r.getString("evaluation_note"));
+                r.getString("evaluation_note"), r.getString("building_name"),
+                r.getString("room_no"), r.getString("reporter_name"),
+                r.getString("reporter_username"), r.getString("handler_name"),
+                r.getString("handler_username"));
     }
 
     static UtilityBillDto bill(ResultSet r) throws SQLException {
