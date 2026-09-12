@@ -84,6 +84,10 @@ public class SectionCard extends JPanel {
         return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
     }
 
+    @Override public Dimension getMinimumSize() {
+        return new Dimension(0, super.getMinimumSize().height);
+    }
+
     /**
      * 卡片投影。
      *

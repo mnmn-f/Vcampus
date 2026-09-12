@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
@@ -18,54 +17,112 @@ import javax.swing.JLabel;
 /** 商品图片异步加载器：仅允许 http/https，限制大小并复用进程缓存。 */
 public final class ProductImageView extends JLabel {
     private static final int MAX_BYTES = 2 * 1024 * 1024;
+    private static final java.util.concurrent.atomic.AtomicInteger PENDING = new java.util.concurrent.atomic.AtomicInteger();
+    private static final java.util.concurrent.ExecutorService DOWNLOADS = new java.util.concurrent.ThreadPoolExecutor(
+            3, 3, 30, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.ArrayBlockingQueue<Runnable>(100),
+            task -> { Thread thread = new Thread(task, "product-image"); thread.setDaemon(true); return thread; });
     private static final Map<String, ImageIcon> CACHE = new LinkedHashMap<String, ImageIcon>(16, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String, ImageIcon> e) { return size() > 48; }
     };
     private static final ImageIcon PLACEHOLDER = placeholder();
     private String currentUrl;
+    private final int imageWidth;
+    private final int imageHeight;
+    private boolean initialized;
 
     public ProductImageView() {
+        this(180, 140);
+    }
+
+    ProductImageView(int width, int height) {
+        imageWidth = width; imageHeight = height;
         setHorizontalAlignment(CENTER); setVerticalAlignment(CENTER);
-        setPreferredSize(new Dimension(180, 140)); setMinimumSize(new Dimension(120, 100));
+        setPreferredSize(new Dimension(width, height)); setMinimumSize(new Dimension(width, height));
         setOpaque(true); setBackground(new java.awt.Color(0xF2, 0xF5, 0xF3)); setIcon(PLACEHOLDER);
         setForeground(DesignTokens.TEXT_SECONDARY);
     }
 
     public void load(final String url) {
-        currentUrl = normalize(url); setIcon(PLACEHOLDER);
+        String normalized = normalize(url);
+        if (initialized && java.util.Objects.equals(currentUrl, normalized)) return;
+        initialized = true; currentUrl = normalized; setIcon(PLACEHOLDER);
         if (currentUrl == null) { setText("暂无图片"); return; }
         final String target = currentUrl; ImageIcon hit;
         synchronized (CACHE) { hit = CACHE.get(target); }
         if (hit != null) { apply(target, hit); return; }
         setText("图片加载中…");
-        AsyncTask.run(new AsyncTask.Work<ImageIcon>() {
-            @Override public ImageIcon run() throws Exception { return read(target); }
-        }, new AsyncTask.Callback<ImageIcon>() {
-            @Override public void onSuccess(ImageIcon value) { synchronized (CACHE) { CACHE.put(target, value); } apply(target, value); }
-            @Override public void onFailure(Throwable error) { if (target.equals(currentUrl)) setText("图片暂不可用"); }
-        });
+        PENDING.incrementAndGet();
+        try {
+            DOWNLOADS.execute(() -> {
+                ImageIcon loaded = null;
+                try { loaded = read(target); synchronized (CACHE) { CACHE.put(target, loaded); } }
+                catch (Exception ignored) { }
+                final ImageIcon result = loaded;
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    try {
+                        if (result != null) apply(target, result);
+                        else if (target.equals(currentUrl)) setText("图片暂不可用");
+                    } finally { PENDING.decrementAndGet(); }
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException full) {
+            PENDING.decrementAndGet(); setText("图片暂不可用");
+        }
     }
+    public static boolean isIdle() { return PENDING.get() == 0; }
 
     private void apply(String target, ImageIcon icon) {
         if (!target.equals(currentUrl)) return;
-        setText(""); setIcon(icon);
+        setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(), imageWidth, imageHeight));
     }
 
     private static ImageIcon read(String value) throws Exception {
-        URLConnection connection = new URL(value).openConnection();
-        connection.setConnectTimeout(3000); connection.setReadTimeout(3000);
-        if (connection instanceof HttpURLConnection) ((HttpURLConnection) connection).setInstanceFollowRedirects(false);
+        HttpURLConnection connection = open(value);
+        try {
         int length = connection.getContentLength(); if (length > MAX_BYTES) throw new IllegalArgumentException("图片过大");
         ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buffer = new byte[8192]; int total = 0, count;
         try (java.io.InputStream in = connection.getInputStream()) { while ((count = in.read(buffer)) >= 0) { total += count; if (total > MAX_BYTES) throw new IllegalArgumentException("图片过大"); out.write(buffer, 0, count); } }
-        java.awt.image.BufferedImage image = ImageIO.read(new ByteArrayInputStream(out.toByteArray()));
-        if (image == null) throw new IllegalArgumentException("图片格式不支持");
-        Image scaled = image.getScaledInstance(180, 140, Image.SCALE_SMOOTH); return new ImageIcon(scaled);
+        try (javax.imageio.stream.ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(out.toByteArray()))) {
+            java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) throw new IllegalArgumentException("图片格式不支持");
+            javax.imageio.ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+                int width = reader.getWidth(0), height = reader.getHeight(0);
+                if ((long) width * height > 12000000L) throw new IllegalArgumentException("图片尺寸过大");
+                return fit(reader.read(0), width, height, 180, 140);
+            } finally { reader.dispose(); }
+        }
+        } finally { connection.disconnect(); }
+    }
+
+    private static HttpURLConnection open(String target) throws Exception {
+        for (int redirects = 0; redirects <= 3; redirects++) {
+            HttpURLConnection connection = (HttpURLConnection) new URL(target).openConnection();
+            connection.setConnectTimeout(3000); connection.setReadTimeout(3000);
+            connection.setInstanceFollowRedirects(false);
+            int status = connection.getResponseCode();
+            if (status >= 200 && status < 300) return connection;
+            String location = connection.getHeaderField("Location");
+            connection.disconnect();
+            if (status < 300 || status >= 400 || location == null) throw new java.io.IOException("图片下载失败");
+            String next = normalize(new URI(target).resolve(location).toString());
+            if (next == null || (target.startsWith("https:") && !next.startsWith("https:")))
+                throw new java.io.IOException("图片跳转地址无效");
+            target = next;
+        }
+        throw new java.io.IOException("图片跳转过多");
+    }
+
+    private static ImageIcon fit(Image image, int width, int height, int maxWidth, int maxHeight) {
+        double scale = Math.min((double) maxWidth / width, (double) maxHeight / height);
+        return new ImageIcon(image.getScaledInstance(Math.max(1, (int) (width * scale)),
+                Math.max(1, (int) (height * scale)), Image.SCALE_SMOOTH));
     }
 
     private static String normalize(String value) {
         if (value == null || value.trim().isEmpty()) return null;
-        try { URI uri = new URI(value.trim()); String scheme = uri.getScheme(); if (uri.getHost() == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) return null; return uri.toString(); }
+        try { URI uri = new URI(value.trim()); String scheme = uri.getScheme(); if (uri.getHost() == null || uri.getUserInfo() != null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) return null; return uri.toString(); }
         catch (Exception ex) { return null; }
     }
     private static ImageIcon placeholder() { return new ImageIcon(new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB)); }

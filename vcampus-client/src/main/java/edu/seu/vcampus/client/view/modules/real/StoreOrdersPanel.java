@@ -33,6 +33,7 @@ public final class StoreOrdersPanel extends JPanel {
     private JButton payButton;
     private JButton cancelButton;
     private boolean paymentRunning;
+    private long selectedOrderId;
 
     public StoreOrdersPanel(BasePage page, StoreClientService service, Role role) {
         this(page, service, role, null);
@@ -41,7 +42,7 @@ public final class StoreOrdersPanel extends JPanel {
     public StoreOrdersPanel(BasePage page, StoreClientService service, Role role, Runnable orderChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.role = role; this.orderChanged = orderChanged;
-        orders = table(); add(orders);
+        orders = table(); orders.setItemKey(OrderDto::getId); orders.setLiveSelectionUpdates(true); add(orders);
         JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
     }
 
@@ -89,6 +90,7 @@ public final class StoreOrdersPanel extends JPanel {
     }
 
     private void select(final OrderDto value) {
+        selectedOrderId = value == null ? 0L : value.getId();
         updateStudentActions(value);
         if (value == null) { detail.setText("选择订单查看详情。"); return; }
         detail.setText("订单详情：" + RealUi.text(value.getOrderNo()) + "　金额 ¥" + RealUi.text(value.getTotalAmount())
@@ -96,10 +98,10 @@ public final class StoreOrdersPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<OrderDto>() {
             @Override public OrderDto run() throws Exception { return service.getOrderDetail(value.getId()); }
         }, new AsyncTask.Callback<OrderDto>() {
-            @Override public void onSuccess(OrderDto result) { detail.setText("订单详情：" + RealUi.text(result.getOrderNo())
+            @Override public void onSuccess(OrderDto result) { if (result == null || result.getId() != selectedOrderId) return; updateStudentActions(result); detail.setText("订单详情：" + RealUi.text(result.getOrderNo())
                     + "　金额 ¥" + RealUi.text(result.getTotalAmount()) + "　状态：" + RealUi.status(result.getStatus())
                     + "　物流：" + shippingDetail(result) + "　明细：" + summary(result)); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onFailure(Throwable error) { if (selectedOrderId == value.getId()) page.showError(AsyncTask.message(error)); }
         });
     }
 

@@ -130,13 +130,11 @@ public final class DormSpaceEditorPanel extends SectionCard {
     private void loadReferences() {
         AsyncTask.run(new AsyncTask.Work<SpaceReferences>() {
             @Override public SpaceReferences run() throws Exception {
-                DormPage<DormBuildingDto> b = service.buildings(new DormPageQuery(1, 200, null, null, null, null));
-                DormPage<DormRoomDto> r = service.rooms(new DormPageQuery(1, 500, null, null, null, null));
-                return new SpaceReferences(b == null ? null : b.getItems(), r == null ? null : r.getItems());
+                return new SpaceReferences(allReferences(service::buildings), allReferences(service::rooms));
             }
         }, new AsyncTask.Callback<SpaceReferences>() {
             @Override public void onSuccess(SpaceReferences value) { fillReferences(value); }
-            @Override public void onFailure(Throwable error) { fillReferences(null); }
+            @Override public void onFailure(Throwable error) { roomError.setText(AsyncTask.message(error)); bedError.setText(AsyncTask.message(error)); }
         });
     }
 
@@ -150,6 +148,17 @@ public final class DormSpaceEditorPanel extends SectionCard {
                     new SpaceOption(r.getId(), RealUi.text(r.getBuildingName()) + " " + RealUi.text(r.getRoomNo())));
         }
         select(roomBuilding, roomBuildingSelection, "当前楼栋"); select(bedRoom, bedRoomSelection, "当前房间");
+    }
+
+    interface ReferenceLoader<T> { DormPage<T> load(DormPageQuery query) throws Exception; }
+    static <T> List<T> allReferences(ReferenceLoader<T> loader) throws Exception {
+        List<T> result = new java.util.ArrayList<>();
+        for (int p = 1; ; p++) {
+            DormPage<T> batch = loader.load(new DormPageQuery(p, 100, null, null, null, null));
+            if (batch == null || batch.getItems().isEmpty()) return result;
+            result.addAll(batch.getItems());
+            if (result.size() >= batch.getTotal()) return result;
+        }
     }
 
     private void startBuilding() { buildingId = 0L; buildingCode.setText(""); buildingName.setText(""); buildingAddress.setText(""); buildingGender.setSelectedItem(RealUi.option("MALE")); buildingStatus.setSelectedItem(RealUi.option("OPEN")); buildingError.setText(" "); }

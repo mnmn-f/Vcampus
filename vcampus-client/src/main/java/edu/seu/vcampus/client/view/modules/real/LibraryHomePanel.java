@@ -26,7 +26,6 @@ final class LibraryHomePanel extends JPanel {
         this.searchBooks = searchBooks; this.openBorrowings = openBorrowings; this.openRooms = openRooms;
         LibraryUi.Surface welcome = new LibraryUi.Surface(DesignTokens.PRIMARY_LIGHT, 24);
         welcome.add(LibraryUi.label(greeting() + "，" + session.getDisplayName(), 25, true));
-        welcome.add(LibraryUi.muted("今天，也读一点喜欢的书。"));
         JTextField search = LibraryUi.search("搜索书名、作者或 ISBN");
         JButton submit = LibraryUi.button("搜索图书", true, () -> this.searchBooks.accept(search.getText().trim()));
         search.addActionListener(e -> submit.doClick()); welcome.add(LibraryUi.between(search, submit)); add(welcome);
@@ -37,6 +36,7 @@ final class LibraryHomePanel extends JPanel {
         JPanel right = LibraryUi.stack(14); JPanel announcementCard = LibraryUi.card(); announcementCard.add(LibraryUi.label("图书馆公告", 18, true)); announcementCard.add(notices); right.add(announcementCard);
         JPanel appointmentCard = LibraryUi.card(); appointmentCard.add(LibraryUi.between(LibraryUi.label("我的预约", 18, true), LibraryUi.link("查看详情 →", openRooms))); appointmentCard.add(appointment); right.add(appointmentCard);
         add(LibraryUi.columns(booksCard, right)); refresh();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::refresh);
     }
     void refresh() {
         final long request = ++refreshSerial; LibraryUi.replace(recommended, LibraryUi.state("正在加载馆藏…", null));

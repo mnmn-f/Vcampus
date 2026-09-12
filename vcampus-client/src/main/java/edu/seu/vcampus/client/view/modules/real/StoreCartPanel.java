@@ -49,6 +49,9 @@ public final class StoreCartPanel extends SectionCard {
     private final JTextField coupon = UiFactory.textField(8);
     private final JLabel preview = UiFactory.muted(" ");
     private List<CartItemDto> items = Collections.emptyList();
+    private int requestSerial;
+    private boolean busy;
+    private boolean writing;
 
     public StoreCartPanel(BasePage page, StoreClientService service, Runnable orderCreated) {
         super("我的购物车", "提交订单后到订单区支付。");
@@ -78,21 +81,26 @@ public final class StoreCartPanel extends SectionCard {
         scroll.setPreferredSize(new Dimension(800, 220)); scroll.setMinimumSize(new Dimension(0, 120));
         content.add(scroll, BorderLayout.CENTER); content.add(state, BorderLayout.SOUTH);
         setContent(content); load();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this,
+                () -> !busy && table.getSelectedRow() < 0 && coupon.getText().trim().isEmpty(), this::load);
     }
 
     public void reload() { load(); }
 
     private void load() {
+        if (writing) return;
+        final int serial = ++requestSerial;
         setBusy(true, "正在加载…");
         AsyncTask.run(new AsyncTask.Work<CartDto>() {
             @Override public CartDto run() throws Exception { return service.getCart(); }
         }, new AsyncTask.Callback<CartDto>() {
-            @Override public void onSuccess(CartDto value) { render(value); setBusy(false, items.isEmpty() ? "购物车为空" : "已加载"); }
-            @Override public void onFailure(Throwable error) { clear(); setBusy(false, "加载失败：" + AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(CartDto value) { if (serial != requestSerial) return; render(value); setBusy(false, items.isEmpty() ? "购物车为空" : "已更新"); }
+            @Override public void onFailure(Throwable error) { if (serial != requestSerial) return; clear(); setBusy(false, "加载失败：" + AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
         });
     }
 
     private void render(CartDto value) {
+        preview.setText(" ");
         items = value == null ? Collections.<CartItemDto>emptyList() : value.getItems();
         model.setRowCount(0);
         for (CartItemDto item : items) model.addRow(new Object[]{RealUi.text(item.getProductName()),
@@ -114,56 +122,64 @@ public final class StoreCartPanel extends SectionCard {
 
     private void removeItem() {
         final CartItemDto value = selected(); if (value == null) { page.showWarning("请先选择购物车商品。"); return; }
+        if (!beginWrite()) return;
         AsyncTask.run(new AsyncTask.Work<CartDto>() {
             @Override public CartDto run() throws Exception { return service.removeCartItem(value.getProductId()); }
         }, new AsyncTask.Callback<CartDto>() {
-            @Override public void onSuccess(CartDto result) { page.showSuccess("商品已移出购物车。"); render(result); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(CartDto result) { render(result); endWrite(); page.showSuccess("商品已移出购物车。"); }
+            @Override public void onFailure(Throwable error) { endWrite(); page.showError(AsyncTask.message(error)); }
         });
     }
 
     private void change(final CartItemRequest request, final boolean add) {
+        if (!beginWrite()) return;
         AsyncTask.run(new AsyncTask.Work<CartDto>() {
                     @Override public CartDto run() throws Exception { return add ? service.addCartItem(request) : service.updateCartItem(request); }
                 },
                 new AsyncTask.Callback<CartDto>() {
-                    @Override public void onSuccess(CartDto result) { page.showSuccess("购物车已更新。"); render(result); }
-                    @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+                    @Override public void onSuccess(CartDto result) { render(result); endWrite(); page.showSuccess("购物车已更新。"); }
+                    @Override public void onFailure(Throwable error) { endWrite(); page.showError(AsyncTask.message(error)); }
                 });
     }
 
     private void createOrder() {
         if (items.isEmpty()) { page.showWarning("购物车为空，暂不能提交订单。"); return; }
+        if (!beginWrite()) return;
+        final String couponCode = RealUi.optional(coupon.getText());
         AsyncTask.run(new AsyncTask.Work<CheckoutPreviewDto>() {
-            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(RealUi.optional(coupon.getText())); }
+            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(couponCode); }
         }, new AsyncTask.Callback<CheckoutPreviewDto>() {
-            @Override public void onSuccess(CheckoutPreviewDto result) { preview.setText("应付 " + money(result.getPayable())); if (RealUi.confirm(StoreCartPanel.this, "确认提交订单？")) confirmOrder(); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(CheckoutPreviewDto result) { preview.setText("应付 " + money(result.getPayable())); if (RealUi.confirm(StoreCartPanel.this, "确认提交订单？应付 " + money(result.getPayable()))) confirmOrder(couponCode); else endWrite(); }
+            @Override public void onFailure(Throwable error) { endWrite(); page.showError(AsyncTask.message(error)); }
         });
     }
 
     private void previewOrder() {
+        if (!beginWrite()) return;
+        final String couponCode = RealUi.optional(coupon.getText());
         AsyncTask.run(new AsyncTask.Work<CheckoutPreviewDto>() {
-            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(RealUi.optional(coupon.getText())); }
+            @Override public CheckoutPreviewDto run() throws Exception { return service.checkoutPreview(couponCode); }
         }, new AsyncTask.Callback<CheckoutPreviewDto>() {
-            @Override public void onSuccess(CheckoutPreviewDto value) { preview.setText("原价 " + money(value.getSubtotal()) + "　优惠 " + money(value.getPromotionDiscount().add(value.getCouponDiscount())) + "　应付 " + money(value.getPayable())); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(CheckoutPreviewDto value) { endWrite(); preview.setText("原价 " + money(value.getSubtotal()) + "　优惠 " + money(value.getPromotionDiscount().add(value.getCouponDiscount())) + "　应付 " + money(value.getPayable())); }
+            @Override public void onFailure(Throwable error) { endWrite(); page.showError(AsyncTask.message(error)); }
         });
     }
 
-    private void confirmOrder() {
+    private void confirmOrder(final String couponCode) {
         AsyncTask.run(new AsyncTask.Work<OrderDto>() {
-            @Override public OrderDto run() throws Exception { return service.confirmCheckout(new CheckoutConfirmRequest(RealUi.optional(coupon.getText()), "SELF", null)); }
+            @Override public OrderDto run() throws Exception { return service.confirmCheckout(new CheckoutConfirmRequest(couponCode, "SELF", null)); }
         }, new AsyncTask.Callback<OrderDto>() {
-            @Override public void onSuccess(OrderDto result) { page.showSuccess("订单已创建：" + RealUi.text(result.getOrderNo())); load(); if (orderCreated != null) orderCreated.run(); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(OrderDto result) { endWrite(); coupon.setText(""); page.showSuccess("订单已创建：" + RealUi.text(result.getOrderNo())); load(); if (orderCreated != null) orderCreated.run(); }
+            @Override public void onFailure(Throwable error) { endWrite(); page.showError(AsyncTask.message(error)); }
         });
     }
 
     private CartItemDto selected() { int row = table.getSelectedRow(); return row < 0 || row >= items.size() ? null : items.get(row); }
     private void selectedChanged(boolean adjusting) { if (!adjusting && selected() != null) quantity.setText(String.valueOf(selected().getQuantity())); }
     private void clear() { items = Collections.emptyList(); model.setRowCount(0); total.setText("合计：¥0.00"); quantity.setText(""); }
-    private void setBusy(boolean busy, String text) { state.setText(text); update.setEnabled(!busy); remove.setEnabled(!busy); createOrder.setEnabled(!busy); previewOrder.setEnabled(!busy); quantity.setEnabled(!busy); coupon.setEnabled(!busy); }
+    private boolean beginWrite() { if (busy) return false; writing = true; ++requestSerial; setBusy(true, "正在处理…"); return true; }
+    private void endWrite() { writing = false; setBusy(false, items.isEmpty() ? "购物车为空" : "已更新"); }
+    private void setBusy(boolean busy, String text) { this.busy = busy; state.setText(text); update.setEnabled(!busy); remove.setEnabled(!busy); createOrder.setEnabled(!busy && !items.isEmpty()); previewOrder.setEnabled(!busy && !items.isEmpty()); quantity.setEnabled(!busy); coupon.setEnabled(!busy); }
     private static DefaultTableModel model() { return new DefaultTableModel(new String[]{"商品", "单价", "数量", "小计", "库存", "状态"}, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } }; }
     private static JTable table(DefaultTableModel source) {
         JTable value = new JTable(source) { @Override public String getToolTipText(MouseEvent event) { int row = rowAtPoint(event.getPoint()); int col = columnAtPoint(event.getPoint()); return row < 0 || col < 0 ? null : String.valueOf(getValueAt(row, col)); } };

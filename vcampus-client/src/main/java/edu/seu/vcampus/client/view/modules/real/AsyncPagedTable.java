@@ -50,6 +50,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private boolean hasNext;
     private FilterCondition additionalCondition;
     private boolean columnsFill;
+    private boolean busy;
+    private boolean replacingRows;
+    private boolean liveSelectionUpdates;
     /** 锁定为「按内容定宽、横向滚动」，之后的 {@link #setColumnsFill(boolean)} 一律忽略。 */
     private boolean naturalWidths;
     private int maxColumnWidth = -1;
@@ -102,6 +105,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
             @Override public void componentResized(java.awt.event.ComponentEvent event) { refitColumns(); }
         });
         load(1);
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this,
+                () -> !busy && (table.getSelectedRow() < 0 || itemKey != null),
+                () -> load(page, true));
     }
 
     private void refitColumns() {
@@ -128,6 +134,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
     public void setColumnsFill(boolean fill) {
         if (naturalWidths) return;
         columnsFill = fill;
+        lastFitWidth = -1;
         refitColumns();
     }
 
@@ -152,6 +159,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
         additionalCondition = condition;
     }
     public void setItemKey(java.util.function.Function<T, Object> key) { itemKey = key; }
+    public void setLiveSelectionUpdates(boolean enabled) { liveSelectionUpdates = enabled; }
     public void refreshCurrentPage() { load(page); }
     public void enableCheckboxSelection() {
         checkboxSelection = true;
@@ -183,13 +191,22 @@ public final class AsyncPagedTable<T> extends SectionCard {
             load(1);
         }
     }
-    public T selectedItem() { int row = table.getSelectedRow(); return row < 0 || row >= items.size() ? null : items.get(row); }
+    public T selectedItem() {
+        int row = table.getSelectedRow();
+        int index = row < 0 ? -1 : table.convertRowIndexToModel(row);
+        return index < 0 || index >= items.size() ? null : items.get(index);
+    }
     public int getPage() { return page; }
+    public boolean isLoading() { return busy; }
     public JTable getTable() { return table; }
     public String getSearchKeyword() { return toolbar.getSearchField().getText(); }
     public String getSelectedFilter() { return toolbar.getFilterBox() == null ? "" : String.valueOf(toolbar.getFilterBox().getSelectedItem()); }
 
     private void load(final int targetPage) {
+        load(targetPage, false);
+    }
+
+    private void load(final int targetPage, final boolean background) {
         if (targetPage < 1) return;
         page = targetPage; final int serial = ++requestSerial; setBusy(true, "正在更新…");
         final String keyword = toolbar.getSearchField().getText();
@@ -200,12 +217,16 @@ public final class AsyncPagedTable<T> extends SectionCard {
                 if (serial != requestSerial) return;
                 try {
                     PageSlice<T> result = get();
+                    if (result.getItems().isEmpty() && targetPage > 1) {
+                        load(targetPage - 1, background); return;
+                    }
                     java.util.Set<Object> selectedKeys = new java.util.HashSet<Object>();
                     java.util.Set<Object> checkedKeys = new java.util.HashSet<Object>();
                     if (itemKey != null) {
                         for (T item : selectedItems()) selectedKeys.add(itemKey.apply(item));
                         for (T item : checkedItems()) checkedKeys.add(itemKey.apply(item));
                     }
+                    replacingRows = true;
                     items = result.getItems(); page = result.getPage(); hasNext = result.hasNext();
                     model.setRowCount(0);
                     for (T item : items) {
@@ -214,15 +235,24 @@ public final class AsyncPagedTable<T> extends SectionCard {
                             values[0] = checkedKeys.contains(itemKey.apply(item));
                         }
                         model.addRow(values);
-                        if (itemKey != null && selectedKeys.contains(itemKey.apply(item))) {
-                            table.addRowSelectionInterval(model.getRowCount() - 1, model.getRowCount() - 1);
+                    }
+                    for (int index = 0; index < items.size(); index++) {
+                        if (itemKey != null && selectedKeys.contains(itemKey.apply(items.get(index)))) {
+                            int view = table.convertRowIndexToView(index);
+                            if (view >= 0) table.addRowSelectionInterval(view, view);
                         }
                     }
                     toolbar.setResultHint("共 " + result.getTotal() + " 条");
+                    replacingRows = false;
+                    if (!background || liveSelectionUpdates || (!selectedKeys.isEmpty() && selectedItem() == null)) selectedChanged(false);
                     if (items.isEmpty()) viewport.showEmpty(hasCondition(keyword, filter) ? "没有找到匹配记录" : "暂无记录", "");
                     else { viewport.showRows(items.size()); lastFitWidth = -1; refitColumns(); }
                     retry.setText("刷新"); setBusy(false, items.isEmpty() ? "当前页无记录" : "第 " + page + " 页");
-                } catch (Exception ex) { viewport.showError(); retry.setText("重试"); setBusy(false, "暂时无法更新"); }
+                } catch (Exception ex) {
+                    replacingRows = false;
+                    if (!background) { table.clearSelection(); items = Collections.emptyList(); model.setRowCount(0); viewport.showError(); }
+                    retry.setText("重试"); setBusy(false, "暂时无法更新，请重试");
+                }
             }
         }.execute();
     }
@@ -232,8 +262,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
                 || filter != null && filter.length() > 0 && !filter.startsWith("全部")
                 || additionalCondition != null && additionalCondition.isActive();
     }
-    private void selectedChanged(boolean adjusting) { if (!adjusting && selectionListener != null) selectionListener.onSelected(selectedItem()); }
+    private void selectedChanged(boolean adjusting) { if (!adjusting && !replacingRows && selectionListener != null) selectionListener.onSelected(selectedItem()); }
     private void setBusy(boolean busy, String text) {
+        this.busy = busy;
         state.setText(text); previous.setEnabled(!busy && page > 1); next.setEnabled(!busy && hasNext); retry.setEnabled(!busy);
         toolbar.getSearchField().setEnabled(!busy); if (toolbar.getFilterBox() != null) toolbar.getFilterBox().setEnabled(!busy);
     }

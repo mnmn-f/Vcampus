@@ -5,6 +5,8 @@ import javax.swing.SwingWorker;
 
 /** Swing 网络任务边界：后台执行，完成回调始终回到 EDT。 */
 public final class AsyncTask {
+    private static final java.util.concurrent.atomic.AtomicInteger PENDING = new java.util.concurrent.atomic.AtomicInteger();
+    public static boolean isIdle() { return PENDING.get() == 0; }
     private AsyncTask() {
     }
 
@@ -18,6 +20,7 @@ public final class AsyncTask {
     }
 
     public static <T> void run(final Work<T> work, final Callback<T> callback) {
+        PENDING.incrementAndGet();
         new SwingWorker<T, Void>() {
             @Override
             protected T doInBackground() throws Exception { return work.run(); }
@@ -33,6 +36,8 @@ public final class AsyncTask {
                     callback.onFailure(ex.getCause() == null ? ex : ex.getCause());
                 } catch (Exception ex) {
                     callback.onFailure(ex);
+                } finally {
+                    PENDING.decrementAndGet();
                 }
             }
         }.execute();

@@ -26,10 +26,7 @@ public final class MySqlRepairWorkerIntegrationTest {
         Assume.assumeTrue(Boolean.getBoolean("vcampus.mysql.integration"));
         String password = System.getProperty("vcampus.repair.password");
         Assume.assumeTrue(password != null && !password.trim().isEmpty());
-        JdbcConnectionFactory factory = new JdbcConnectionFactory(
-                System.getProperty("vcampus.db.url", JdbcConnectionFactory.DEFAULT_URL),
-                System.getProperty("vcampus.db.user", JdbcConnectionFactory.DEFAULT_USER),
-                System.getProperty("vcampus.db.password", JdbcConnectionFactory.DEFAULT_PASSWORD));
+        JdbcConnectionFactory factory = new JdbcConnectionFactory();
         SessionManager sessions = new SessionManager();
         CommandRouter router = ServerMain.createProductionRouter(new MySqlUserRepository(factory),
                 new PasswordHasher(4), sessions, factory);

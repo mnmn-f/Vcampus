@@ -54,6 +54,7 @@ public final class StudentOwnPanel extends JPanel {
         });
         filter.add(refresh); add(filter);
         grades = grades(); add(grades); loadProfile();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::loadProfile);
         semester.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { grades.reload(); }
         });
@@ -154,7 +155,7 @@ public final class StudentOwnPanel extends JPanel {
                 studentNo.setText(RealUi.text(value.getStudentNo())); name.setText(RealUi.text(value.getDisplayName()));
                 college.setText(RealUi.text(value.getCollege())); major.setText(RealUi.text(value.getMajor()));
                 className.setText(RealUi.text(value.getClassName())); status.setText(RealUi.status(RealUi.text(value.getStatus())));
-                profileState.setText("档案已加载"); page.showSuccess("已加载你的档案和成绩。");
+                profileState.setText("");
             }
             @Override public void onFailure(Throwable error) { profileState.setText("档案加载失败：" + AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
         });

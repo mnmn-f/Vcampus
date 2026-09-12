@@ -30,7 +30,7 @@ public final class CalendarDateField extends JPanel {
         });
     }
     public LocalDate getDate() { return LocalDate.parse(value.getText()); }
-    public void setDate(LocalDate date) { value.setText(date.toString()); }
+    public void setDate(LocalDate date) { LocalDate old = getDate(); value.setText(date.toString()); firePropertyChange("date", old, date); }
     private void renderMonth() {
         popup.removeAll(); JPanel content = new JPanel(new BorderLayout(6, 6));
         JPanel navigation = new JPanel(new BorderLayout());

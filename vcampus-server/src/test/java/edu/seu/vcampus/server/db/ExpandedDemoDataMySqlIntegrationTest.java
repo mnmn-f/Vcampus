@@ -19,10 +19,7 @@ public final class ExpandedDemoDataMySqlIntegrationTest {
     @Before
     public void connect() throws Exception {
         Assume.assumeTrue(Boolean.getBoolean("vcampus.mysql.integration"));
-        JdbcConnectionFactory factory = new JdbcConnectionFactory(
-                System.getProperty("vcampus.db.url", JdbcConnectionFactory.DEFAULT_URL),
-                System.getProperty("vcampus.db.user", JdbcConnectionFactory.DEFAULT_USER),
-                System.getProperty("vcampus.db.password", JdbcConnectionFactory.DEFAULT_PASSWORD));
+        JdbcConnectionFactory factory = new JdbcConnectionFactory();
         connection = factory.open();
         Assume.assumeTrue(scalar("SELECT COUNT(*) FROM users WHERE username='test_student01'") > 0);
     }

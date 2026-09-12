@@ -24,4 +24,14 @@ public final class PageSlice<T> {
     public int getPage() { return page; }
     public int getPageSize() { return pageSize; }
     public boolean hasNext() { return ((long) page * pageSize) < total; }
+    public static <T> PageSlice<T> filter(List<T> source, String keyword, int page, int size,
+            java.util.function.Function<T, String> text) {
+        String query = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT);
+        List<T> matches = new ArrayList<>();
+        if (source != null) for (T item : source) if (item != null
+                && (query.isEmpty() || String.valueOf(text.apply(item)).toLowerCase(java.util.Locale.ROOT).contains(query))) matches.add(item);
+        int actualSize = Math.max(1, size), actualPage = Math.max(1, page);
+        int start = (int) Math.min(matches.size(), (long) (actualPage - 1) * actualSize);
+        return new PageSlice<>(matches.subList(start, Math.min(matches.size(), start + actualSize)), matches.size(), actualPage, actualSize);
+    }
 }

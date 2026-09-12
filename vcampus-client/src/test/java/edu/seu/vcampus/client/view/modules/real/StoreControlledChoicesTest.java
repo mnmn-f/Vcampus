@@ -38,6 +38,35 @@ import static org.junit.Assert.assertTrue;
 
 /** 商店分类和促销范围只使用服务端提供的受控选项。 */
 public final class StoreControlledChoicesTest {
+    @Test public void editingPromotionPreservesItsScheduleAndCanStartAnotherRule() throws Exception {
+        org.threeten.bp.LocalDateTime start = org.threeten.bp.LocalDateTime.of(2026, 9, 1, 8, 30);
+        PromotionDto original = new PromotionDto(11L, "PROMO-11", "开学优惠", "FIXED", BigDecimal.ZERO,
+                BigDecimal.ONE, "ALL", null, null, start, start.plusMonths(2), true, true);
+        AtomicReference<PromotionWriteRequest> sent = new AtomicReference<>();
+        StoreClientService service = (StoreClientService) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{StoreClientService.class}, (proxy, method, args) -> {
+            if (method.getName().equals("listPromotions")) return new PromotionPage(Collections.singletonList(original), 1);
+            if (method.getName().equals("savePromotion")) { sent.set((PromotionWriteRequest) args[0]); return original; }
+            return null;
+        });
+        AtomicReference<StorePromotionPanel> holder = new AtomicReference<>();
+        AsyncPagedTableRefreshTest.edt(() -> holder.set(new StorePromotionPanel(new TestPage(), service)));
+        StorePromotionPanel panel = holder.get(); AsyncPagedTable<?> table = field(panel, "table");
+        AsyncPagedTableRefreshTest.await(() -> table.getTable().getRowCount() == 1);
+        AsyncPagedTableRefreshTest.edt(() -> { table.getTable().setRowSelectionInterval(0, 0); click(panel, "保存促销"); });
+        AsyncPagedTableRefreshTest.await(() -> sent.get() != null);
+        assertEquals(start, sent.get().getStartsAt()); assertEquals(start.plusMonths(2), sent.get().getEndsAt()); assertTrue(sent.get().isStackable());
+        AsyncPagedTableRefreshTest.await(() -> !table.isLoading());
+        AsyncPagedTableRefreshTest.edt(() -> click(panel, "新建促销"));
+        assertEquals("", textField(panel, "code").getText());
+    }
+
+    @Test public void finiteCatalogSearchActuallyFiltersAndPaginates() {
+        java.util.List<String> values = new java.util.ArrayList<>();
+        for (int i = 0; i < 25; i++) values.add("FOOD" + i); values.add("BOOK");
+        PageSlice<String> page = PageSlice.filter(values, "food", 2, 20, v -> v);
+        assertEquals(25L, page.getTotal()); assertEquals(5, page.getItems().size()); assertEquals("FOOD20", page.getItems().get(0));
+        assertTrue(PageSlice.filter(values, "missing", 1, 20, v -> v).getItems().isEmpty());
+    }
     @Test
     public void productEditorDisplaysCategoryNameAndSubmitsCode() throws Exception {
         final AtomicReference<ProductWriteRequest> sent = new AtomicReference<ProductWriteRequest>();
@@ -110,7 +139,7 @@ public final class StoreControlledChoicesTest {
         assertEquals("食品饮料", String.valueOf(categories.getItemAt(1)));
         assertFalse(String.valueOf(categories.getItemAt(1)).contains("FOOD"));
         AsyncPagedTable<?> table = field(panel, "products");
-        assertEquals("食品饮料", String.valueOf(table.getTable().getValueAt(0, 2)));
+        assertEquals("食品饮料", String.valueOf(table.getTable().getValueAt(0, table.getTable().getColumnModel().getColumnIndex("分类"))));
         categories.setSelectedIndex(1); click(panel, "按分类筛选");
         for (int i = 0; i < 40 && (lastQuery.get() == null || !"FOOD".equals(lastQuery.get().getCategory())); i++) {
             Thread.sleep(25L); SwingUtilities.invokeAndWait(new Runnable() { @Override public void run() { } });

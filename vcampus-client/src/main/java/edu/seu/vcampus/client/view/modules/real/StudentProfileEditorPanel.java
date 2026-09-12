@@ -56,10 +56,10 @@ public final class StudentProfileEditorPanel extends SectionCard {
     private boolean update;
     private boolean changingAccount;
     public StudentProfileEditorPanel(Listener listener) {
-        super("学生档案", "");
+        super("档案维护", "");
         this.listener = listener; configure();
         JPanel form = new JPanel(new GridLayout(0, 2, 12, 8)); form.setOpaque(false);
-        add(form, "待建档账号", account); add(form, "学号", studentNo);
+        add(form, "校园账号", account); add(form, "学号", studentNo);
         add(form, "学院", college); add(form, "专业", major);
         add(form, "班级", className); add(form, "入学年份", enrollmentYear);
         add(form, "预计毕业年份", graduationYear); add(form, "学历层次", degreeLevel);
@@ -71,7 +71,8 @@ public final class StudentProfileEditorPanel extends SectionCard {
         error.setForeground(DesignTokens.ERROR); error.setFont(DesignTokens.regular(12));
         getBody().add(error, java.awt.BorderLayout.SOUTH);
         JButton save = new PrimaryButton("保存"); save.addActionListener(e -> save());
-        getBody().add(save, java.awt.BorderLayout.NORTH); startNew();
+        JPanel actions = UiFactory.horizontal(8); actions.add(save);
+        getBody().add(actions, java.awt.BorderLayout.NORTH); startNew();
     }
     public void setCandidates(List<StudentAccountCandidateDto> values) {
         if (update) return;
@@ -188,7 +189,12 @@ public final class StudentProfileEditorPanel extends SectionCard {
     private String selectedAccount() { StudentAccountCandidateDto value = (StudentAccountCandidateDto) account.getSelectedItem(); return value == null ? null : value.getAccount(); }
     private void selectAccount(String value) { for (int i = 0; i < account.getItemCount(); i++) if (value != null && value.equals(account.getItemAt(i).getAccount())) { account.setSelectedIndex(i); return; } }
     private int findAccount(String value) { for (int i = 0; i < account.getItemCount(); i++) if (value != null && value.equals(account.getItemAt(i).getAccount())) return i; return -1; }
-    private static <T> void select(JComboBox<T> box, T value) { if (value == null) box.setSelectedIndex(0); else box.setSelectedItem(value); }
+    private static <T> void select(JComboBox<T> box, T value) {
+        if (value == null || "".equals(value)) { box.setSelectedIndex(0); return; }
+        for (int i = 0; i < box.getItemCount(); i++) if (value.equals(box.getItemAt(i))) { box.setSelectedIndex(i); return; }
+        // 已有档案来自服务器，目录未包含的历史值必须保留，不能默默改成另一个学院/专业。
+        box.addItem(value); box.setSelectedItem(value);
+    }
     private static void selectCode(JComboBox<RealUi.CodeOption> box, String value) {
         if (value == null) { box.setSelectedIndex(-1); return; }
         for (int i = 0; i < box.getItemCount(); i++) {

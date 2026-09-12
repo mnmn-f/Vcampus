@@ -18,7 +18,7 @@ public class DataTableToolbar extends JPanel {
     private final JTextField searchField = UiFactory.textField(18);
     private final JComboBox<String> filterBox;
     private final JLabel resultHint = UiFactory.muted("");
-    private final JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    private final JPanel actions = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8));
     private final JPanel actionRow = new JPanel(new BorderLayout());
     private boolean actionRowAdded;
 
@@ -29,7 +29,7 @@ public class DataTableToolbar extends JPanel {
         boolean searchVisible = searchHint != null && !searchHint.trim().isEmpty();
         searchField.setToolTipText(searchHint);
         searchField.putClientProperty("JTextField.placeholderText", searchHint);
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel left = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8));
         left.setOpaque(false);
         if (searchVisible) {
             left.add(label("搜索"));
@@ -46,8 +46,8 @@ public class DataTableToolbar extends JPanel {
         }
         JPanel controls = new JPanel(new BorderLayout(DesignTokens.SPACE_12, 0));
         controls.setOpaque(false);
-        controls.add(left, BorderLayout.WEST);
-        controls.add(resultHint, BorderLayout.CENTER);
+        left.add(resultHint);
+        controls.add(left, BorderLayout.CENTER);
         actions.setOpaque(false);
         actions.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         actionRow.setOpaque(false);

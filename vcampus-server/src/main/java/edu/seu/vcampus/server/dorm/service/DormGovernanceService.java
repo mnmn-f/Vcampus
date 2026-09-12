@@ -32,9 +32,12 @@ final class DormGovernanceService extends DormServiceSupport {
     AccessRecordDto recordAccess(final SessionContext session, final AccessRecordRequest request) {
         requireAny(session, Permission.DORM_REQUEST, Permission.DORM_GOVERN);
         if (request == null) throw new DormException(DormCommands.INVALID_INPUT, "门禁参数不能为空");
-        final String type = text(request.getRecordType(), "进出类型").toUpperCase();
+        final String type = text(request.getRecordType(), "进出类型").toUpperCase(java.util.Locale.ROOT);
+        if (!"ENTRY".equals(type) && !"EXIT".equals(type)) throw new DormException(DormCommands.INVALID_INPUT, "请选择进出类型");
+        boolean administrator = session.allows(Permission.DORM_GOVERN);
         final AccessRecordDto value = new AccessRecordDto(0L, session.getUserId(), type,
-                request.getOccurredAt(), request.getDoorName(), request.getSource(), request.getNote());
+                administrator ? request.getOccurredAt() : org.threeten.bp.LocalDateTime.now(),
+                request.getDoorName(), administrator ? request.getSource() : "SELF", request.getNote());
         return execute(new Work<AccessRecordDto>() { public AccessRecordDto run(java.sql.Connection c) throws Exception {
             AccessRecordDto saved = repository.addAccess(c, session.getUserId(), value);
             // 归宿晚于门禁时间（或早于凌晨界限）就当场开一条待处理晚归，让宿管端「未归管理」

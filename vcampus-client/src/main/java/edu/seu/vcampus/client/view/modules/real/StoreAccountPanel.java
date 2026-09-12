@@ -29,11 +29,13 @@ public final class StoreAccountPanel extends JPanel {
     private final JTextField remark = UiFactory.textField(12);
     private final AsyncPagedTable<AccountTransactionDto> ledger;
     private String rechargeKey;
+    private int accountSerial;
 
     public StoreAccountPanel(BasePage page, StoreClientService service) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service;
         add(summary()); ledger = ledger(); add(ledger); loadAccount();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::loadAccount);
     }
 
     public void reload() { loadAccount(); ledger.reload(); }
@@ -41,7 +43,7 @@ public final class StoreAccountPanel extends JPanel {
     private JPanel summary() {
         JPanel panel = new JPanel(new BorderLayout(16, 0)); panel.setOpaque(false);
         SectionCard card = new SectionCard("校园账户", "余额、充值和账户流水。");
-        JPanel line = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0)); line.setOpaque(false);
+        JPanel line = UiFactory.horizontal(12);
         line.add(balance); line.add(status); line.add(UiFactory.body("充值金额")); line.add(amount);
         line.add(UiFactory.body("备注")); line.add(remark);
         JButton recharge = new PrimaryButton("充值"); recharge.addActionListener(new java.awt.event.ActionListener() {
@@ -65,12 +67,13 @@ public final class StoreAccountPanel extends JPanel {
     }
 
     private void loadAccount() {
+        final int serial = ++accountSerial;
         status.setText("账户加载中…");
         AsyncTask.run(new AsyncTask.Work<AccountDto>() {
             @Override public AccountDto run() throws Exception { return service.getAccount(); }
         }, new AsyncTask.Callback<AccountDto>() {
-            @Override public void onSuccess(AccountDto value) { balance.setText("¥" + moneyValue(value.getBalance())); status.setText("状态：" + RealUi.status(value.getStatus())); }
-            @Override public void onFailure(Throwable error) { status.setText("账户加载失败：" + AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(AccountDto value) { if (serial != accountSerial) return; balance.setText("¥" + moneyValue(value.getBalance())); status.setText("状态：" + RealUi.status(value.getStatus())); }
+            @Override public void onFailure(Throwable error) { if (serial != accountSerial) return; status.setText("账户加载失败：" + AsyncTask.message(error)); }
         });
     }
 

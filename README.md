@@ -12,6 +12,8 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 界面入口可先看 [UI 视觉证据画廊](docs/UI_PREVIEW_GALLERY.md)：其中包含登录页、九类职责主页和代表性业务页。画廊图片是离屏预览，用于核对布局与人员分流，不代替真实数据库验收。
 
+本轮合并、实际缺陷、回归测试和未覆盖边界见 [2026-09-12 全模块检查报告](docs/END_TO_END_REVIEW_2026-09-12.md)。
+
 ## 运行前提
 
 - JDK 17 或更高版本；源码和字节码统一按 Java 17 兼容级别构建。
@@ -44,25 +46,25 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
     vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
 
-在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
+以下重定向命令用于 CMD/bash，`<db-user>` 要替换成实际数据库账号。PowerShell 不支持这样的 `<` 输入重定向：可先在项目根目录运行 `mysql --default-character-set=utf8mb4 -u root -p`，进入 `mysql>` 后依次 `source` 上面的 SQL 路径；V1 完成后先执行 `USE vcampus;`，再继续后续迁移。已有数据库不要为了更新重复导入基线和演示数据，应仅补齐尚未执行的迁移。
 
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V13__store_coupon_refresh.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V14__store_order_shipping.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
 

@@ -52,6 +52,11 @@ final class LibraryCatalogPanel extends JPanel {
         content.add(catalog, "catalog"); content.add(history, "history");
         host.addPropertyChangeListener("library.books.version", e -> { loadBooks(); loadBorrowings(); });
         showCatalog(); loadBooks(); if (role == Role.STUDENT) loadBorrowings();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, () -> {
+            if (Boolean.TRUE.equals(catalogTab.getClientProperty("library.active"))) {
+                loadBooks(); if (role == Role.STUDENT) loadBorrowings();
+            } else loadHistory();
+        });
     }
 
     void searchFor(String value) { keyword.setText(value == null ? "" : value); category = null; status.setSelectedIndex(0); pageNumber = 1; showCatalog(); loadBooks(); }

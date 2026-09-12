@@ -42,12 +42,15 @@ public final class StorePromotionPanel extends JPanel {
     private long selectedId;
     private Long pendingProductId;
     private String pendingCategoryCode;
+    private PromotionDto selectedPromotion;
 
     public StorePromotionPanel(BasePage page, StoreClientService service) {
         super();
         this.page = page; this.service = service; setOpaque(false);
         table = promotionTable();
-        JPanel fields = new JPanel(new GridLayout(0, 4, 8, 8)); fields.setOpaque(false);
+        table.setItemKey(PromotionDto::getId);
+        JButton create = new PrimaryButton("新建促销"); create.addActionListener(e -> startNew()); table.addAction(create);
+        JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(185, 4, 8)); fields.setOpaque(false);
         add(fields, "编码", code); add(fields, "名称", name); add(fields, "类型", type);
         add(fields, "优惠值", value); add(fields, "门槛", threshold); add(fields, "范围", scope);
         add(fields, "指定商品", product); add(fields, "指定分类", category); add(fields, "状态", active);
@@ -69,8 +72,8 @@ public final class StorePromotionPanel extends JPanel {
                 new AsyncPagedTable.Loader<PromotionDto>() {
                     @Override public PageSlice<PromotionDto> load(int p, String k, String f) throws Exception {
                         PromotionPage value = service.listPromotions();
-                        return new PageSlice<PromotionDto>(value == null ? null : value.getItems(),
-                                value == null ? 0L : value.getTotal(), 1, 100);
+                        return PageSlice.filter(value == null ? null : value.getItems(), k, p, 20,
+                                row -> row.getCode() + " " + row.getName());
                     }
                 }, new AsyncPagedTable.RowMapper<PromotionDto>() {
                     @Override public Object[] values(PromotionDto value) {
@@ -116,6 +119,7 @@ public final class StorePromotionPanel extends JPanel {
 
     private void showPromotion(PromotionDto value) {
         if (value == null) return;
+        selectedPromotion = value;
         selectedId = value.getId(); code.setText(value.getCode()); name.setText(value.getName());
         this.value.setText(String.valueOf(value.getValue()));
         threshold.setText(value.getThreshold() == null ? "" : String.valueOf(value.getThreshold()));
@@ -138,8 +142,9 @@ public final class StorePromotionPanel extends JPanel {
             final PromotionWriteRequest request = new PromotionWriteRequest(selectedId,
                     RealUi.required(code.getText(), "促销编码"), RealUi.required(name.getText(), "促销名称"),
                     promotionType, decimal(threshold.getText()), decimal(value.getText()), productScope,
-                    productId, categoryCode, org.threeten.bp.LocalDateTime.now().minusMinutes(1L),
-                    org.threeten.bp.LocalDateTime.now().plusYears(1L), false,
+                    productId, categoryCode, selectedPromotion == null ? org.threeten.bp.LocalDateTime.now().minusMinutes(1L) : selectedPromotion.getStartsAt(),
+                    selectedPromotion == null ? org.threeten.bp.LocalDateTime.now().plusYears(1L) : selectedPromotion.getEndsAt(),
+                    selectedPromotion != null && selectedPromotion.isStackable(),
                     "ACTIVE".equals(RealUi.code(active.getSelectedItem())));
             AsyncTask.run(new AsyncTask.Work<PromotionDto>() {
                 @Override public PromotionDto run() throws Exception { return service.savePromotion(request); }
@@ -176,6 +181,12 @@ public final class StorePromotionPanel extends JPanel {
     private static void add(JPanel panel, String label, java.awt.Component component) { panel.add(UiFactory.labelledField(label, component)); }
     private static BigDecimal decimal(String value) { String text = RealUi.optional(value); return text == null ? null : new BigDecimal(text); }
     public void reload() { table.reload(); }
+    private void startNew() {
+        table.getTable().clearSelection(); selectedPromotion = null; selectedId = 0;
+        code.setText(""); name.setText(""); value.setText(""); threshold.setText("");
+        selectProduct(null); selectCategory(null); scope.setSelectedIndex(0); type.setSelectedIndex(0); active.setSelectedIndex(0);
+        state.setText(" "); loadProducts(); loadCategories();
+    }
     JComboBox<StoreCategoryOption> categoryBox() { return category; }
     JComboBox<StoreProductOption> productBox() { return product; }
     JComboBox<RealUi.CodeOption> scopeBox() { return scope; }

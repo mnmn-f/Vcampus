@@ -45,13 +45,14 @@ public abstract class BasePage extends JPanel {
         content.add(feedback, BorderLayout.NORTH);
         content.add(body, BorderLayout.CENTER);
 
-        JScrollPane scroll = new JScrollPane(content);
+        JScrollPane scroll = new JScrollPane(new edu.seu.vcampus.client.ui.WidthTrackingPanel(content));
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         add(scroll, BorderLayout.CENTER);
+        edu.seu.vcampus.client.ui.TableInteractionPolicy.install(this);
     }
 
     protected void addBlock(JComponent component) {

@@ -12,6 +12,19 @@ import static org.junit.Assert.assertTrue;
 
 /** 验证紧凑窗口下工具栏的操作按钮不会被裁切。 */
 public final class DataTableToolbarLayoutTest {
+    @Test public void manyActionsWrapAtNarrowWidthWithoutClipping() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            DataTableToolbar toolbar = new DataTableToolbar("搜索", new String[]{"全部状态", "已发布"});
+            java.util.List<JButton> buttons = new java.util.ArrayList<>();
+            for (int i = 0; i < 8; i++) { JButton button = new JButton("操作按钮" + i); buttons.add(button); toolbar.addAction(button); }
+            for (int width : new int[]{360, 560, 800}) {
+                toolbar.setSize(width, 400);
+                for (int pass = 0; pass < 4; pass++) { layout(toolbar); toolbar.setSize(width, toolbar.getPreferredSize().height); }
+                layout(toolbar);
+                for (JButton button : buttons) assertInside(toolbar, button);
+            }
+        });
+    }
     @Test public void actionsStayInsideToolbarAtCompactWidth() throws Exception {
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override public void run() {

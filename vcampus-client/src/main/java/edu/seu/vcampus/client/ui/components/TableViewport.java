@@ -34,6 +34,7 @@ public final class TableViewport extends JPanel {
         setOpaque(false);
         this.table = table;
         tableScroll = new JScrollPane(table);
+        tableScroll.setColumnHeaderView(table.getTableHeader());
         // 表格外面套一个 1px 框：一屏里几张表挨着时，没有边界就分不出哪行属于哪张表。
         tableScroll.setBorder(BorderFactory.createLineBorder(new Color(0xD9, 0xE1, 0xDD)));
         tableScroll.getViewport().setBackground(Color.WHITE);

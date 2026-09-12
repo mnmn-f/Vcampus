@@ -96,7 +96,7 @@ public final class UiFactory {
     }
 
     public static JPanel horizontal(int gap) {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, gap, 0));
+        JPanel panel = new JPanel(new WrapLayout(gap));
         panel.setOpaque(false);
         return panel;
     }

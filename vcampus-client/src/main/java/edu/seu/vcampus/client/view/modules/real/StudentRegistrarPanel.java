@@ -73,6 +73,7 @@ public final class StudentRegistrarPanel extends JPanel {
         studentNo.addActionListener(e -> table.reload()); college.addActionListener(e -> table.reload());
         major.addActionListener(e -> table.reload()); className.addActionListener(e -> table.reload());
         table.getTable().getColumnModel().getColumn(0).setPreferredWidth(110);
+        table.setItemKey(StudentProfileDto::getUserId);
         return table;
     }
 

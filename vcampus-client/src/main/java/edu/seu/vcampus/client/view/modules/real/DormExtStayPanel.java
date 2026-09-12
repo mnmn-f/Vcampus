@@ -46,7 +46,6 @@ public final class DormExtStayPanel extends JPanel {
     private final AsyncPagedTable<AccessRecordExtDto> records;
 
     private final JPanel statsRow = new JPanel(new BorderLayout());
-    private final DormDateTimeField occurredAt = new DormDateTimeField();
     private final JTextField doorName = UiFactory.textField(10);
     private final JTextField note = UiFactory.textField(14);
 
@@ -93,17 +92,10 @@ public final class DormExtStayPanel extends JPanel {
         return column;
     }
 
-    /**
-     * 自助进出登记。
-     *
-     * <p>时间默认填当前时刻，但允许改：演示晚归时不可能真等到夜里十一点，把时刻拨到
-     * 23:40 再点「登记归宿」，服务端会按门禁策略判成晚归并开预警。门禁点和备注可空。</p>
-     */
+    /** 自助登记使用服务器当前时刻，学生不能修改门禁流水时间。 */
     private JPanel checkInForm() {
-        occurredAt.setValue(LocalDateTime.now());
-        JPanel fields = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        JPanel fields = UiFactory.horizontal(16);
         fields.setOpaque(false);
-        fields.add(DormFormUi.field("进出时间", occurredAt, 330));
         fields.add(DormFormUi.field("门禁点（可空）", doorName, 150));
         fields.add(DormFormUi.field("备注（可空）", note, 200));
 
@@ -115,14 +107,9 @@ public final class DormExtStayPanel extends JPanel {
         entry.addActionListener(new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) { record("ENTRY"); }
         });
-        JButton now = new SecondaryButton("回到当前时刻");
-        now.addActionListener(new ActionListener() {
-            @Override public void actionPerformed(ActionEvent e) { occurredAt.setValue(LocalDateTime.now()); }
-        });
         JPanel buttons = UiFactory.horizontal(9);
         buttons.add(entry);
         buttons.add(exit);
-        buttons.add(now);
 
         JPanel rows = new JPanel();
         rows.setOpaque(false);
@@ -141,7 +128,7 @@ public final class DormExtStayPanel extends JPanel {
         section.setOpaque(false);
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
         section.add(DormUi.header("进出登记",
-                "正式环境由门禁闸机自动记录；这里供无闸机时自助登记。归宿时刻晚于门禁时间会记为晚归并通知宿管。",
+                "",
                 null, false));
         section.add(box);
         section.add(javax.swing.Box.createVerticalStrut(22));
@@ -150,23 +137,15 @@ public final class DormExtStayPanel extends JPanel {
     }
 
     private void record(final String type) {
-        final LocalDateTime at;
-        try {
-            at = occurredAt.required("进出时间");
-        } catch (IllegalArgumentException error) {
-            page.showError(error.getMessage());
-            return;
-        }
         final String door = doorName.getText().trim().isEmpty() ? null : doorName.getText().trim();
         final String remark = note.getText().trim().isEmpty() ? null : note.getText().trim();
         AsyncTask.run(new AsyncTask.Work<AccessRecordDto>() {
             @Override public AccessRecordDto run() throws Exception {
-                return dorm.recordAccess(new AccessRecordRequest(type, at, door, "SELF", remark));
+                return dorm.recordAccess(new AccessRecordRequest(type, null, door, "SELF", remark));
             }
         }, new AsyncTask.Callback<AccessRecordDto>() {
             @Override public void onSuccess(AccessRecordDto value) {
-                page.showSuccess(("EXIT".equals(type) ? "已登记出门 " : "已登记归宿 ") + RealUi.dateTime(at)
-                        + "。列表中的「晚归」列按当前门禁时段判定。");
+                page.showSuccess(("EXIT".equals(type) ? "已登记出门 " : "已登记归宿 ") + RealUi.dateTime(value.getOccurredAt()));
                 note.setText("");
                 reload();
             }

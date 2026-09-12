@@ -99,6 +99,36 @@ public final class TcpProtocolSecurityIntegrationTest {
         return new Connection(new Socket("127.0.0.1", server.getBoundPort()));
     }
 
+    @Test public void threeConnectionsShareCartPaymentAndShippingWithoutDoubleDebit() throws Exception {
+        try (Connection manager = connect(); Connection first = connect(); Connection second = connect()) {
+            String m = login(manager, IntegrationFixture.MULTI_ACCOUNT), a = login(first, "student2"), b = login(second, "student2");
+            assertTrue(manager.exchange(Message.request(Commands.AUTH_SWITCH_ROLE, m, new SwitchRoleRequest(Role.STORE_MANAGER))).isSuccess());
+            assertTrue(first.exchange(Message.request(StoreCommands.CART_ADD_ITEM, a, new edu.seu.vcampus.common.dto.store.CartItemRequest(1, 1))).isSuccess());
+            edu.seu.vcampus.common.dto.store.CartDto cart = (edu.seu.vcampus.common.dto.store.CartDto)
+                    second.exchange(Message.request(StoreCommands.CART_GET, b, null)).getPayload();
+            assertEquals(1, cart.getItems().size());
+            assertTrue(second.exchange(Message.request(StoreCommands.CART_REMOVE_ITEM, b, Long.valueOf(1))).isSuccess());
+            cart = (edu.seu.vcampus.common.dto.store.CartDto) first.exchange(Message.request(StoreCommands.CART_GET, a, null)).getPayload();
+            assertTrue(cart.getItems().isEmpty());
+            assertTrue(first.exchange(Message.request(StoreCommands.CART_ADD_ITEM, a, new edu.seu.vcampus.common.dto.store.CartItemRequest(1, 1))).isSuccess());
+            edu.seu.vcampus.common.dto.store.OrderDto order = (edu.seu.vcampus.common.dto.store.OrderDto)
+                    second.exchange(Message.request(StoreCommands.ORDER_CREATE, b, null)).getPayload();
+            assertTrue(first.exchange(Message.request(StoreCommands.ORDER_PAY, a,
+                    new edu.seu.vcampus.common.dto.store.PaymentRequest(order.getId(), "tcp-once"))).isSuccess());
+            assertEquals(ResultCodes.CONFLICT, second.exchange(Message.request(StoreCommands.ORDER_PAY, b,
+                    new edu.seu.vcampus.common.dto.store.PaymentRequest(order.getId(), "tcp-twice"))).getResultCode());
+            edu.seu.vcampus.common.dto.store.AccountDto account = (edu.seu.vcampus.common.dto.store.AccountDto)
+                    second.exchange(Message.request(StoreCommands.ACCOUNT_GET, b, null)).getPayload();
+            assertEquals(0, new BigDecimal("95.00").compareTo(account.getBalance()));
+            assertTrue(manager.exchange(Message.request(StoreCommands.ORDER_SHIPPING_UPDATE, m,
+                    new edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest(order.getId(), "SHIPPED", "TCP-TRACK", "已交快递"))).isSuccess());
+            order = (edu.seu.vcampus.common.dto.store.OrderDto) second.exchange(Message.request(StoreCommands.ORDER_DETAIL, b, Long.valueOf(order.getId()))).getPayload();
+            assertEquals("SHIPPED", order.getShippingStatus()); assertEquals("TCP-TRACK", order.getTrackingNo());
+            assertTrue(first.exchange(Message.request(Commands.AUTH_LOGOUT, a, null)).isSuccess());
+            assertTrue(second.exchange(Message.request(StoreCommands.ACCOUNT_GET, b, null)).isSuccess());
+        }
+    }
+
     private static String login(Connection connection, String account) throws Exception {
         Message response = connection.exchange(Message.request(Commands.AUTH_LOGIN, null,
                 new LoginRequest(account, IntegrationFixture.MULTI_PASSWORD)));

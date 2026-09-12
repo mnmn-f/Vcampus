@@ -27,10 +27,19 @@ final class LibraryRoomBookingPanel extends JPanel {
         add(LibraryUi.columns(roomCard, confirm));
         JPanel recordCard = LibraryUi.card(); recordCard.add(LibraryUi.between(LibraryUi.label("我的预约记录", 18, true), LibraryUi.link("刷新", this::loadReservations))); recordCard.add(reservations); add(recordCard);
         loadRooms(); loadReservations(); showSummary();
+        start.addActionListener(e -> loadRooms()); end.addActionListener(e -> loadRooms());
+        floor.addActionListener(e -> { pageNumber = 1; loadRooms(); });
+        date.addPropertyChangeListener("date", e -> loadRooms());
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> selected == null,
+                () -> { loadRooms(); loadReservations(); });
     }
     private static String[] hours() { String[] values = new String[29]; for (int i = 0; i < values.length; i++) { int minutes = 8 * 60 + i * 30; values[i] = String.format("%02d:%02d", minutes / 60, minutes % 60); } return values; }
     private org.threeten.bp.LocalDateTime time(JComboBox<String> value) { return date.getDate().atTime(org.threeten.bp.LocalTime.parse((String) value.getSelectedItem())); }
     private void loadRooms() {
+        if (!time(end).isAfter(time(start))) {
+            ++roomSerial; selected = null; showSummary();
+            LibraryUi.replace(rooms, LibraryUi.state("结束时间须晚于开始时间", null)); return;
+        }
         final long request = ++roomSerial; final int p = pageNumber; selected = null; showSummary(); LibraryUi.replace(rooms, LibraryUi.state("正在查询自习室…", null));
         String floorKeyword = floor.getSelectedIndex() == 0 ? null
                 : ((String) floor.getSelectedItem()).replace("层", "楼");

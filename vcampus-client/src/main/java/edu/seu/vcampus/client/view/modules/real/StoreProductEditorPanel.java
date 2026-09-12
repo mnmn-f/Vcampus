@@ -79,7 +79,8 @@ public final class StoreProductEditorPanel extends SectionCard {
 
     /** 由商品页从 store_categories 加载分类，表单只提交稳定 code。 */
     public void setCategories(List<StoreCategoryDto> values) {
-        String selected = pendingCategoryCode;
+        StoreCategoryOption choice = (StoreCategoryOption) category.getSelectedItem();
+        String selected = choice == null || choice.getCode() == null ? pendingCategoryCode : choice.getCode();
         category.removeAllItems();
         category.addItem(StoreCategoryOption.empty());
         if (values != null) for (StoreCategoryDto value : values) {

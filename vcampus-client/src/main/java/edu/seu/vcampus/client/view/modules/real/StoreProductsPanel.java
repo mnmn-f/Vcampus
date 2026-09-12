@@ -36,6 +36,8 @@ public final class StoreProductsPanel extends JPanel {
     private final Runnable cartChanged;
     private final Map<String, String> categoryNames = new HashMap<String, String>();
     private long selectedProductId;
+    private boolean categoriesLoading;
+    private boolean firstCategories = true;
 
     public StoreProductsPanel(BasePage page, StoreClientService service, Role role) {
         this(page, service, role, null);
@@ -50,19 +52,24 @@ public final class StoreProductsPanel extends JPanel {
         JButton apply = new edu.seu.vcampus.client.ui.components.SecondaryButton("按分类筛选");
         apply.addActionListener(new java.awt.event.ActionListener() { @Override public void actionPerformed(java.awt.event.ActionEvent e) { products.reload(); } });
         filter.add(apply); add(filter);
-        products = table(); add(products);
+        products = table();
+        products.getTable().getColumnModel().getColumn(0).setCellRenderer(new ProductThumbnailRenderer());
+        products.getTable().setRowHeight(64);
+        products.setItemKey(ProductDto::getId);
+        add(products);
         JPanel info = new JPanel(new BorderLayout(12, 0)); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); info.add(image, BorderLayout.EAST); add(info);
         if (editor != null) add(editor);
         loadCategories();
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> !categoriesLoading && !category.isPopupVisible(), this::loadCategories);
     }
 
     private AsyncPagedTable<ProductDto> table() {
-        AsyncPagedTable<ProductDto> table = new AsyncPagedTable<ProductDto>("商品检索与库存", 
-                "搜索商品并查看库存。",
+        AsyncPagedTable<ProductDto> table = new AsyncPagedTable<ProductDto>(role == Role.STUDENT ? "选购商品" : "商品管理",
+                "",
                 "搜索商品名称、编码或说明", role == Role.STUDENT
                         ? new String[]{"全部商品", "在售"}
                         : new String[]{"全部状态", "在售", "已下架", "草稿", "已归档"},
-                new String[]{"编码", "商品", "分类", "单价", "库存", "状态"},
+                new String[]{"图片", "编码", "商品", "分类", "单价", "库存", "状态"},
                 new AsyncPagedTable.Loader<ProductDto>() {
                     @Override public PageSlice<ProductDto> load(int p, String keyword, String filter) throws Exception {
                         StoreCategoryOption selected = (StoreCategoryOption) category.getSelectedItem();
@@ -70,7 +77,7 @@ public final class StoreProductsPanel extends JPanel {
                         return slice(service.searchProducts(new ProductQuery(keyword, code, status(filter), p, 20)));
                     }
                 }, new AsyncPagedTable.RowMapper<ProductDto>() {
-                    @Override public Object[] values(ProductDto row) { return new Object[]{RealUi.text(row.getSku()), row.getName(), categoryLabel(row.getCategory()),
+                    @Override public Object[] values(ProductDto row) { return new Object[]{row.getImageUrl(), RealUi.text(row.getSku()), row.getName(), categoryLabel(row.getCategory()),
                             "¥" + RealUi.text(row.getPrice()), lowStock(row.getStockQty()), RealUi.status(row.getStatus())}; }
                 }, new AsyncPagedTable.SelectionListener<ProductDto>() {
                     @Override public void onSelected(ProductDto row) { select(row); }
@@ -88,7 +95,7 @@ public final class StoreProductsPanel extends JPanel {
     }
 
     private void select(final ProductDto value) {
-        if (value == null) { selectedProductId = 0L; detail.setText("选择商品查看详情。"); if (editor != null) editor.startNew(); return; }
+        if (value == null) { selectedProductId = 0L; image.load(null); detail.setText("选择商品查看详情。"); if (editor != null) editor.startNew(); return; }
         selectedProductId = value.getId();
         image.load(value.getImageUrl());
         detail.setText("商品详情：" + RealUi.text(value.getName()) + "　编码 " + RealUi.text(value.getSku())
@@ -101,7 +108,7 @@ public final class StoreProductsPanel extends JPanel {
             @Override public void onSuccess(ProductDto result) { if (result.getId() != selectedProductId) return; image.load(result.getImageUrl()); detail.setText("商品详情：" + RealUi.text(result.getName())
                     + "　单价 ¥" + RealUi.text(result.getPrice()) + "　库存 " + result.getStockQty()
                     + "　评分 " + result.getRatingAverage() + "（" + result.getRatingCount() + " 条）　状态：" + RealUi.status(result.getStatus())); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onFailure(Throwable error) { if (selectedProductId == value.getId()) page.showError(AsyncTask.message(error)); }
         });
     }
 
@@ -120,11 +127,14 @@ public final class StoreProductsPanel extends JPanel {
     }
 
     private void loadCategories() {
-        category.removeAllItems(); category.addItem(StoreCategoryOption.all());
+        if (categoriesLoading) return;
+        categoriesLoading = true;
+        if (category.getItemCount() == 0) category.addItem(StoreCategoryOption.all());
         AsyncTask.run(new AsyncTask.Work<StoreCategoryPage>() {
             @Override public StoreCategoryPage run() throws Exception { return service.listCategories(); }
         }, new AsyncTask.Callback<StoreCategoryPage>() {
             @Override public void onSuccess(StoreCategoryPage result) {
+                StoreCategoryOption selected = (StoreCategoryOption) category.getSelectedItem();
                 categoryNames.clear();
                 category.removeAllItems(); category.addItem(StoreCategoryOption.all());
                 if (result != null) for (StoreCategoryDto value : result.getItems()) {
@@ -134,10 +144,12 @@ public final class StoreProductsPanel extends JPanel {
                     }
                 }
                 if (editor != null) editor.setCategories(result == null ? null : result.getItems());
-                products.reload();
+                if (selected != null) category.setSelectedItem(selected);
+                categoriesLoading = false;
+                if (firstCategories) { firstCategories = false; products.reload(); }
             }
             @Override public void onFailure(Throwable error) {
-                if (editor != null) editor.setCategories(null);
+                categoriesLoading = false;
             }
         });
     }
