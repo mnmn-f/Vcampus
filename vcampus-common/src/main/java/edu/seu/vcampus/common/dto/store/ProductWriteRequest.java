@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 public final class ProductWriteRequest extends ProductData {
     private static final long serialVersionUID = 1L;
     private final long id;
+    private final byte[] imageData;
 
     public ProductWriteRequest(long id, String sku, String name, String category,
                                String description, BigDecimal price, int stockQty,
@@ -16,9 +17,16 @@ public final class ProductWriteRequest extends ProductData {
     public ProductWriteRequest(long id, String sku, String name, String category,
                                String description, BigDecimal price, int stockQty,
                                String status, String imageUrl) {
-        super(sku, name, category, description, price, stockQty, status, imageUrl,
+        this(id, sku, name, category, description, price, stockQty, status, imageUrl, null);
+    }
+
+    public ProductWriteRequest(long id, String sku, String name, String category,
+            String description, BigDecimal price, int stockQty, String status, String imageUrl, byte[] imageData) {
+        super(sku, name, category, description, price, stockQty, status,
+                imageData == null ? imageUrl : "store-image:" + java.util.UUID.randomUUID(),
                 BigDecimal.ZERO, 0L);
         this.id = id;
+        this.imageData = imageData == null ? null : imageData.clone();
     }
 
     public ProductWriteRequest(long id, String sku, String name, String category,
@@ -45,4 +53,5 @@ public final class ProductWriteRequest extends ProductData {
 
     public long getId() { return id; }
     public long getProductId() { return id; }
+    public byte[] getImageData() { return imageData == null ? null : imageData.clone(); }
 }

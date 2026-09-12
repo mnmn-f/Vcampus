@@ -31,7 +31,7 @@ public final class StoreProductEditorPanel extends SectionCard {
     private final JTextField sku = field();
     private final JTextField name = field();
     private final JComboBox<StoreCategoryOption> category = new JComboBox<StoreCategoryOption>();
-    private final JTextField imageUrl = field();
+    private final ProductImageEditor productImage;
     private final JTextField price = field();
     private final JTextField stock = field();
     private final JTextField delta = field();
@@ -45,19 +45,24 @@ public final class StoreProductEditorPanel extends SectionCard {
     private String pendingCategoryCode;
 
     public StoreProductEditorPanel(Listener listener) {
+        this(listener, null);
+    }
+    public StoreProductEditorPanel(Listener listener, edu.seu.vcampus.client.service.store.StoreClientService service) {
         super("商品详情与库存维护", "");
         this.listener = listener;
+        productImage = new ProductImageEditor(service);
         status.setFont(DesignTokens.regular(13));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
         fields.setOpaque(false);
         add(fields, "商品编码", sku); add(fields, "商品名称", name);
-        add(fields, "商品分类", category); add(fields, "图片 URL", imageUrl); add(fields, "单价", price);
+        add(fields, "商品分类", category); add(fields, "单价", price);
         add(fields, "库存", stock); add(fields, "状态", status);
         add(fields, "库存增量", delta); add(fields, "调整备注", remark);
         JPanel content = new JPanel(new BorderLayout(0, 10));
         content.setOpaque(false);
         content.add(fields, BorderLayout.NORTH);
-        content.add(UiFactory.labelledField("商品说明", description), BorderLayout.CENTER);
+        JPanel middle = UiFactory.vertical(8); middle.add(productImage); middle.add(UiFactory.labelledField("商品说明", description));
+        content.add(middle, BorderLayout.CENTER);
         JPanel actions = UiFactory.horizontal(8);
         JButton clear = new SecondaryButton("新建");
         clear.addActionListener(new java.awt.event.ActionListener() {
@@ -93,7 +98,7 @@ public final class StoreProductEditorPanel extends SectionCard {
         productId = 0L;
         pendingCategoryCode = null;
         sku.setEditable(true);
-        sku.setText(""); name.setText(""); selectCategory(null); imageUrl.setText(""); price.setText("");
+        sku.setText(""); name.setText(""); selectCategory(null); productImage.showImage(null); price.setText("");
         stock.setText("0"); delta.setText(""); remark.setText(""); description.setText("");
         status.setSelectedItem(RealUi.option("DRAFT")); error.setText(" ");
     }
@@ -103,7 +108,7 @@ public final class StoreProductEditorPanel extends SectionCard {
         productId = value.getId(); sku.setEditable(false);
         sku.setText(RealUi.input(value.getSku())); name.setText(RealUi.input(value.getName()));
         pendingCategoryCode = RealUi.optional(value.getCategory()); selectCategory(pendingCategoryCode);
-        imageUrl.setText(RealUi.input(value.getImageUrl())); price.setText(RealUi.input(value.getPrice()));
+        productImage.showImage(value.getImageUrl()); price.setText(RealUi.input(value.getPrice()));
         stock.setText(String.valueOf(value.getStockQty())); status.setSelectedItem(RealUi.option(value.getStatus()));
         description.setText(RealUi.input(value.getDescription())); delta.setText(""); remark.setText("");
         error.setText(" ");
@@ -120,7 +125,7 @@ public final class StoreProductEditorPanel extends SectionCard {
             if (listener != null) listener.onSave(new ProductWriteRequest(productId,
                     RealUi.optional(sku.getText()), title, selected == null ? null : selected.getCode(),
                     RealUi.optional(description.getText()), amount, quantity,
-                    RealUi.code(status.getSelectedItem()), RealUi.optional(imageUrl.getText())));
+                    RealUi.code(status.getSelectedItem()), productImage.reference(), productImage.bytes()));
             error.setText(" ");
         } catch (NumberFormatException ex) { error.setText("单价和库存格式不正确"); }
         catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }

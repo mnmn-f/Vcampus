@@ -97,7 +97,7 @@ final class DormUtilityBillsTable extends JPanel {
                 RealUi.text(value.getElectricityUnits()), RealUi.text(value.getWaterUnits()),
                 money(value.getAllocatedAmount()), RealUi.status(value.getAllocationStatus())};
         if (studentView) return common;
-        return new Object[]{common[0], "住户", common[1], common[2],
+        return new Object[]{common[0], RealUi.text(value.getStudentLabel()), common[1], common[2],
                 common[3], common[4], common[5], common[6]};
     }
 

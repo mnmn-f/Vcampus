@@ -16,9 +16,7 @@ import edu.seu.vcampus.common.security.Role;
 
 import javax.swing.JComboBox;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import java.awt.BorderLayout;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -28,14 +26,11 @@ public final class StoreProductsPanel extends JPanel {
     private final BasePage page;
     private final StoreClientService service;
     private final Role role;
-    private final JLabel detail = UiFactory.muted("选择商品查看详情。");
-    private final ProductImageView image = new ProductImageView();
     private final JComboBox<StoreCategoryOption> category = new JComboBox<StoreCategoryOption>();
     private final AsyncPagedTable<ProductDto> products;
     private final StoreProductEditorPanel editor;
     private final Runnable cartChanged;
     private final Map<String, String> categoryNames = new HashMap<String, String>();
-    private long selectedProductId;
     private boolean categoriesLoading;
     private boolean firstCategories = true;
 
@@ -47,17 +42,17 @@ public final class StoreProductsPanel extends JPanel {
                               Runnable cartChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service; this.role = role; this.cartChanged = cartChanged;
-        editor = role == Role.STORE_MANAGER ? new StoreProductEditorPanel(new EditorListener()) : null;
+        editor = role == Role.STORE_MANAGER ? new StoreProductEditorPanel(new EditorListener(), service) : null;
         JPanel filter = UiFactory.horizontal(8); filter.add(UiFactory.body("商品分类")); filter.add(category);
         JButton apply = new edu.seu.vcampus.client.ui.components.SecondaryButton("按分类筛选");
         apply.addActionListener(new java.awt.event.ActionListener() { @Override public void actionPerformed(java.awt.event.ActionEvent e) { products.reload(); } });
         filter.add(apply); add(filter);
         products = table();
-        products.getTable().getColumnModel().getColumn(0).setCellRenderer(new ProductThumbnailRenderer());
+        products.getTable().getColumnModel().getColumn(0).setCellRenderer(new ProductThumbnailRenderer(service));
         products.getTable().setRowHeight(64);
+        products.setColumnsFill(true);
         products.setItemKey(ProductDto::getId);
         add(products);
-        JPanel info = new JPanel(new BorderLayout(12, 0)); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); info.add(image, BorderLayout.EAST); add(info);
         if (editor != null) add(editor);
         loadCategories();
         edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> !categoriesLoading && !category.isPopupVisible(), this::loadCategories);
@@ -91,25 +86,25 @@ public final class StoreProductsPanel extends JPanel {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { editor.startNew(); }
             }); table.addAction(create);
         }
+        JButton open = new edu.seu.vcampus.client.ui.components.SecondaryButton("查看商品详情");
+        open.addActionListener(e -> openDetails()); table.addAction(open);
+        table.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) { if (e.getClickCount() == 2) openDetails(); }
+        });
         return table;
     }
 
+    private void openDetails() {
+        ProductDto product = products.selectedItem();
+        if (product == null) { page.showWarning("请先选择商品"); return; }
+        javax.swing.JDialog dialog = new javax.swing.JDialog(javax.swing.SwingUtilities.getWindowAncestor(this), "商品详情", java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setContentPane(new javax.swing.JScrollPane(new edu.seu.vcampus.client.ui.WidthTrackingPanel(new StoreProductDetailsPanel(service, product, role == Role.STUDENT, cartChanged))));
+        dialog.setSize(840, 680); dialog.setMinimumSize(new java.awt.Dimension(600, 480)); dialog.setLocationRelativeTo(this); dialog.setVisible(true);
+    }
+
     private void select(final ProductDto value) {
-        if (value == null) { selectedProductId = 0L; image.load(null); detail.setText("选择商品查看详情。"); if (editor != null) editor.startNew(); return; }
-        selectedProductId = value.getId();
-        image.load(value.getImageUrl());
-        detail.setText("商品详情：" + RealUi.text(value.getName()) + "　编码 " + RealUi.text(value.getSku())
-                + "　单价 ¥" + RealUi.text(value.getPrice()) + "　库存 " + value.getStockQty()
-                + "　评分 " + value.getRatingAverage() + "（" + value.getRatingCount() + " 条）　说明：" + RealUi.text(value.getDescription()));
         if (editor != null) editor.showProduct(value);
-        AsyncTask.run(new AsyncTask.Work<ProductDto>() {
-            @Override public ProductDto run() throws Exception { return service.getProductDetail(value.getId()); }
-        }, new AsyncTask.Callback<ProductDto>() {
-            @Override public void onSuccess(ProductDto result) { if (result.getId() != selectedProductId) return; image.load(result.getImageUrl()); detail.setText("商品详情：" + RealUi.text(result.getName())
-                    + "　单价 ¥" + RealUi.text(result.getPrice()) + "　库存 " + result.getStockQty()
-                    + "　评分 " + result.getRatingAverage() + "（" + result.getRatingCount() + " 条）　状态：" + RealUi.status(result.getStatus())); }
-            @Override public void onFailure(Throwable error) { if (selectedProductId == value.getId()) page.showError(AsyncTask.message(error)); }
-        });
     }
 
     private void addCart() {

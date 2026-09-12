@@ -94,6 +94,12 @@ public final class StoreService {
     public ProductPage searchProducts(SessionContext s, ProductQuery q) throws StoreServiceException {
         return products.search(s, q);
     }
+    public byte[] getProductImage(SessionContext session, String reference) throws StoreServiceException {
+        return products.image(session, reference);
+    }
+    public edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(SessionContext session, ProductReviewQuery query) throws StoreServiceException {
+        return experience.reviewCandidates(session, query);
+    }
     public ProductDto getProductDetail(SessionContext s, long id) throws StoreServiceException {
         return products.detail(s, id);
     }

@@ -70,6 +70,12 @@ public final class NetworkStoreClientService implements StoreClientService {
     @Override public ProductPage searchProducts(ProductQuery q) throws NetworkClientException {
         return payload(StoreCommands.PRODUCT_SEARCH, q, ProductPage.class);
     }
+    @Override public byte[] getProductImage(String reference) throws NetworkClientException {
+        return payload(StoreCommands.PRODUCT_IMAGE, new edu.seu.vcampus.common.dto.store.ProductImageRequest(reference), byte[].class);
+    }
+    @Override public edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(ProductReviewQuery query) throws NetworkClientException {
+        return payload(StoreCommands.REVIEW_CANDIDATES, query, edu.seu.vcampus.common.dto.store.ReviewCandidatePage.class);
+    }
     @Override public ProductDto getProductDetail(long id) throws NetworkClientException {
         return payload(StoreCommands.PRODUCT_DETAIL, new StoreIdRequest(id), ProductDto.class);
     }

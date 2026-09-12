@@ -4,6 +4,7 @@ package edu.seu.vcampus.common.protocol.command;
 public final class StoreCommands {
     public static final String PRODUCT_SEARCH = "store.product.search";
     public static final String PRODUCT_DETAIL = "store.product.detail";
+    public static final String PRODUCT_IMAGE = "store.product.image";
     public static final String PRODUCT_SAVE = "store.product.save";
     public static final String PRODUCT_CREATE = "store.product.create";
     public static final String PRODUCT_UPDATE = "store.product.update";
@@ -34,6 +35,7 @@ public final class StoreCommands {
     public static final String COUPON_MINE = "store.coupon.mine";
     public static final String REVIEW_CREATE = "store.review.create";
     public static final String REVIEW_LIST = "store.review.list";
+    public static final String REVIEW_CANDIDATES = "store.review.candidates";
     public static final String FRIEND_PAY_CREATE = "store.friend-pay.create";
     public static final String FRIEND_PAY_MINE = "store.friend-pay.mine";
     public static final String FRIEND_PAY_WITHDRAW = "store.friend-pay.withdraw";

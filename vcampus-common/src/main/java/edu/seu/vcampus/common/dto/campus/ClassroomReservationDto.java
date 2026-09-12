@@ -18,11 +18,18 @@ public final class ClassroomReservationDto implements Serializable {
     private final Long reviewedBy;
     private final LocalDateTime reviewedAt;
     private final String reviewRemark;
+    private final String applicantLabel;
 
     public ClassroomReservationDto(long id, long classroomId, String buildingName,
             String roomNo, long applicantId, String purpose, LocalDateTime startAt,
             LocalDateTime endAt, String status, Long reviewedBy,
             LocalDateTime reviewedAt, String reviewRemark) {
+        this(id, classroomId, buildingName, roomNo, applicantId, purpose, startAt, endAt, status, reviewedBy, reviewedAt, reviewRemark, null);
+    }
+    public ClassroomReservationDto(long id, long classroomId, String buildingName,
+            String roomNo, long applicantId, String purpose, LocalDateTime startAt,
+            LocalDateTime endAt, String status, Long reviewedBy, LocalDateTime reviewedAt, String reviewRemark, String applicantLabel) {
+        this.applicantLabel = applicantLabel;
         this.id = id;
         this.classroomId = classroomId;
         this.buildingName = buildingName;
@@ -53,4 +60,5 @@ public final class ClassroomReservationDto implements Serializable {
     public Long getReviewedBy() { return reviewedBy; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public String getReviewRemark() { return reviewRemark; }
+    public String getApplicantLabel() { return applicantLabel; }
 }

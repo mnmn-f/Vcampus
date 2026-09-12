@@ -20,6 +20,16 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
 
     InMemoryStoreProductRepository(InMemoryStoreState state) { this.state = state; }
 
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
+        synchronized (state) {
+            for (ProductDto product : state.products.values()) if (reference.equals(product.getImageUrl())
+                    && (manager || "ON_SALE".equals(product.getStatus()))) {
+                byte[] bytes = state.productImages.get(product.getId()); return bytes == null ? null : bytes.clone();
+            }
+            return null;
+        }
+    }
+
     @Override
     public ProductPage searchProducts(Connection c, ProductQuery query) {
         ProductQuery q = query == null ? new ProductQuery() : query;
@@ -60,6 +70,7 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
     public void insertProduct(Connection c, ProductWriteRequest request, long actorId) {
         synchronized (state) {
             long id = request.getId() > 0 ? request.getId() : state.productSequence++;
+            if (request.getImageData() != null) state.productImages.put(id, request.getImageData());
             LocalDateTime now = LocalDateTime.now();
             state.products.put(id, new ProductDto(id, request.getSku(), request.getName(),
                     request.getCategory(), request.getDescription(), request.getPrice(),
@@ -73,6 +84,8 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
         synchronized (state) {
             ProductDto old = state.products.get(request.getId());
             if (old == null) throw new StoreRepositoryException("商品不存在");
+            if (request.getImageData() != null) state.productImages.put(request.getId(), request.getImageData());
+            else if (!java.util.Objects.equals(old.getImageUrl(), request.getImageUrl())) state.productImages.remove(request.getId());
             state.products.put(request.getId(), new ProductDto(request.getId(), request.getSku(),
                     request.getName(), request.getCategory(), request.getDescription(),
                     request.getPrice(), request.getStockQty(), request.getStatus(),

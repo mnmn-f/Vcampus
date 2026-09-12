@@ -22,6 +22,9 @@ public final class LibraryBookEditorPanel extends SectionCard {
 
     private final JTextField year = field();
     private byte[] coverImage;
+    private final ProductImageView coverPreview = new ProductImageView(105, 140);
+    private int coverSerial;
+    private boolean coverLoading;
     private final JButton coverButton = new SecondaryButton("选择封面图片");
     private final JTextField isbn = field(); private final JTextField title = field();
     private final JTextField author = field(); private final JTextField publisher = field();
@@ -37,7 +40,10 @@ public final class LibraryBookEditorPanel extends SectionCard {
         JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(220, 2, 12)); fields.setOpaque(false);
         add(fields, "ISBN", isbn); add(fields, "书名", title); add(fields, "作者", author); add(fields, "出版社", publisher);
         add(fields, "分类", category); add(fields, "总库存", total); add(fields, "可借库存", available); add(fields, "馆藏位置", location); add(fields, "状态", status);
-        add(fields, "出版年份", year); add(fields, "图书封面", coverButton);
+        add(fields, "出版年份", year);
+        JPanel coverActions = UiFactory.horizontal(8); coverActions.add(coverButton);
+        JButton removeCover = new SecondaryButton("移除封面"); removeCover.addActionListener(e -> { coverSerial++; coverLoading = false; coverImage = null; refreshCover(); });
+        coverActions.add(removeCover); coverActions.add(coverPreview); add(fields, "图书封面", coverActions);
         coverButton.addActionListener(event -> chooseCover());
         JPanel content = new JPanel(new BorderLayout(0, 10)); content.setOpaque(false); content.add(fields, BorderLayout.NORTH);
         content.add(UiFactory.labelledField("简介", description), BorderLayout.CENTER);
@@ -50,9 +56,9 @@ public final class LibraryBookEditorPanel extends SectionCard {
         content.add(actions, BorderLayout.SOUTH); setContent(content); startNew();
     }
 
-    public void startNew() { id = 0; clear(); year.setText(""); coverImage = null; coverButton.setText("选择封面图片"); status.setSelectedItem("ON_SHELF"); error.setText(" "); }
+    public void startNew() { id = 0; clear(); year.setText(""); coverSerial++; coverLoading = false; coverImage = null; refreshCover(); status.setSelectedItem("ON_SHELF"); error.setText(" "); }
     public void showBook(BookDetail book) {
-        if (book == null) { startNew(); return; } id = book.getId(); year.setText(RealUi.input(book.getPublicationYear())); coverImage = book.getCoverImage(); coverButton.setText(coverImage == null ? "选择封面图片" : "更换封面图片"); isbn.setText(RealUi.input(book.getIsbn())); title.setText(RealUi.input(book.getTitle()));
+        if (book == null) { startNew(); return; } id = book.getId(); year.setText(RealUi.input(book.getPublicationYear())); coverSerial++; coverLoading = false; coverImage = book.getCoverImage(); refreshCover(); isbn.setText(RealUi.input(book.getIsbn())); title.setText(RealUi.input(book.getTitle()));
         author.setText(RealUi.input(book.getAuthor())); publisher.setText(RealUi.input(book.getPublisher())); category.setText(RealUi.input(book.getCategory()));
         total.setText(String.valueOf(book.getTotalCopies())); available.setText(String.valueOf(book.getAvailableCopies())); location.setText(RealUi.input(book.getLocation()));
         description.setText(book.getDescription() == null ? "" : book.getDescription()); status.setSelectedItem(book.getStatus()); error.setText(" ");
@@ -60,6 +66,7 @@ public final class LibraryBookEditorPanel extends SectionCard {
 
     private void save() {
         try {
+            if (coverLoading) throw new IllegalArgumentException("图片正在处理，请稍候保存");
             int all = Integer.parseInt(required(total.getText(), "总库存")); int free = Integer.parseInt(required(available.getText(), "可借库存"));
             if (all < 0 || free < 0 || free > all) throw new IllegalArgumentException("库存数量不正确");
             if (listener != null) listener.onSave(new BookUpsertRequest(id, optional(isbn.getText()), required(title.getText(), "书名"),
@@ -75,25 +82,21 @@ public final class LibraryBookEditorPanel extends SectionCard {
         return result;
     }
     private void chooseCover() {
-        javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+        javax.swing.JFileChooser chooser = new javax.swing.JFileChooser(); chooser.setDialogTitle("选择图书封面");
+        chooser.setAcceptAllFileFilterUsed(false);
         chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("封面图片（PNG/JPG）", "png", "jpg", "jpeg"));
-        if (chooser.showOpenDialog(this) != javax.swing.JFileChooser.APPROVE_OPTION) return;
-        try {
-            java.io.File file = chooser.getSelectedFile();
-            if (file.length() > 5 * 1024 * 1024) throw new IllegalArgumentException("请选择小于 5 MB 的图片");
-            java.awt.image.BufferedImage source = javax.imageio.ImageIO.read(file);
-            if (source == null) throw new IllegalArgumentException("图片无法读取");
-            java.awt.image.BufferedImage thumbnail = new java.awt.image.BufferedImage(210, 280, java.awt.image.BufferedImage.TYPE_INT_RGB);
-            java.awt.Graphics2D graphics = thumbnail.createGraphics();
-            graphics.setColor(java.awt.Color.WHITE); graphics.fillRect(0, 0, 210, 280);
-            double scale = Math.min(210.0 / source.getWidth(), 280.0 / source.getHeight());
-            int width = (int) (source.getWidth() * scale), height = (int) (source.getHeight() * scale);
-            graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            graphics.drawImage(source, (210 - width) / 2, (280 - height) / 2, width, height, null); graphics.dispose();
-            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
-            javax.imageio.ImageIO.write(thumbnail, "jpg", bytes); coverImage = bytes.toByteArray();
-            coverButton.setText("封面已选择"); error.setText(" ");
-        } catch (Exception ex) { error.setText("封面选择失败：" + ex.getMessage()); }
+        if (chooser.showOpenDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) selectCover(chooser.getSelectedFile());
+    }
+    void selectCover(java.io.File file) {
+        int request = ++coverSerial; coverLoading = true; error.setText("正在处理封面…");
+        AsyncTask.run(() -> ImageUploadSupport.encode(file, 210, 280, false), new AsyncTask.Callback<byte[]>() {
+            @Override public void onSuccess(byte[] value) { if (request != coverSerial) return; coverLoading = false; coverImage = value; refreshCover(); error.setText("封面待保存"); }
+            @Override public void onFailure(Throwable error) { if (request != coverSerial) return; coverLoading = false; LibraryBookEditorPanel.this.error.setText(AsyncTask.message(error)); }
+        });
+    }
+    private void refreshCover() {
+        coverButton.setText(coverImage == null ? "选择封面图片" : "更换封面图片");
+        if (coverImage == null) coverPreview.load(null); else coverPreview.showBytes(coverImage);
     }
 
     private void clear() { isbn.setText(""); title.setText(""); author.setText(""); publisher.setText(""); category.setText(""); total.setText(""); available.setText(""); location.setText(""); description.setText(""); }

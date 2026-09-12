@@ -20,6 +20,7 @@ public final class StoreCommandRegistry {
         if (router == null || service == null) throw new IllegalArgumentException("store dependencies required");
         register(router, StoreCommands.PRODUCT_SEARCH, service);
         register(router, StoreCommands.PRODUCT_DETAIL, service);
+        register(router, StoreCommands.PRODUCT_IMAGE, service);
         register(router, StoreCommands.PRODUCT_SAVE, service);
         register(router, StoreCommands.PRODUCT_CREATE, service);
         register(router, StoreCommands.PRODUCT_UPDATE, service);
@@ -47,6 +48,7 @@ public final class StoreCommandRegistry {
         register(router, StoreCommands.COUPON_MINE, service);
         register(router, StoreCommands.REVIEW_CREATE, service);
         register(router, StoreCommands.REVIEW_LIST, service);
+        register(router, StoreCommands.REVIEW_CANDIDATES, service);
         register(router, StoreCommands.FRIEND_PAY_CREATE, service);
         register(router, StoreCommands.FRIEND_PAY_MINE, service);
         register(router, StoreCommands.FRIEND_PAY_WITHDRAW, service);

@@ -99,6 +99,22 @@ public final class TcpProtocolSecurityIntegrationTest {
         return new Connection(new Socket("127.0.0.1", server.getBoundPort()));
     }
 
+    @Test public void uploadedImageIsReadableFromAnotherClientAndOldRevisionExpires() throws Exception {
+        try (Connection manager = connect(); Connection student = connect()) {
+            String m = login(manager, IntegrationFixture.MULTI_ACCOUNT), s = login(student, "student2");
+            assertTrue(manager.exchange(Message.request(Commands.AUTH_SWITCH_ROLE, m, new SwitchRoleRequest(Role.STORE_MANAGER))).isSuccess());
+            byte[] bytes = edu.seu.vcampus.server.store.StoreImagesAndCandidatesTest.image();
+            ProductWriteRequest upload = new ProductWriteRequest(1,"SKU-1","校园杯","CULTURE","图片跨端测试",BigDecimal.TEN,10,"ON_SALE",null,bytes);
+            Message saved = manager.exchange(Message.request(StoreCommands.PRODUCT_SAVE,m,upload)); assertTrue(saved.isSuccess());
+            String ref = ((edu.seu.vcampus.common.dto.store.ProductDto) saved.getPayload()).getImageUrl();
+            Message image = student.exchange(Message.request(StoreCommands.PRODUCT_IMAGE,s,new edu.seu.vcampus.common.dto.store.ProductImageRequest(ref)));
+            assertTrue(image.isSuccess()); org.junit.Assert.assertArrayEquals(bytes,(byte[])image.getPayload());
+            assertTrue(student.exchange(Message.request(StoreCommands.REVIEW_CANDIDATES,s,new edu.seu.vcampus.common.dto.store.ProductReviewQuery(1))).isSuccess());
+            assertTrue(manager.exchange(Message.request(StoreCommands.PRODUCT_SAVE,m,new ProductWriteRequest(1,"SKU-1","校园杯","CULTURE","",BigDecimal.TEN,10,"ON_SALE",null))).isSuccess());
+            assertEquals(ResultCodes.NOT_FOUND,student.exchange(Message.request(StoreCommands.PRODUCT_IMAGE,s,new edu.seu.vcampus.common.dto.store.ProductImageRequest(ref))).getResultCode());
+        }
+    }
+
     @Test public void threeConnectionsShareCartPaymentAndShippingWithoutDoubleDebit() throws Exception {
         try (Connection manager = connect(); Connection first = connect(); Connection second = connect()) {
             String m = login(manager, IntegrationFixture.MULTI_ACCOUNT), a = login(first, "student2"), b = login(second, "student2");

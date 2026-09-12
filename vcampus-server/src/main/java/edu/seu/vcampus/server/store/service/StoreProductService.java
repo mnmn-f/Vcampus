@@ -14,7 +14,6 @@ import edu.seu.vcampus.server.security.SessionContext;
 import edu.seu.vcampus.server.store.repository.StoreRecordRepository;
 
 import java.sql.Connection;
-import java.net.URI;
 import java.util.Locale;
 
 /** 商品检索、详情与商店管理员维护。 */
@@ -62,6 +61,7 @@ final class StoreProductService {
             throws StoreServiceException {
         maintainPermission(session);
         validate(request, false);
+        StoreImagePolicy.requireExisting(request, null);
         return StoreServiceSupport.inTransaction(transactions,
                 new TransactionWork<ProductDto>() {
                     @Override public ProductDto execute(Connection c) throws StoreServiceException {
@@ -81,9 +81,11 @@ final class StoreProductService {
         return StoreServiceSupport.inTransaction(transactions,
                 new TransactionWork<ProductDto>() {
                     @Override public ProductDto execute(Connection c) throws StoreServiceException {
-                        if (repository.findProduct(c, request.getId(), false) == null) {
+                        ProductDto previous = repository.findProduct(c, request.getId(), true);
+                        if (previous == null) {
                             throw new StoreServiceException(ResultCodes.NOT_FOUND, "商品不存在");
                         }
+                        StoreImagePolicy.requireExisting(request, previous.getImageUrl());
                         if (repository.skuExists(c, request.getSku(), request.getId())) {
                             throw new StoreServiceException(ResultCodes.CONFLICT, "商品编码已存在");
                         }
@@ -96,6 +98,16 @@ final class StoreProductService {
     ProductDto save(SessionContext session, ProductWriteRequest request)
             throws StoreServiceException {
         return request != null && request.getId() > 0 ? update(session, request) : create(session, request);
+    }
+
+    byte[] image(SessionContext session, String reference) throws StoreServiceException {
+        StoreServiceSupport.requirePermission(session, Permission.STORE_READ);
+        if (!StoreImagePolicy.reference(reference)) throw new StoreServiceException(ResultCodes.INVALID_INPUT, "图片引用不正确");
+        return StoreServiceSupport.inTransaction(transactions, c -> {
+            byte[] data = repository.findProductImage(c, reference, session.getActiveRole() == Role.STORE_MANAGER);
+            if (data == null) throw new StoreServiceException(ResultCodes.NOT_FOUND, "图片不存在或商品已下架");
+            return data;
+        });
     }
 
     ProductDto adjustStock(final SessionContext session, final StockAdjustRequest request)
@@ -154,7 +166,7 @@ final class StoreProductService {
         StoreServiceSupport.maxLength(request.getName(), 200, "商品名称");
         StoreServiceSupport.maxLength(request.getCategory(), 80, "商品分类");
         StoreServiceSupport.maxLength(request.getDescription(), 65535, "商品描述");
-        validateImage(request.getImageUrl());
+        StoreImagePolicy.validate(request);
         StoreServiceSupport.money(request.getPrice(), "商品", true);
         if (request.getStockQty() < 0) {
             throw new StoreServiceException(ResultCodes.INVALID_INPUT, "库存不能为负数");
@@ -170,19 +182,4 @@ final class StoreProductService {
         }
     }
 
-    private static void validateImage(String value) throws StoreServiceException {
-        if (value == null || value.trim().isEmpty()) return;
-        StoreServiceSupport.maxLength(value, 1000, "商品图片地址");
-        try {
-            URI uri = new URI(value.trim());
-            String scheme = uri.getScheme();
-            if (scheme == null || !("http".equalsIgnoreCase(scheme)
-                    || "https".equalsIgnoreCase(scheme)) || uri.getHost() == null) {
-                throw new IllegalArgumentException();
-            }
-        } catch (Exception ex) {
-            throw new StoreServiceException(ResultCodes.INVALID_INPUT,
-                    "商品图片地址必须是 http 或 https 链接");
-        }
-    }
 }

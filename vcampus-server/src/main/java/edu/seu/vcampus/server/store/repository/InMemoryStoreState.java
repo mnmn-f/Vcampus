@@ -14,6 +14,7 @@ import java.util.Map;
 /** 内存仓储共享状态；测试事务执行器以该对象作为锁。 */
 final class InMemoryStoreState {
     final Map<Long, ProductDto> products = new LinkedHashMap<Long, ProductDto>();
+    final Map<Long, byte[]> productImages = new LinkedHashMap<>();
     final Map<Long, MemoryCart> carts = new LinkedHashMap<Long, MemoryCart>();
     final Map<Long, MemoryOrder> orders = new LinkedHashMap<Long, MemoryOrder>();
     final Map<Long, MemoryAccount> accounts = new LinkedHashMap<Long, MemoryAccount>();
@@ -104,6 +105,7 @@ final class InMemoryStoreState {
     Snapshot snapshot() {
         Snapshot result = new Snapshot();
         result.state.products.putAll(products);
+        for (Map.Entry<Long, byte[]> image : productImages.entrySet()) result.state.productImages.put(image.getKey(), image.getValue().clone());
         for (Map.Entry<Long, MemoryCart> entry : carts.entrySet()) {
             MemoryCart copy = new MemoryCart(entry.getValue().id, entry.getValue().userId);
             copy.status = entry.getValue().status;
@@ -149,6 +151,7 @@ final class InMemoryStoreState {
     void restore(Snapshot snapshot) {
         products.clear();
         products.putAll(snapshot.state.products);
+        productImages.clear(); productImages.putAll(snapshot.state.productImages);
         carts.clear();
         carts.putAll(snapshot.state.carts);
         orders.clear();

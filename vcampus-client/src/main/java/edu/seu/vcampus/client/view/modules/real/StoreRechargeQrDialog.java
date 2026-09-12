@@ -36,10 +36,20 @@ final class StoreRechargeQrDialog {
     }
 
     private static BufferedImage load() {
+        return load(EXTERNAL);
+    }
+
+    static BufferedImage load(File external) {
         try {
-            if (EXTERNAL.isFile()) return ImageIO.read(EXTERNAL);
+            if (external.isFile()) {
+                BufferedImage configured = ImageIO.read(external);
+                if (configured != null) return configured;
+            }
             try (InputStream input = StoreRechargeQrDialog.class.getResourceAsStream(RESOURCE)) {
-                if (input != null) return ImageIO.read(input);
+                if (input != null) {
+                    BufferedImage bundled = ImageIO.read(input);
+                    if (bundled != null) return bundled;
+                }
             }
         } catch (Exception ignored) { }
         return placeholder();

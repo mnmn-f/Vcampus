@@ -71,9 +71,10 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     @Override
     public void insertProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "INSERT INTO products (sku, name, category, description, price, "
-                + "stock_qty, status, image_url, created_by, category_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "stock_qty, status, image_url, created_by, category_code, image_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             bindWrite(ps, r, actor);
+            ps.setBytes(11, r.getImageData());
             ps.executeUpdate();
         } catch (SQLException ex) {
             throw fail("新增商品失败", ex);
@@ -83,11 +84,13 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
     @Override
     public void updateProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "UPDATE products SET sku = ?, name = ?, category = ?, description = ?, "
-                + "price = ?, stock_qty = ?, status = ?, image_url = ?, category_code = ?, "
+                + "price = ?, stock_qty = ?, status = ?, image_data = CASE WHEN ? IS NOT NULL THEN ? WHEN image_url <=> ? THEN image_data ELSE NULL END, image_url = ?, category_code = ?, "
                 + "version = version + 1 WHERE id = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            bindUpdate(ps, r);
-            ps.setLong(10, r.getId());
+            bindCommon(ps, r);
+            ps.setBytes(8, r.getImageData()); ps.setBytes(9, r.getImageData());
+            ps.setString(10, r.getImageUrl()); ps.setString(11, r.getImageUrl());
+            ps.setString(12, r.getCategory()); ps.setLong(13, r.getId());
             if (ps.executeUpdate() != 1) throw new StoreRepositoryException("商品不存在");
         } catch (SQLException ex) {
             throw fail("修改商品失败", ex);
@@ -108,6 +111,14 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
         } catch (SQLException ex) {
             throw fail("调整商品库存失败", ex);
         }
+    }
+
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
+        String sql = "SELECT image_data FROM products WHERE image_url=?" + (manager ? "" : " AND status='ON_SALE'");
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, reference);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getBytes(1) : null; }
+        } catch (SQLException ex) { throw fail("读取商品图片失败", ex); }
     }
 
     @Override
@@ -153,12 +164,6 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
         ps.setLong(i++, actor);
         setNullable(ps, i, r.getCategory());
         return i + 1;
-    }
-
-    private static void bindUpdate(PreparedStatement ps, ProductWriteRequest r)
-            throws SQLException {
-        int i = bindCommon(ps, r);
-        setNullable(ps, i, r.getCategory());
     }
 
     private static int bindCommon(PreparedStatement ps, ProductWriteRequest r)

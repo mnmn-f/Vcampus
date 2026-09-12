@@ -24,6 +24,7 @@ import java.util.List;
 
 /** 商店体验增强数据的独立持久化边界。 */
 public interface StoreExperienceRepository {
+    edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(Connection c, long userId, ProductReviewQuery query);
     StoreCategoryPage listCategories(Connection c, boolean includeInactive);
     StoreCategoryDto saveCategory(Connection c, StoreCategoryWriteRequest request);
     PromotionPage listPromotions(Connection c);

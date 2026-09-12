@@ -14,7 +14,7 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
-/** 商品图片异步加载器：仅允许 http/https，限制大小并复用进程缓存。 */
+/** 商品图片异步加载器：服务器图片引用或历史 HTTP(S) 地址，限制大小并复用缓存。 */
 public final class ProductImageView extends JLabel {
     private static final int MAX_BYTES = 2 * 1024 * 1024;
     private static final java.util.concurrent.atomic.AtomicInteger PENDING = new java.util.concurrent.atomic.AtomicInteger();
@@ -29,12 +29,17 @@ public final class ProductImageView extends JLabel {
     private final int imageWidth;
     private final int imageHeight;
     private boolean initialized;
+    private final edu.seu.vcampus.client.service.store.StoreClientService service;
 
     public ProductImageView() {
         this(180, 140);
     }
 
     ProductImageView(int width, int height) {
+        this(width, height, null);
+    }
+    ProductImageView(int width, int height, edu.seu.vcampus.client.service.store.StoreClientService service) {
+        this.service = service;
         imageWidth = width; imageHeight = height;
         setHorizontalAlignment(CENTER); setVerticalAlignment(CENTER);
         setPreferredSize(new Dimension(width, height)); setMinimumSize(new Dimension(width, height));
@@ -76,13 +81,29 @@ public final class ProductImageView extends JLabel {
         setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(), imageWidth, imageHeight));
     }
 
-    private static ImageIcon read(String value) throws Exception {
+    void showBytes(byte[] bytes) {
+        currentUrl = null; initialized = false;
+        try { ImageIcon icon = decode(bytes); setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(), imageWidth, imageHeight)); }
+        catch (Exception error) { setIcon(PLACEHOLDER); setText("图片无法预览"); }
+    }
+
+    private ImageIcon read(String value) throws Exception {
+        if (value.startsWith("store-image:")) {
+            if (service == null) throw new java.io.IOException("图片服务未连接");
+            return decode(service.getProductImage(value));
+        }
         HttpURLConnection connection = open(value);
         try {
         int length = connection.getContentLength(); if (length > MAX_BYTES) throw new IllegalArgumentException("图片过大");
         ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buffer = new byte[8192]; int total = 0, count;
         try (java.io.InputStream in = connection.getInputStream()) { while ((count = in.read(buffer)) >= 0) { total += count; if (total > MAX_BYTES) throw new IllegalArgumentException("图片过大"); out.write(buffer, 0, count); } }
-        try (javax.imageio.stream.ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(out.toByteArray()))) {
+        return decode(out.toByteArray());
+        } finally { connection.disconnect(); }
+    }
+
+    private static ImageIcon decode(byte[] bytes) throws Exception {
+        if (bytes == null || bytes.length == 0 || bytes.length > MAX_BYTES) throw new IllegalArgumentException("图片内容无效");
+        try (javax.imageio.stream.ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) throw new IllegalArgumentException("图片格式不支持");
             javax.imageio.ImageReader reader = readers.next();
@@ -93,7 +114,6 @@ public final class ProductImageView extends JLabel {
                 return fit(reader.read(0), width, height, 180, 140);
             } finally { reader.dispose(); }
         }
-        } finally { connection.disconnect(); }
     }
 
     private static HttpURLConnection open(String target) throws Exception {
@@ -122,6 +142,7 @@ public final class ProductImageView extends JLabel {
 
     private static String normalize(String value) {
         if (value == null || value.trim().isEmpty()) return null;
+        if (value.matches("store-image:[0-9a-fA-F-]{36}")) return value;
         try { URI uri = new URI(value.trim()); String scheme = uri.getScheme(); if (uri.getHost() == null || uri.getUserInfo() != null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) return null; return uri.toString(); }
         catch (Exception ex) { return null; }
     }

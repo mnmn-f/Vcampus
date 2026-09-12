@@ -72,6 +72,8 @@ public final class StoreCommandHandler implements CommandHandler {
                 return Message.success(request, service.adjustProductStock(session,
                         require(payload, StockAdjustRequest.class)));
             }
+            if (StoreCommands.PRODUCT_IMAGE.equals(command)) return Message.success(request, service.getProductImage(session,
+                    require(payload, edu.seu.vcampus.common.dto.store.ProductImageRequest.class).getReference()));
             if (StoreCommands.CATEGORY_LIST.equals(command)) return Message.success(request, service.listCategories(session));
             if (StoreCommands.CATEGORY_SAVE.equals(command)) return Message.success(request, service.saveCategory(session, require(payload, StoreCategoryWriteRequest.class)));
             if (StoreCommands.CART_GET.equals(command)) return Message.success(request, service.getCart(session));
@@ -137,6 +139,7 @@ public final class StoreCommandHandler implements CommandHandler {
             if (StoreCommands.COUPON_MINE.equals(command)) return Message.success(request, service.listCoupons(session));
             if (StoreCommands.REVIEW_CREATE.equals(command)) return Message.success(request, service.addReview(session, require(payload, ProductReviewWriteRequest.class)));
             if (StoreCommands.REVIEW_LIST.equals(command)) return Message.success(request, service.listReviews(session, require(payload, ProductReviewQuery.class)));
+            if (StoreCommands.REVIEW_CANDIDATES.equals(command)) return Message.success(request, service.reviewCandidates(session, require(payload, ProductReviewQuery.class)));
             if (StoreCommands.FRIEND_PAY_CREATE.equals(command)) return Message.success(request, service.createFriendPayment(session, require(payload, FriendPaymentRequest.class)));
             if (StoreCommands.FRIEND_PAY_MINE.equals(command)) return Message.success(request, service.listFriendPayments(session, require(payload, FriendPaymentQuery.class)));
             if (StoreCommands.FRIEND_PAY_WITHDRAW.equals(command)) return Message.success(request, service.withdrawFriendPayment(session, new StoreIdRequest(id(payload))));
@@ -154,7 +157,7 @@ public final class StoreCommandHandler implements CommandHandler {
     @Override
     public Permission requiredPermission() {
         if (StoreCommands.PRODUCT_SEARCH.equals(command)
-                || StoreCommands.PRODUCT_DETAIL.equals(command)) return Permission.STORE_READ;
+                || StoreCommands.PRODUCT_DETAIL.equals(command) || StoreCommands.PRODUCT_IMAGE.equals(command)) return Permission.STORE_READ;
         if (StoreCommands.PRODUCT_SAVE.equals(command)
                 || StoreCommands.PRODUCT_CREATE.equals(command)
                 || StoreCommands.PRODUCT_UPDATE.equals(command)

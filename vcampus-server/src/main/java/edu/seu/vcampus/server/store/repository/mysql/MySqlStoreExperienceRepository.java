@@ -39,6 +39,7 @@ public final class MySqlStoreExperienceRepository implements StoreExperienceRepo
     @Override public CouponDto findCoupon(Connection c, long u, String code, boolean lock) { return reviews.findCoupon(c, u, code, lock); }
     @Override public boolean markCouponUsed(Connection c, long u, String code, long order) { return reviews.markCouponUsed(c, u, code, order); }
     @Override public ProductReviewPage listReviews(Connection c, ProductReviewQuery q) { return reviews.reviews(c, q); }
+    @Override public edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(Connection c, long user, ProductReviewQuery q) { return MySqlReviewCandidates.load(c, user, q); }
     @Override public ProductReviewDto addReview(Connection c, long u, ProductReviewWriteRequest r, String name) { return reviews.addReview(c, u, r, name); }
     @Override public FriendPaymentDto createFriendPayment(Connection c, long u, FriendPaymentRequest r) { return friends.create(c, u, r); }
     @Override public FriendPaymentPage listFriendPayments(Connection c, long u, FriendPaymentQuery q) { return friends.list(c, u, q); }

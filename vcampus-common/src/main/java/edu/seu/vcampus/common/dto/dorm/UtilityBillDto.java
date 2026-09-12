@@ -24,6 +24,7 @@ public final class UtilityBillDto implements Serializable {
     private final LocalDateTime dueAt;
     private final Long paidTransactionId;
     private final LocalDateTime paidAt;
+    private final String studentLabel;
 
     public UtilityBillDto(long allocationId, long billId, long roomId, String roomNo,
                           LocalDate periodStart, LocalDate periodEnd,
@@ -44,6 +45,14 @@ public final class UtilityBillDto implements Serializable {
                           String billStatus, String allocationStatus,
                           LocalDateTime dueAt, Long paidTransactionId,
                           LocalDateTime paidAt) {
+        this(allocationId, billId, roomId, studentUserId, roomNo, periodStart, periodEnd, electricityUnits, waterUnits,
+                totalAmount, allocatedAmount, billStatus, allocationStatus, dueAt, paidTransactionId, paidAt, null);
+    }
+    public UtilityBillDto(long allocationId, long billId, long roomId, Long studentUserId, String roomNo,
+            LocalDate periodStart, LocalDate periodEnd, BigDecimal electricityUnits, BigDecimal waterUnits,
+            BigDecimal totalAmount, BigDecimal allocatedAmount, String billStatus, String allocationStatus,
+            LocalDateTime dueAt, Long paidTransactionId, LocalDateTime paidAt, String studentLabel) {
+        this.studentLabel = studentLabel;
         this.allocationId = allocationId;
         this.billId = billId;
         this.roomId = roomId;
@@ -79,4 +88,5 @@ public final class UtilityBillDto implements Serializable {
     public LocalDateTime getDueAt() { return dueAt; }
     public Long getPaidTransactionId() { return paidTransactionId; }
     public LocalDateTime getPaidAt() { return paidAt; }
+    public String getStudentLabel() { return studentLabel; }
 }

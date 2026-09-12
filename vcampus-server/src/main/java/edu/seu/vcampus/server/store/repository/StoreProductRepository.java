@@ -10,6 +10,7 @@ import java.sql.Connection;
 
 /** products 表的读写边界。 */
 public interface StoreProductRepository {
+    byte[] findProductImage(Connection connection, String reference, boolean manager);
     ProductPage searchProducts(Connection connection, ProductQuery query);
     ProductDto findProduct(Connection connection, long productId, boolean forUpdate);
     boolean skuExists(Connection connection, String sku, long excludedProductId);

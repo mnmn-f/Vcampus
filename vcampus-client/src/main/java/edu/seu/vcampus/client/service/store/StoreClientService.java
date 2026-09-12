@@ -45,6 +45,8 @@ import edu.seu.vcampus.common.dto.store.StoreSalesTrendQuery;
 
 /** 商店页面使用的网络服务边界，不依赖 Swing 演示页面。 */
 public interface StoreClientService {
+    byte[] getProductImage(String reference) throws NetworkClientException;
+    edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(ProductReviewQuery query) throws NetworkClientException;
     ProductPage searchProducts(ProductQuery query) throws NetworkClientException;
     ProductDto getProductDetail(long productId) throws NetworkClientException;
     ProductDto createProduct(ProductWriteRequest request) throws NetworkClientException;

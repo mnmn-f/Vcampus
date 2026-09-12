@@ -22,7 +22,8 @@ import java.util.List;
 /** classrooms 与 classroom_reservations 的 MySQL 专责仓储。 */
 public final class MySqlCampusClassroomRepository implements CampusClassroomRepository {
     private static final String ROOM_COLUMNS = "id,building_name,room_no,classroom_type,capacity,equipment_description,status";
-    private static final String RES_COLUMNS = "r.id,r.classroom_id,c.building_name,c.room_no,r.applicant_id,r.purpose,r.start_at,r.end_at,r.status,r.reviewed_by,r.reviewed_at,r.review_remark";
+    private static final String RES_COLUMNS = "r.id,r.classroom_id,c.building_name,c.room_no,r.applicant_id,r.purpose,r.start_at,r.end_at,r.status,r.reviewed_by,r.reviewed_at,r.review_remark,"
+            + edu.seu.vcampus.server.db.PersonDisplaySql.label("r.applicant_id") + " applicant_label";
     private static final String RES_FROM = " FROM classroom_reservations r JOIN classrooms c ON c.id=r.classroom_id";
 
     @Override public CampusPage<CampusClassroomDto> listClassrooms(Connection c, CampusPageQuery q)
@@ -54,7 +55,8 @@ public final class MySqlCampusClassroomRepository implements CampusClassroomRepo
         List<Object> values = new ArrayList<Object>(); String where = " WHERE 1=1";
         if (applicant != null) { where += " AND r.applicant_id=?"; values.add(applicant); }
         if (query.getStatus() != null) { where += " AND r.status=?"; values.add(query.getStatus()); }
-        if (query.getKeyword() != null) { where += " AND (r.purpose LIKE ? OR c.building_name LIKE ? OR c.room_no LIKE ?)"; String key = "%" + query.getKeyword() + "%"; values.add(key); values.add(key); values.add(key); }
+        if (query.getKeyword() != null) { where += " AND (r.purpose LIKE ? OR c.building_name LIKE ? OR c.room_no LIKE ? OR "
+                + edu.seu.vcampus.server.db.PersonDisplaySql.label("r.applicant_id") + " LIKE ?)"; String key = "%" + query.getKeyword() + "%"; values.add(key); values.add(key); values.add(key); values.add(key); }
         return JdbcCampusSupport.page(c, "SELECT COUNT(*)" + RES_FROM + where,
                 "SELECT " + RES_COLUMNS + RES_FROM + where + " ORDER BY r.start_at DESC,r.id DESC LIMIT ? OFFSET ?",
                 values, query, new JdbcCampusSupport.Mapper<ClassroomReservationDto>() { public ClassroomReservationDto map(ResultSet r) throws SQLException { return JdbcCampusSupport.reservation(r); } });

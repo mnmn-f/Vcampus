@@ -163,7 +163,7 @@ final class JdbcDormSupport {
                 r.getBigDecimal("water_units"), r.getBigDecimal("total_amount"),
                 r.getBigDecimal("allocated_amount"), r.getString("bill_status"),
                 r.getString("allocation_status"), localTimestamp(r, "due_at"),
-                transactionNull ? null : Long.valueOf(tx), localTimestamp(r, "paid_at"));
+                transactionNull ? null : Long.valueOf(tx), localTimestamp(r, "paid_at"), r.getString("student_label"));
     }
 
     static DormAnnouncementDto announcement(ResultSet r) throws SQLException {

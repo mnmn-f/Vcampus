@@ -69,7 +69,7 @@ public final class CampusClassroomsPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<ClassroomReservationDto>() {
                     @Override public Object[] values(ClassroomReservationDto row) { return new Object[]{row.getBuildingName() + " " + row.getRoomNo(),
-                            manager ? row.getApplicantId() : "本人", row.getPurpose(), RealUi.dateTime(row.getStartAt()) + " - " + RealUi.dateTime(row.getEndAt()),
+                            manager ? RealUi.text(row.getApplicantLabel()) : "本人", row.getPurpose(), RealUi.dateTime(row.getStartAt()) + " - " + RealUi.dateTime(row.getEndAt()),
                             RealUi.status(row.getStatus())}; }
                 }, null);
         if (!manager) { JButton cancel = new DangerButton("撤销申请"); cancel.addActionListener(new java.awt.event.ActionListener() {

@@ -22,7 +22,8 @@ import java.util.List;
 public final class MySqlDormBillingRepository implements DormBillingRepository {
     private static final String SELECT = "SELECT ua.id allocation_id,ub.id bill_id,dr.id room_id,ua.student_user_id,dr.room_no,"
             + "ub.period_start,ub.period_end,ub.electricity_units,ub.water_units,ub.total_amount,ua.amount allocated_amount,"
-            + "ub.status bill_status,ua.status allocation_status,ub.due_at,ua.paid_transaction_id,ua.paid_at";
+            + "ub.status bill_status,ua.status allocation_status,ub.due_at,ua.paid_transaction_id,ua.paid_at,"
+            + edu.seu.vcampus.server.db.PersonDisplaySql.label("ua.student_user_id") + " student_label";
     private static final String FROM = " FROM utility_allocations ua JOIN utility_bills ub ON ub.id=ua.bill_id"
             + " JOIN dorm_rooms dr ON dr.id=ub.room_id";
     private final DormPaymentPort payments;
@@ -50,8 +51,8 @@ public final class MySqlDormBillingRepository implements DormBillingRepository {
         String keyword = JdbcDormSupport.clean(query.getKeyword());
         if (keyword != null) {
             String like = "%" + keyword + "%";
-            where += " AND (dr.room_no LIKE ? OR dr.building_code LIKE ?"
-                    + " OR CAST(ua.student_user_id AS CHAR) LIKE ?"
+            where += " AND (dr.room_no LIKE ? OR EXISTS(SELECT 1 FROM dorm_buildings db WHERE db.id=dr.building_id AND CONCAT(db.building_code,' ',db.building_name) LIKE ?)"
+                    + " OR " + edu.seu.vcampus.server.db.PersonDisplaySql.label("ua.student_user_id") + " LIKE ?"
                     + " OR DATE_FORMAT(ub.period_start,'%Y-%m-%d') LIKE ?"
                     + " OR DATE_FORMAT(ub.period_end,'%Y-%m-%d') LIKE ?)";
             for (int i = 0; i < 5; i++) params.add(like);

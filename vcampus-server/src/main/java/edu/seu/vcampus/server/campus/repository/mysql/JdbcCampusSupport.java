@@ -93,7 +93,7 @@ final class JdbcCampusSupport {
                 r.getString("building_name"), r.getString("room_no"), r.getLong("applicant_id"),
                 r.getString("purpose"), date(r, "start_at"), date(r, "end_at"),
                 r.getString("status"), nullableLong(r, "reviewed_by"), date(r, "reviewed_at"),
-                r.getString("review_remark"));
+                r.getString("review_remark"), r.getString("applicant_label"));
     }
 
     static Long nullableLong(ResultSet r, String column) throws SQLException {

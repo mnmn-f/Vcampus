@@ -53,6 +53,9 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     @Override public ProductPage searchProducts(Connection c, ProductQuery q) {
         return products.searchProducts(c, q);
     }
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
+        return products.findProductImage(c, reference, manager);
+    }
     @Override public ProductDto findProduct(Connection c, long id, boolean lock) {
         return products.findProduct(c, id, lock);
     }
