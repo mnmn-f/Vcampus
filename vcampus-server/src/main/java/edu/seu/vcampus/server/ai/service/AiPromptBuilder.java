@@ -48,6 +48,18 @@ public final class AiPromptBuilder {
         return out.append("用户：").append(question == null ? "" : question.trim()).toString();
     }
 
+    /** 让模型只从已授权的实时查询结果中提取用户实际询问的字段。 */
+    public String liveData(String question, String toolDescription, String data) {
+        return "用户问题：\n" + (question == null ? "" : question.trim())
+                + "\n\n已授权的校园实时数据（工具："
+                + (toolDescription == null ? "校园查询" : toolDescription) + "）：\n"
+                + (data == null ? "暂无数据" : data)
+                + "\n\n请直接回答用户的问题，并严格遵守：只使用上面的实时数据，不猜测、"
+                + "不补充不存在的事实；只返回用户明确询问的字段，保留理解结果所必需的名称"
+                + "（例如书名或课程名）；用户明确询问“完整信息、全部信息、详情”时才展开全部字段；"
+                + "若没有匹配结果就明确说明。只输出简洁中文纯文本，不使用 Markdown 标记。";
+    }
+
     public String fallback(String question, List<AiKnowledgeChunk> chunks) {
         if (chunks == null || chunks.isEmpty()) {
             return "当前模型未配置或暂时不可用，知识库也没有检索到与该问题直接相关的内容。"

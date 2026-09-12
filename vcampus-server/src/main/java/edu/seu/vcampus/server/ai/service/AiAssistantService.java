@@ -26,6 +26,7 @@ import edu.seu.vcampus.server.ai.tool.ToolBridge;
 import edu.seu.vcampus.server.ai.tool.ToolIntentParser;
 import edu.seu.vcampus.server.ai.tool.ToolResultFormatter;
 import edu.seu.vcampus.server.ai.tool.ModelToolIntentResolver;
+import edu.seu.vcampus.server.ai.tool.ModeIntentClassifier;
 import edu.seu.vcampus.server.ai.tool.NamedEntityResolver;
 import edu.seu.vcampus.server.router.StreamWriter;
 import edu.seu.vcampus.server.security.SessionContext;
@@ -47,6 +48,7 @@ public final class AiAssistantService {
     private final AiPromptBuilder prompts = new AiPromptBuilder();
     private final AiModel model;
     private final ModelToolIntentResolver modelIntents;
+    private final ModeIntentClassifier modeIntents = new ModeIntentClassifier();
     private final NamedEntityResolver entities;
     private final AiQueryLimiter limiter = new AiQueryLimiter();
 
@@ -70,11 +72,14 @@ public final class AiAssistantService {
             sessionId = conversations.beginQuery(session, query.getSessionId(),
                     query.getRequestId(), query.getText());
             String history = conversations.recentContext(session, sessionId);
-            if (query.getMode() == AiMode.CHAT) {
-                answerChat(envelope, query, sessionId, writer, history);
-                return;
-            }
             AiToolInvocation invocation = intents.parse(query.getText());
+            if (query.getMode() == AiMode.CHAT) {
+                AiMode recommended = modeIntents.recommend(query.getText(), invocation, tools);
+                if (recommended != AiMode.CHAT) {
+                    modeHint(envelope, query, sessionId, writer, recommended); return;
+                }
+                answerChat(envelope, query, sessionId, writer, history); return;
+            }
             if (invocation == null) {
                 invocation = modelIntents.resolve(query.getRequestId(), query.getText(),
                         history, query.getMode());
@@ -91,12 +96,13 @@ public final class AiAssistantService {
             }
             if (invocation != null) {
                 AiTool selected = tools.get(invocation.getToolName());
+                if (query.getMode() == AiMode.TASK && selected != null
+                        && !selected.isWriteOperation()) {
+                    modeHint(envelope, query, sessionId, writer, AiMode.QA); return;
+                }
                 if (query.getMode() == AiMode.QA && selected != null
                         && selected.isWriteOperation()) {
-                    String hint = "这是会修改数据的操作。请切换到“代办模式”后重试，系统仍会在执行前请你确认。";
-                    conversations.saveAssistant(sessionId, query.getRequestId(), hint, "COMPLETED");
-                    streamText(envelope, query, sessionId, writer, hint);
-                    complete(envelope, query, sessionId, writer); return;
+                    modeHint(envelope, query, sessionId, writer, AiMode.TASK); return;
                 }
                 invocation = entities.resolve(invocation, session);
                 String clarification = selected == null ? null
@@ -109,6 +115,10 @@ public final class AiAssistantService {
                 }
                 handleTool(envelope, query, sessionId, session, writer, invocation);
             } else {
+                if (query.getMode() == AiMode.TASK
+                        && modeIntents.recommend(query.getText(), null, tools) == AiMode.QA) {
+                    modeHint(envelope, query, sessionId, writer, AiMode.QA); return;
+                }
                 answer(envelope, query, sessionId, writer, history);
             }
         } catch (AiServiceException ex) {
@@ -225,7 +235,8 @@ public final class AiAssistantService {
     }
 
     private void handleTool(Message envelope, AiQuery query, String sessionId,
-            SessionContext session, StreamWriter writer, AiToolInvocation invocation) {
+            SessionContext session, StreamWriter writer, AiToolInvocation invocation)
+            throws InterruptedException {
         AiTool tool = tools.get(invocation.getToolName());
         if (tool == null) throw new AiServiceException(ResultCodes.NOT_FOUND, "未找到对应校园工具");
         long logId = toolLogs.create(sessionId, query.getRequestId(), tool.getName(),
@@ -239,8 +250,8 @@ public final class AiAssistantService {
             complete(envelope, query, sessionId, writer); return;
         }
         try {
-            String result = formatToolResult(tool,
-                    bridge.execute(tool, invocation.getArgumentsJson(), session));
+            Object value = bridge.execute(tool, invocation.getArgumentsJson(), session);
+            String result = formatToolResult(tool, value, query.getText(), query.getRequestId());
             toolLogs.finish(logId, "SUCCEEDED", result, null);
             conversations.saveAssistant(sessionId, query.getRequestId(), result, "COMPLETED");
             streamText(envelope, query, sessionId, writer, result); complete(envelope, query, sessionId, writer);
@@ -319,6 +330,35 @@ public final class AiAssistantService {
 
     private String formatToolResult(AiTool tool, Object value) {
         return "【实时数据｜" + tool.getDescription() + "】\n" + formatter.format(value);
+    }
+
+    private String formatToolResult(AiTool tool, Object value, String question, String requestId)
+            throws InterruptedException {
+        String focused = formatter.format(value, question);
+        if (!model.isConfigured()) return "【实时数据｜" + tool.getDescription() + "】\n" + focused;
+        final StringBuilder refined = new StringBuilder();
+        try {
+            AiPlainTextFilter filter = new AiPlainTextFilter(new AiTextSink() {
+                public void onText(String text) { refined.append(text); }
+            });
+            model.generate(requestId + "-result",
+                    prompts.liveData(question, tool.getDescription(), formatter.format(value)), filter);
+            filter.finish();
+            String answer = refined.toString().trim();
+            if (!answer.isEmpty()) focused = answer;
+        } catch (InterruptedException ex) { throw ex; }
+        catch (Exception ignored) { }
+        return "【实时数据｜" + tool.getDescription() + "】\n" + focused;
+    }
+
+    private void modeHint(Message envelope, AiQuery query, String sessionId,
+                          StreamWriter writer, AiMode recommended) {
+        String hint = recommended == AiMode.TASK
+                ? "这是一条系统操作指令。请切换到“代办模式”后重新发送，执行前系统仍会请你确认。"
+                : "这是一个校园系统查询或使用问题。请切换到“问答模式”后重新发送。";
+        conversations.saveAssistant(sessionId, query.getRequestId(), hint, "COMPLETED");
+        streamText(envelope, query, sessionId, writer, hint);
+        complete(envelope, query, sessionId, writer);
     }
 
     private String safeError(RuntimeException error) {

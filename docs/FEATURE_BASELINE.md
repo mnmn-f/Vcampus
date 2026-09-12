@@ -95,17 +95,19 @@
 | 验收项 | 状态 | 证据 |
 |---|---|---|
 | 会话、消息、流式片段、取消和本地知识检索 | [x] | AiAssistantService、AiConversationService、AiKnowledgeService、KnowledgeRanker、AiChatPanel |
-| DeepSeek Responses API、聊天图片/PDF/Office/文本附件、纯文本输出；未配置密钥时离线降级 | [x] | AiAttachment、AiAttachmentLoader、ResponsesAiModel、AiPlainTextFilter、ToolResultFormatter 及对应测试 |
-| 47 个白名单业务工具、结构化参数、缺参澄清、20 个写操作二次确认和并发防重 | [x] | AiToolRegistry、CampusCommandTool、ModelToolIntentResolver、AiToolService、AiToolRepository.claim、AiToolClaimMySqlIntegrationTest |
+| DeepSeek Responses API、聊天图片/PDF/Office/文本附件、纯文本输出；实时结果按问题字段投影并可由模型在授权结果内整理，未配置密钥时本地降级 | [x] | AiAttachment、AiAttachmentLoader、ResponsesAiModel、AiPlainTextFilter、ToolResultFormatter 及对应测试 |
+| 47 个白名单业务工具、结构化参数、缺参续办、20 个写操作二次确认和并发防重 | [x] | AiToolRegistry、CampusCommandTool、ModelToolIntentResolver、AiToolService、AiToolRepository.claim、AiToolClaimMySqlIntegrationTest |
 | 公寓管理、违纪处分、系统操作和代办指南知识 | [x] | V10__ai_assistant_knowledge.sql、V11__ai_knowledge_and_tools.sql、KnowledgeRanker |
 | 学生同一逻辑请求失败重试、生成期间会话锁定、附件管理、会话搜索/重命名/归档/恢复/导出 | [x] | AiChatPanel、AiChatPanelRetryTest、AiCommands.SESSION_RESTORE |
-| 左右对话气泡、业务结果卡、日期时间/自习室编号代办参数、上传进度、回答依据和默认折叠会话侧栏 | [x] | AiMessageCard、AiDateTimeField、AiAnswerEvidence、AiStreamChunk、AiChatPanel |
+| 左右对话气泡、无横向快捷按钮的输入区、业务结果卡、日期时间/自习室编号代办参数、上传进度、回答依据和默认折叠会话侧栏 | [x] | AiMessageCard、AiDateTimeField、AiAnswerEvidence、AiStreamChunk、AiChatPanel |
+| 问答/代办/聊天模式边界提示，补参后保持原写工具继续执行 | [x] | ModeIntentClassifier、ToolIntentParser、AiChatPanel、ModeIntentClassifierTest、ToolIntentParserTest |
 | 针对单条 AI 回复的点赞、点踩和纠错，以及管理员按评价/类型/时间/状态筛选、处理并跳转知识片段 | [x] | AiFeedbackRequest、AiFeedbackQuery、AiFeedbackTriageRequest、AiFeedbackPanel、V12__ai_quality_workbench.sql、V16__ai_admin_workflow.sql |
 | AI 知识管理员分页维护、分段预览/修改/去重/选择性事务导入、版本回滚、标准答案/预期命中和批量回归 | [x] | AiKnowledgePanel、AiKnowledgeBatchRequest、AiKnowledgeImportResult、AiKnowledgeTestPanel、AiKnowledgeRegressionPanel |
 | 不执行业务命令的工具路由测试，以及最近调用、成功率、平均耗时和最近错误监控 | [x] | AiToolRouteTestPanel、AiToolRouteTestServiceTest、AiToolStatus、AiToolStatusPanel、AiMonitorPanel |
 | 学生问答与 AI 知识管理员工作台按角色显示 | [x] | RolePolicy、RoleWorkspace、AiAssistantPage |
 | 小松鼠多动作桌宠、喂食抚摸、AI 状态联动、最小化收束、拖动恢复和权限生命周期 | [x] | squirrel-actions.png、SquirrelPetController、SquirrelPetWidget、PetStateModel、AiChatPanelPetStateTest、PetInteractionMathTest、SquirrelPetWidgetTest |
 | AI 服务离线探测与桌宠 OFFLINE 状态 | [x] | ai.ping、AiChatPanel、PetStateModel、SquirrelPetWidget |
+| 登录页左侧正面趴扶挥手松鼠与放大品牌字样，登录框和注册逻辑保持原状 | [x] | LoginBrandPanel、squirrel-login-wave.png、LoginPagePreviewTest |
 
 ## 明确延期或不纳入本版本
 

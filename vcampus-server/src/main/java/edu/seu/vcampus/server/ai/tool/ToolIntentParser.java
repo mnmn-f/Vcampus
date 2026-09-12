@@ -1,6 +1,8 @@
 package edu.seu.vcampus.server.ai.tool;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** 无模型或明确校园指令时使用的确定性意图解析器。 */
 public final class ToolIntentParser {
@@ -9,11 +11,11 @@ public final class ToolIntentParser {
         if (instructionQuestion(q)) return null;
         Long id = firstNumber(q);
         if (contains(q, "取消自习室", "取消研讨室") && contains(q, "预约")) {
-            return id == null ? none("library.study-room.mine", "查询本人自习室预约")
+            return id == null ? none("library.study-room.cancel", "取消自习室预约")
                     : id("library.study-room.cancel", id.longValue(), "取消自习室预约 " + id);
         }
         if (contains(q, "预约", "预订") && contains(q, "自习室", "研讨室")) {
-            return new AiToolInvocation("library.study-room.reserve", "{}", "预约自习室");
+            return new AiToolInvocation("library.study-room.reserve", studyRoomArguments(q), "预约自习室");
         }
         if (contains(q, "移出购物车", "从购物车删除", "删除购物车", "购物车移除")) {
             String product = cleanEntity(q, "帮我", "把", "将", "移出购物车", "从购物车删除",
@@ -37,24 +39,24 @@ public final class ToolIntentParser {
                     code.isEmpty() ? "{}" : "{\"code\":\"" + escape(code) + "\"}", "领取优惠券");
         }
         if (contains(q, "报修", "维修") && !contains(q, "记录", "进度", "我的报修")) {
-            return new AiToolInvocation("dorm.repair.create", "{}", "提交宿舍报修");
+            return new AiToolInvocation("dorm.repair.create", repairArguments(q), "提交宿舍报修");
         }
         if (contains(q, "取消请假", "撤销请假")) {
-            return id == null ? none("dorm.leave.mine", "查询本人宿舍请假")
+            return id == null ? none("dorm.leave.cancel", "取消请假")
                     : id("dorm.leave.cancel", id.longValue(), "取消请假 " + id);
         }
         if (contains(q, "请假", "离校申请") && !contains(q, "记录", "我的请假")) {
-            return new AiToolInvocation("dorm.leave.submit", "{}", "提交宿舍请假");
+            return new AiToolInvocation("dorm.leave.submit", leaveArguments(q), "提交宿舍请假");
         }
         if (contains(q, "缴水电", "交水电", "支付水电", "缴电费", "交电费")) {
             String json = id == null ? "{}" : "{\"allocationId\":" + id + "}";
             return new AiToolInvocation("dorm.utility.pay", json, "支付水电分摊");
         }
         if (contains(q, "申请教室", "预约教室") && !contains(q, "我的", "记录", "进度")) {
-            return new AiToolInvocation("campus.classroom.apply", "{}", "提交教室申请");
+            return new AiToolInvocation("campus.classroom.apply", classroomArguments(q), "提交教室申请");
         }
         if (contains(q, "取消教室申请", "取消教室预约")) {
-            return id == null ? none("campus.classroom.mine", "查询本人教室申请")
+            return id == null ? none("campus.classroom.cancel", "取消教室申请")
                     : id("campus.classroom.cancel", id.longValue(), "取消教室申请 " + id);
         }
         if (contains(q, "报名了什么", "报名了哪些", "参加了什么", "参加了哪些",
@@ -68,14 +70,14 @@ public final class ToolIntentParser {
             return id("academic.course.enroll", id.longValue(), "选修课程 " + id);
         }
         if (contains(q, "退课", "退选")) {
-            String name = cleanEntity(q, "帮我", "退课", "退选");
-            return name.isEmpty() ? none("academic.enrollments.read", "列出本人已选课程")
-                    : name("academic.course.drop", name, "退选课程");
+            String target = firstNonBlank(labeled(q, "课程名称或编号", "课程", "course"),
+                    cleanEntity(q, "帮我", "退课", "退选"));
+            return name("academic.course.drop", target, "退选课程");
         }
         if (contains(q, "选课", "选择课程")) {
-            String name = cleanEntity(q, "帮我", "选课", "选择课程");
-            return name.isEmpty() ? keyword("academic.course.search", "", "列出可选课程")
-                    : name("academic.course.enroll", name, "选修课程");
+            String target = firstNonBlank(labeled(q, "课程名称或编号", "课程", "course"),
+                    cleanEntity(q, "帮我", "选课", "选择课程"));
+            return name("academic.course.enroll", target, "选修课程");
         }
         if (contains(q, "还书", "归还图书") && id != null) {
             return id("library.book.return", id.longValue(), "归还借阅记录 " + id);
@@ -84,14 +86,14 @@ public final class ToolIntentParser {
             return id("library.book.borrow", id.longValue(), "借阅图书 " + id);
         }
         if (contains(q, "还书", "归还图书")) {
-            String name = cleanEntity(q, "帮我", "还书", "归还图书");
-            return name.isEmpty() ? none("library.borrow.mine", "列出待归还图书")
-                    : name("library.book.return", name, "归还图书");
+            String target = firstNonBlank(labeled(q, "书名或记录编号", "书名", "book"),
+                    cleanEntity(q, "帮我", "还书", "归还图书"));
+            return name("library.book.return", target, "归还图书");
         }
         if (contains(q, "借书", "借阅图书")) {
-            String name = cleanEntity(q, "帮我", "借书", "借阅图书");
-            return name.isEmpty() ? keyword("library.book.search", "", "列出可借图书")
-                    : name("library.book.borrow", name, "借阅图书");
+            String target = firstNonBlank(labeled(q, "书名或记录编号", "书名", "book"),
+                    cleanEntity(q, "帮我", "借书", "借阅图书"));
+            return name("library.book.borrow", target, "借阅图书");
         }
         if (contains(q, "取消比赛报名", "取消竞赛报名", "取消报名") && id != null) {
             return id("campus.competition.cancel", id.longValue(), "取消竞赛报名 " + id);
@@ -103,15 +105,15 @@ public final class ToolIntentParser {
                 || (contains(q, "取消") && contains(q, "比赛", "竞赛"))) {
             String name = cleanEntity(q, "帮我", "取消比赛报名", "取消竞赛报名", "取消报名",
                     "取消", "报名", "参加", "比赛", "竞赛");
-            return name.isEmpty() ? none("campus.competition.search", "列出校园竞赛")
-                    : name("campus.competition.cancel", name, "取消竞赛报名");
+            name = firstNonBlank(labeled(q, "竞赛名称或编号", "竞赛", "competition"), name);
+            return name("campus.competition.cancel", name, "取消竞赛报名");
         }
         if (contains(q, "报名比赛", "报名竞赛", "竞赛报名", "参加比赛", "参加竞赛")
                 || (contains(q, "报名", "参加") && contains(q, "比赛", "竞赛"))) {
             String name = cleanEntity(q, "帮我", "报名比赛", "报名竞赛", "竞赛报名", "参加比赛", "参加竞赛",
                     "报名", "参加", "比赛", "竞赛");
-            return name.isEmpty() ? none("campus.competition.search", "列出可报名竞赛")
-                    : name("campus.competition.register", name, "报名竞赛");
+            name = firstNonBlank(labeled(q, "竞赛名称或编号", "竞赛", "competition"), name);
+            return name("campus.competition.register", name, "报名竞赛");
         }
         if (contains(q, "加入购物车", "添加到购物车") && id != null) {
             Long quantity = secondNumber(q);
@@ -119,10 +121,10 @@ public final class ToolIntentParser {
         }
         if (contains(q, "加入购物车", "添加到购物车", "放进购物车", "放到购物车", "放购物车")) {
             Long quantity = firstNumber(q);
-            String product = cleanEntity(q, "帮我", "把", "将", "加入购物车", "添加到购物车",
-                    "放进购物车", "放到购物车", "放购物车", "数量", "件", "个");
-            return product.isEmpty() ? keyword("store.product.search", "", "列出校园商品")
-                    : namedCart(product, quantity == null ? 1 : quantity.intValue());
+            String product = firstNonBlank(labeled(q, "商品名称或编号", "商品", "product"),
+                    cleanEntity(q, "帮我", "把", "将", "加入购物车", "添加到购物车",
+                    "放进购物车", "放到购物车", "放购物车", "数量", "件", "个"));
+            return namedCart(product, quantity == null ? 1 : quantity.intValue());
         }
         if (contains(q, "提交订单", "创建订单", "生成订单")) {
             return none("store.order.create", "从购物车创建订单");
@@ -131,11 +133,11 @@ public final class ToolIntentParser {
             return none("academic.enrollments.read", "查询本人已选课程");
         }
         if (contains(q, "课表", "课程表")) return none("academic.schedule.read", "查询本人课表");
+        if (contains(q, "成绩", "分数", "绩点", "gpa")) return none("student.grades.read", "查询本人成绩");
         if (contains(q, "学籍", "学籍信息", "我的学院", "我的专业", "我的班级", "我的学号",
                 "入学年份", "毕业年份", "学历", "培养层次")) {
             return none("student.profile.read", "查询本人学籍资料");
         }
-        if (contains(q, "成绩", "分数")) return none("student.grades.read", "查询本人成绩");
         if (contains(q, "账号资料", "个人资料", "个人信息")) {
             return none("identity.profile.read", "查询本人账号资料");
         }
@@ -214,22 +216,38 @@ public final class ToolIntentParser {
     }
 
     private AiToolInvocation keyword(String tool, String value, String summary) {
-        String clean = value.replaceAll("[，。？！,.?!：:;；、\"'“”《》]", " ")
+        String quoted = between(value, '《', '》');
+        String clean = quoted != null ? quoted : value.replaceAll("[，。？！,.?!：:;；、\"'“”《》]", " ")
                 .replace("查找", "").replace("搜索", "").replace("查询", "")
                 .replace("查看", "").replace("看看", "").replace("浏览", "")
                 .replace("图书馆有什么书", "").replace("图书馆有哪些书", "")
                 .replace("图书馆", "").replace("有什么书", "").replace("什么书", "").replace("哪些书", "")
                 .replace("图书", "").replace("书籍", "").replace("商品", "")
                 .replace("书目", "").replace("馆藏", "").replace("商城", "")
+                .replace("作者", "").replace("出版社", "").replace("出版年份", "")
+                .replace("isbn", "").replace("ISBN", "").replace("位置", "")
+                .replace("分类", "").replace("详情", "").replace("完整信息", "")
+                .replace("信息", "").replace("可借数量", "").replace("有几本", "")
                 .replace("商店", "").replace("有什么", "").replace("有哪些", "")
-                .replace("有没有", "").replace("里的", "").replace("里", "").trim();
+                .replace("有没有", "").replace("是谁", "").replace("是什么", "")
+                .replace("里的", "").replace("里", "").replaceAll("的\\s*$", "").trim();
         return new AiToolInvocation(tool, "{\"keyword\":\"" + escape(clean) + "\"}", summary);
+    }
+
+    private String between(String value, char open, char close) {
+        int start = value.indexOf(open); int end = start < 0 ? -1 : value.indexOf(close, start + 1);
+        if (start < 0 || end <= start + 1) return null;
+        return value.substring(start + 1, end).trim();
     }
 
     private String cleanEntity(String value, String... words) {
         String out = value;
         for (String word : words) out = out.replace(word, "");
         return out.replaceAll("[，。？！,.!?：:]+", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    private String firstNonBlank(String preferred, String fallback) {
+        return preferred == null || preferred.trim().isEmpty() ? fallback : preferred.trim();
     }
 
     private boolean contains(String value, String... candidates) {
@@ -265,7 +283,65 @@ public final class ToolIntentParser {
     }
 
     private boolean instructionQuestion(String value) {
-        return contains(value, "如何", "怎么", "怎样", "操作步骤", "在哪里", "从哪里");
+        return contains(value, "如何", "怎么", "怎样", "操作步骤", "在哪里", "从哪里",
+                "写一封", "邮件", "文案", "润色", "解释");
+    }
+
+    private String studyRoomArguments(String value) {
+        return object(numberField(value, "roomId", "自习室编号", "研讨室编号", "roomId"),
+                textField(value, "startAt", "开始时间", "startAt"),
+                textField(value, "endAt", "结束时间", "endAt"));
+    }
+
+    private String repairArguments(String value) {
+        return object(numberField(value, "roomId", "房间编号", "roomId"),
+                textField(value, "category", "故障类别", "category"),
+                textField(value, "description", "故障描述", "description"),
+                textField(value, "priority", "优先级", "priority"));
+    }
+
+    private String leaveArguments(String value) {
+        return object(textField(value, "leaveType", "请假类型", "leaveType"),
+                textField(value, "startAt", "开始时间", "startAt"),
+                textField(value, "endAt", "结束时间", "endAt"),
+                textField(value, "reason", "原因", "reason"));
+    }
+
+    private String classroomArguments(String value) {
+        return object(numberField(value, "classroomId", "教室编号", "classroomId"),
+                textField(value, "purpose", "用途", "purpose"),
+                textField(value, "startAt", "开始时间", "startAt"),
+                textField(value, "endAt", "结束时间", "endAt"));
+    }
+
+    private String numberField(String source, String key, String... labels) {
+        String value = labeled(source, labels);
+        if (value == null || !value.matches("\\d+")) return null;
+        return "\"" + key + "\":" + value;
+    }
+
+    private String textField(String source, String key, String... labels) {
+        String value = labeled(source, labels);
+        return value == null ? null : "\"" + key + "\":\"" + escape(value) + "\"";
+    }
+
+    private String labeled(String source, String... labels) {
+        for (String label : labels) {
+            Matcher matcher = Pattern.compile("(?:^|[；;\\r\\n])\\s*" + Pattern.quote(label)
+                    + "\\s*[：:]\\s*([^；;\\r\\n]+)").matcher(source);
+            if (matcher.find()) return matcher.group(1).trim();
+        }
+        return null;
+    }
+
+    private String object(String... fields) {
+        StringBuilder out = new StringBuilder("{");
+        for (String field : fields) {
+            if (field == null) continue;
+            if (out.length() > 1) out.append(',');
+            out.append(field);
+        }
+        return out.append('}').toString();
     }
 
     private String escape(String value) {

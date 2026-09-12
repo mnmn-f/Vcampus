@@ -193,6 +193,7 @@ final class AiMessageCard extends JPanel {
         }
         if (fields.isEmpty()) {
             if (value.contains("商品数量")) addField(fields, "quantity", value);
+            else if (value.contains("商品")) addField(fields, "product", value);
             else if (value.contains("优惠券")) addField(fields, "code", value);
             else if (value.contains("课程")) addField(fields, "course", value);
             else if (value.contains("哪本书") || value.contains("归还")) addField(fields, "book", value);
@@ -228,6 +229,7 @@ final class AiMessageCard extends JPanel {
         if ("allocationId".equals(key)) return "水电分摊编号";
         if ("code".equals(key)) return "优惠券代码";
         if ("quantity".equals(key)) return "商品数量";
+        if ("product".equals(key)) return "商品名称或编号";
         if ("course".equals(key)) return "课程名称或编号";
         if ("book".equals(key)) return "书名或记录编号";
         if ("competition".equals(key)) return "竞赛名称或编号";

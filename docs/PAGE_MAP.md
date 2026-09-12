@@ -4,7 +4,7 @@
 
 ## 统一外壳
 
-- 登录与匿名注册：[LoginFrame.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/LoginFrame.java)、[RegistrationPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/RegistrationPanel.java)。登录页只采集校园账号、学号或工号和密码；服务端查询账号、学号和工号，匹配唯一用户后返回姓名、用户编号和有效职责。
+- 登录与匿名注册：[LoginFrame.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/LoginFrame.java)、[LoginBrandPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/LoginBrandPanel.java)、[RegistrationPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/RegistrationPanel.java)。左侧品牌区由正面趴扶挥手的小松鼠和放大的 `VCampus` 字样组成；登录页仍只采集校园账号、学号或工号和密码，原注册入口及注册流程不变。服务端查询账号、学号和工号，匹配唯一用户后返回姓名、用户编号和有效职责。
 - 登录后外壳：[AppShell.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/AppShell.java)、[WorkspaceController.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/controller/WorkspaceController.java)。外壳包含品牌侧栏、顶部身份栏和内容区。
 - 角色文案与快捷任务：[RoleWorkspace.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/RoleWorkspace.java)。主页标题、侧栏名称和快捷卡片随 `activeRole` 改变。
 - 侧栏与顶部身份：[SidebarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/SidebarPanel.java)、[TopBarPanel.java](../vcampus-client/src/main/java/edu/seu/vcampus/client/view/TopBarPanel.java)。侧栏只保留当前职责有权进入的模块；多角色账号才显示身份切换器。
@@ -41,7 +41,7 @@
 | `DormAccommodationPanel`、`DormStudentLeavePanel`、`DormStudentRepairsPanel`、`DormExtVisitorPanel`、`DormExtStayPanel`、`DormExtNoticePanel` | `DormClientService`、`DormExtClientService` | 学生本人住宿、请假、访客、报修许可/评价、在宿门禁、账单和公告；用户身份由会话确定 |
 | `DormManagerSpacePanel`、`DormManagerLeavePanel`、`DormManagerRequestsPanel`、`DormExtVisitorAuditPanel`、`DormExtWarningPanel`、`DormExtHygienePanel`、`DormExtBillingPanel`、`DormExtNoticePanel` | `DormClientService`、`DormExtClientService` | 宿管空间与审批、门禁/连续未归、卫生、报修、抄表出账和分范围公告；两个服务共享同一网络组合根 |
 | `IdentityUsersPanel`、`IdentitySessionsPanel`、`IdentityCancellationPanel`、`IdentityAuditPanel`、`IdentityMonitorPanel` | `IdentityClientService` | 用户、状态、角色、会话、注销申请、审计与系统快照；会话展示不返回 raw token |
-| `AiAssistantPage`、`AiChatPanel`、`AiMessageCard`、`AiDateTimeField`、`SquirrelPetWidget` | `AiAssistantClientService` | 问答、聊天、代办、上传进度、同请求重试、会话归档恢复与流式响应；桌宠只接收固定状态事件，不接触回答正文或业务凭据 |
+| `AiAssistantPage`、`AiChatPanel`、`AiMessageCard`、`AiDateTimeField`、`SquirrelPetWidget` | `AiAssistantClientService` | 问答、聊天、代办、字段级实时结果、跨模式提示、补参续办、上传进度、同请求重试、会话归档恢复与流式响应；输入区无横向快捷问题按钮，桌宠只接收固定状态事件，不接触回答正文或业务凭据 |
 | `AiKnowledgePanel`、`AiKnowledgeTestPanel`、`AiKnowledgeRegressionPanel`、`AiFeedbackPanel`、`AiToolRouteTestPanel`、`AiToolStatusPanel`、`AiMonitorPanel` | `AiAssistantClientService` | 知识分页与事务导入、标准答案/预期命中测试和批量回归、反馈闭环、只解析不执行的路由测试、调用指标与运行监控 |
 
 ## 高风险操作确认
