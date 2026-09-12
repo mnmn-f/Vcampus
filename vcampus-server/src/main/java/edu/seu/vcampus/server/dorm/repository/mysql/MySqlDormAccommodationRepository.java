@@ -134,19 +134,40 @@ public final class MySqlDormAccommodationRepository implements DormAccommodation
         DormPageQuery query = q == null ? DormPageQuery.all() : q;
         List<Object> p = new ArrayList<Object>();
         String where = " WHERE 1=1";
-        if (student != null) { where += " AND student_user_id=?"; p.add(student); }
-        if (JdbcDormSupport.clean(query.getStatus()) != null) { where += " AND status=?"; p.add(query.getStatus().trim()); }
-        return JdbcDormSupport.page(c, "SELECT COUNT(*) FROM accommodation_requests" + where,
-                "SELECT id,student_user_id,request_type,current_record_id,requested_bed_id,reason,status,"
-                        + "reviewed_by,reviewed_at,review_remark,created_at FROM accommodation_requests" + where
-                        + " ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?", p, query.getPage(), query.getPageSize(),
+        if (student != null) { where += " AND rq.student_user_id=?"; p.add(student); }
+        if (JdbcDormSupport.clean(query.getStatus()) != null) { where += " AND rq.status=?"; p.add(query.getStatus().trim()); }
+        String keyword = JdbcDormSupport.clean(query.getKeyword());
+        if (keyword != null) {
+            // 搜索框写的是「搜索学生或申请原因」，就按姓名、账号、原因三处找
+            where += " AND (u.display_name LIKE ? OR u.username LIKE ? OR rq.reason LIKE ?)";
+            String like = "%" + keyword + "%"; p.add(like); p.add(like); p.add(like);
+        }
+        return JdbcDormSupport.page(c, "SELECT COUNT(*)" + REQUEST_FROM + where,
+                "SELECT " + REQUEST_COLUMNS + REQUEST_FROM + where
+                        + " ORDER BY rq.created_at DESC,rq.id DESC LIMIT ? OFFSET ?", p, query.getPage(), query.getPageSize(),
                 new JdbcDormSupport.Reader<AccommodationRequestDto>() { public AccommodationRequestDto read(ResultSet r) throws SQLException { return JdbcDormSupport.request(r); } });
     }
 
+    /**
+     * 申请行带上申请人姓名和当前住处。审批页上「学生 1」谁也认不出来，宿管要知道的是
+     * 「周若曦，现住 D1 103-1 床」；住处按申请里记的 current_record_id 找，入住申请没有。
+     */
+    private static final String REQUEST_COLUMNS =
+            "rq.id,rq.student_user_id,rq.request_type,rq.current_record_id,rq.requested_bed_id,rq.reason,rq.status,"
+            + "rq.reviewed_by,rq.reviewed_at,rq.review_remark,rq.created_at,"
+            + "u.display_name AS student_name,"
+            + "CASE WHEN ar.id IS NULL THEN NULL ELSE CONCAT(b.building_name,' ',rm.room_no,'-',bd.bed_no,'床') END AS current_location";
+    private static final String REQUEST_FROM =
+            " FROM accommodation_requests rq"
+            + " LEFT JOIN users u ON u.id = rq.student_user_id"
+            + " LEFT JOIN accommodation_records ar ON ar.id = rq.current_record_id"
+            + " LEFT JOIN dorm_beds bd ON bd.id = ar.bed_id"
+            + " LEFT JOIN dorm_rooms rm ON rm.id = bd.room_id"
+            + " LEFT JOIN dorm_buildings b ON b.id = rm.building_id";
+
     @Override
     public AccommodationRequestDto lockRequest(Connection c, long id) throws SQLException {
-        String sql = "SELECT id,student_user_id,request_type,current_record_id,requested_bed_id,reason,status,"
-                + "reviewed_by,reviewed_at,review_remark,created_at FROM accommodation_requests WHERE id=? FOR UPDATE";
+        String sql = "SELECT " + REQUEST_COLUMNS + REQUEST_FROM + " WHERE rq.id=? FOR UPDATE OF rq";
         try (PreparedStatement s = c.prepareStatement(sql)) {
             s.setLong(1, id);
             try (ResultSet r = s.executeQuery()) { return r.next() ? JdbcDormSupport.request(r) : null; }

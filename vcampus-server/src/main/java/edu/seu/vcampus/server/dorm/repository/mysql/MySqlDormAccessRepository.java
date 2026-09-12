@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import org.threeten.bp.LocalTime;
+
 import java.util.List;
 
 /** MySQL 门禁进出记录仓储。 */
@@ -36,6 +38,25 @@ final class MySqlDormAccessRepository {
             }
         }
         return find(c, id);
+    }
+
+    /**
+     * 门禁时段。策略表是 V5 扩展加的，V1 基线库里没有；这里用独立连接状态之外的
+     * 保守写法——查不到（表不存在或没有 id=1 那一行）就退回默认 23:00 / 05:00，
+     * 不让「登记一次归宿」因为策略缺失而整个失败。
+     */
+    LocalTime[] policy(Connection c) {
+        try (PreparedStatement s = c.prepareStatement("SELECT curfew_time, dawn_time FROM dorm_access_policies WHERE id = 1");
+             ResultSet r = s.executeQuery()) {
+            if (r.next()) {
+                LocalTime curfew = JdbcTemporal.localTime(r.getTime("curfew_time"));
+                LocalTime dawn = JdbcTemporal.localTime(r.getTime("dawn_time"));
+                if (curfew != null && dawn != null) return new LocalTime[]{curfew, dawn};
+            }
+        } catch (SQLException ignored) {
+            // 表不存在等情况按默认策略处理
+        }
+        return new LocalTime[]{LocalTime.of(23, 0), LocalTime.of(5, 0)};
     }
 
     DormPage<AccessRecordDto> list(Connection c, Long student, DormPageQuery q) throws SQLException {

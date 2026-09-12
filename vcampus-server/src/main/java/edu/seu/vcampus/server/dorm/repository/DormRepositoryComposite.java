@@ -83,6 +83,8 @@ public abstract class DormRepositoryComposite implements DormRepository {
     @Override public AccommodationRequestDto lockRequest(Connection c, long id) throws SQLException { return accommodation.lockRequest(c, id); }
     @Override public AccommodationRequestDto finishRequest(Connection c, long id, long reviewer, boolean approved, String remark) throws SQLException { return accommodation.finishRequest(c, id, reviewer, approved, remark); }
     @Override public AccessRecordDto addAccess(Connection c, long student, AccessRecordDto r) throws SQLException { return governance.addAccess(c, student, r); }
+    @Override public org.threeten.bp.LocalTime[] accessPolicy(Connection c) throws SQLException { return governance.accessPolicy(c); }
+    @Override public boolean openLateAlert(Connection c, long student, LocalDate date, org.threeten.bp.LocalDateTime detectedAt) throws SQLException { return governance.openLateAlert(c, student, date, detectedAt); }
     @Override public DormPage<AccessRecordDto> listAccess(Connection c, Long student, DormPageQuery q) throws SQLException { return governance.listAccess(c, student, q); }
     @Override public DormPage<LateReturnAlertDto> listAlerts(Connection c, Long student, DormPageQuery q) throws SQLException { return governance.listAlerts(c, student, q); }
     @Override public LateReturnAlertDto lockAlert(Connection c, long id) throws SQLException { return governance.lockAlert(c, id); }

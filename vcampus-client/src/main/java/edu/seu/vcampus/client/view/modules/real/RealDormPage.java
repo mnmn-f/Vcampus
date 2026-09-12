@@ -46,7 +46,7 @@ public final class RealDormPage extends BasePage {
         // 报修、入内授权、评价说的都是同一张工单，所以是一页里的三块，不是三张表。
         tabs.addTask("报修服务", new DormStudentRepairPage(this, services.dorm(), ext));
         tabs.addTask("水电账单", new DormStudentBillsPanel(this, services.dorm(), ext));
-        tabs.addTask("在宿门禁", new DormExtStayPanel(this, ext));
+        tabs.addTask("在宿门禁", new DormExtStayPanel(this, services.dorm(), ext));
         // 学生端只保留带类型/范围/置顶的这一份：它是 main 那份的超集，
         // 两份并列只会让人以为是两批公告。
         tabs.addTask("宿舍公告", new DormExtNoticePanel(this, ext, services.dorm(), false));

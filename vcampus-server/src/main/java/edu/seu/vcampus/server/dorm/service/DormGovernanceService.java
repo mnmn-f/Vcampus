@@ -35,7 +35,17 @@ final class DormGovernanceService extends DormServiceSupport {
         final String type = text(request.getRecordType(), "进出类型").toUpperCase();
         final AccessRecordDto value = new AccessRecordDto(0L, session.getUserId(), type,
                 request.getOccurredAt(), request.getDoorName(), request.getSource(), request.getNote());
-        return execute(new Work<AccessRecordDto>() { public AccessRecordDto run(java.sql.Connection c) throws Exception { return repository.addAccess(c, session.getUserId(), value); } });
+        return execute(new Work<AccessRecordDto>() { public AccessRecordDto run(java.sql.Connection c) throws Exception {
+            AccessRecordDto saved = repository.addAccess(c, session.getUserId(), value);
+            // 归宿晚于门禁时间（或早于凌晨界限）就当场开一条待处理晚归，让宿管端「未归管理」
+            // 里立刻能看到。判定规则和学生端进出列表用的是同一套 DormStayRules，两边不会打架；
+            // 同一天重复刷卡只留一条，由仓储层的唯一键兜底。
+            org.threeten.bp.LocalTime[] policy = repository.accessPolicy(c);
+            if (saved != null && DormStayRules.isLateReturn(saved.getRecordType(), saved.getOccurredAt(), policy[0], policy[1])) {
+                repository.openLateAlert(c, session.getUserId(), saved.getOccurredAt().toLocalDate(), saved.getOccurredAt());
+            }
+            return saved;
+        } });
     }
 
     DormPage<AccessRecordDto> access(final SessionContext session, final DormPageQuery query, final Long studentId) {

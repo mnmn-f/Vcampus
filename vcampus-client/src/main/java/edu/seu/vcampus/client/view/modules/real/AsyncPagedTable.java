@@ -50,6 +50,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private boolean hasNext;
     private FilterCondition additionalCondition;
     private boolean columnsFill;
+    /** 锁定为「按内容定宽、横向滚动」，之后的 {@link #setColumnsFill(boolean)} 一律忽略。 */
+    private boolean naturalWidths;
+    private int maxColumnWidth = -1;
     /** 上次按哪个宽度排的列；窗口没变宽就不重排，免得和滚动条显隐来回打架。 */
     private int lastFitWidth = -1;
 
@@ -107,7 +110,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
         if (available <= 0 || available == lastFitWidth) return;
         lastFitWidth = available;
         if (columnsFill) DormTables.fitColumnsWithin(table, available);
-        else DormTables.fitColumns(table, available);
+        else DormTables.fitColumns(table, available, maxColumnWidth);
     }
 
     public void addAction(JButton button) { toolbar.addAction(button); }
@@ -123,7 +126,25 @@ public final class AsyncPagedTable<T> extends SectionCard {
      * 而是直接被裁掉。宿舍模块的表统一走这一档，由 {@code DormUi.flatten} 一次性打开。</p>
      */
     public void setColumnsFill(boolean fill) {
+        if (naturalWidths) return;
         columnsFill = fill;
+        refitColumns();
+    }
+
+    /**
+     * 列宽只由内容决定，装不下就在表格自己的滚动条里左右滚，不压缩。
+     *
+     * <p>这是 {@link #setColumnsFill} 的反向开关，而且是锁：{@code DormUi.flatten} 会在
+     * 页面搭好后把宿舍模块所有表统一切成压缩模式，对「理由就是正文」的表来说压缩等于
+     * 全变省略号。锁上之后 flatten 的那一下不再生效。</p>
+     *
+     * @param maxColumnWidth 单列最宽像素；不大于 0 用默认上限
+     */
+    public void setNaturalColumnWidths(int maxColumnWidth) {
+        naturalWidths = true;
+        columnsFill = false;
+        this.maxColumnWidth = maxColumnWidth;
+        lastFitWidth = -1;
         refitColumns();
     }
     public void setAdditionalFilters(JComponent filters, FilterCondition condition) {

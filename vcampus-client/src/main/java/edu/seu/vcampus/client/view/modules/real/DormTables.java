@@ -79,7 +79,17 @@ final class DormTables {
      * @param available 表格可用宽度；小于等于 0 表示还没布局，此时只定宽不铺满
      */
     static void fitColumns(JTable table, int available) {
-        fitColumns(table, available, false);
+        fitColumns(table, available, false, MAX_COLUMN);
+    }
+
+    /**
+     * 同 {@link #fitColumns(JTable, int)}，但允许单列最宽放到 {@code maxColumn}。
+     *
+     * <p>默认 380px 的上限是给「一列长描述」防撑爆用的；像住宿申请这种整段理由就是
+     * 主要内容的表，宁可让表更宽、横向滚动，也要把字全露出来。</p>
+     */
+    static void fitColumns(JTable table, int available, int maxColumn) {
+        fitColumns(table, available, false, maxColumn <= 0 ? MAX_COLUMN : maxColumn);
     }
 
     /**
@@ -90,17 +100,17 @@ final class DormTables {
      * ——不是「滚一下能看到」，是彻底看不见。宁可挤，不能没。</p>
      */
     static void fitColumnsWithin(JTable table, int available) {
-        fitColumns(table, available, true);
+        fitColumns(table, available, true, MAX_COLUMN);
     }
 
-    private static void fitColumns(JTable table, int available, boolean shrink) {
+    private static void fitColumns(JTable table, int available, boolean shrink, int maxColumn) {
         TableColumnModel columns = table.getColumnModel();
         int count = columns.getColumnCount();
         if (count == 0) return;
         int total = 0;
         for (int i = 0; i < count; i++) {
             TableColumn column = columns.getColumn(i);
-            int width = Math.max(MIN_COLUMN, Math.min(MAX_COLUMN, measure(table, i) + CELL_PADDING));
+            int width = Math.max(MIN_COLUMN, Math.min(maxColumn, measure(table, i) + CELL_PADDING));
             column.setPreferredWidth(width);
             column.setWidth(width);
             total += width;

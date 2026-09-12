@@ -13,6 +13,10 @@ import edu.seu.vcampus.common.dto.dorm.RepairOrderDto;
 import edu.seu.vcampus.common.dto.dorm.RepairStatusRequest;
 import edu.seu.vcampus.server.dorm.repository.DormGovernanceRepository;
 
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.LocalDateTime;
+import org.threeten.bp.LocalTime;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -26,6 +30,9 @@ public final class MySqlDormGovernanceRepository implements DormGovernanceReposi
     @Override public AccessRecordDto addAccess(Connection c, long student, AccessRecordDto r) throws SQLException {
         return access.add(c, student, r);
     }
+    @Override public LocalTime[] accessPolicy(Connection c) throws SQLException { return access.policy(c); }
+    @Override public boolean openLateAlert(Connection c, long student, LocalDate date, LocalDateTime detectedAt)
+            throws SQLException { return alerts.open(c, student, date, detectedAt); }
     @Override public DormPage<AccessRecordDto> listAccess(Connection c, Long student, DormPageQuery q) throws SQLException {
         return access.list(c, student, q);
     }
