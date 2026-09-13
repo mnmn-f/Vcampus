@@ -3,11 +3,14 @@ package edu.seu.vcampus.client.ui.components;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.table.JTableHeader;
 import java.awt.Color;
 import java.awt.CardLayout;
 import java.awt.Dimension;
+import java.awt.Insets;
 
 /** 表格内容区：按记录数收缩，避免少量数据占满大片空白。 */
 public final class TableViewport extends JPanel {
@@ -27,13 +30,48 @@ public final class TableViewport extends JPanel {
     private int minVisibleRows = 1;
     /** 空态自己的首选高度，只量一次——setPreferredSize 之后就再也量不到原值了。 */
     private int emptyNaturalHeight = -1;
+    /** 当前要露出几行；滚动面板的高度按它算，而不是写死。 */
+    private int visibleRows = 1;
 
     public TableViewport(JTable table) {
         super();
         setLayout(cards);
         setOpaque(false);
         this.table = table;
-        tableScroll = new JScrollPane(table);
+        tableScroll = new JScrollPane(table) {
+            /**
+             * 高度 = 边框 + 表头 + 要露出的行数 × 行高（+ 横向滚动条，如果它会出现）。
+             *
+             * <p>之前写死在 {@code showRows} 里、没算边框那 2px，于是表格身体比视口高 2px，
+             * 竖滚动条冒出来；竖滚动条又占掉 16px 宽，铺满宽度的列就装不下了，横滚动条
+             * 也跟着冒出来盖住最后一行——一张五行的表长出两根滚动条。改成每次布局时
+             * 现算，滚动条会不会出现也按当时的宽度判断，不再提前猜。</p>
+             */
+            @Override public Dimension getPreferredSize() {
+                Insets insets = getInsets();
+                int rowHeight = Math.max(1, table.getRowHeight());
+                JTableHeader header = table.getTableHeader();
+                int headerHeight = header == null ? rowHeight
+                        : Math.max(rowHeight, header.getPreferredSize().height);
+                int height = insets.top + insets.bottom + headerHeight + visibleRows * rowHeight;
+                if (needsHorizontalBar()) {
+                    JScrollBar bar = getHorizontalScrollBar();
+                    height += bar == null ? 16 : bar.getPreferredSize().height;
+                }
+                return new Dimension(800, height);
+            }
+
+            private boolean needsHorizontalBar() {
+                if (getHorizontalScrollBarPolicy() == JScrollPane.HORIZONTAL_SCROLLBAR_NEVER) return false;
+                int width = getWidth();
+                if (width <= 0) return false;
+                Insets insets = getInsets();
+                int room = width - insets.left - insets.right;
+                JScrollBar vertical = getVerticalScrollBar();
+                if (vertical != null && vertical.isVisible()) room -= vertical.getWidth();
+                return table.getPreferredSize().width > room;
+            }
+        };
         tableScroll.setColumnHeaderView(table.getTableHeader());
         // 表格外面套一个 1px 框：一屏里几张表挨着时，没有边界就分不出哪行属于哪张表。
         tableScroll.setBorder(BorderFactory.createLineBorder(new Color(0xD9, 0xE1, 0xDD)));
@@ -41,7 +79,6 @@ public final class TableViewport extends JPanel {
         // 列宽由内容决定，装不下就横向滚动——挤成省略号比多一条滚动条难用得多。
         tableScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         tableScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        tableScroll.setPreferredSize(new Dimension(800, 84));
         add(tableScroll, TABLE);
         add(empty, EMPTY);
         showLoading();
@@ -57,16 +94,14 @@ public final class TableViewport extends JPanel {
     }
 
     public void showRows(int count) {
-        int visible = Math.max(minVisibleRows, Math.min(Math.max(10, minVisibleRows), count));
+        visibleRows = Math.max(minVisibleRows, Math.min(Math.max(10, minVisibleRows), count));
         // 行高跟着 Table.rowHeight 走，写死 38 会在改了行高之后多留出一条空白。
         int rowHeight = Math.max(1, table.getRowHeight());
-        int headerHeight = rowHeight;
-        int tableHeight = headerHeight + Math.max(1, count) * rowHeight;
-        table.setPreferredScrollableViewportSize(new Dimension(800, tableHeight));
-        // 横向滚动条会盖住最后一行，所以在会出现滚动条时预留它的高度。
-        int scrollbar = table.getPreferredSize().width > tableScroll.getViewport().getWidth()
-                && tableScroll.getViewport().getWidth() > 0 ? 16 : 0;
-        tableScroll.setPreferredSize(new Dimension(800, headerHeight + visible * rowHeight + scrollbar));
+        table.setPreferredScrollableViewportSize(new Dimension(800, Math.max(1, count) * rowHeight));
+        // 这一页的行数装得下就不要竖滚动条：固定几行一页的表本来就该一屏见底，
+        // 留着 AS_NEEDED 会因为 1、2px 的误差冒出一根滚动条，把列宽也挤乱。
+        tableScroll.setVerticalScrollBarPolicy(count > visibleRows
+                ? JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED : JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         cards.show(this, TABLE);
         revalidate();
     }

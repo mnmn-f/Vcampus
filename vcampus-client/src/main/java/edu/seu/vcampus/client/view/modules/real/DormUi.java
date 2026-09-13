@@ -395,6 +395,25 @@ public final class DormUi {
         return roundedBox(PANEL_FILL, PANEL_BORDER, 12, 14);
     }
 
+    /** 半透明白底（50%）的方框：公告正文这类整段文字用，比纯白框柔和、比直接铺在底色上好读。 */
+    public static JPanel translucentPanel() {
+        return roundedBox(new Color(0xFF, 0xFF, 0xFF, 128), PANEL_BORDER, 16, 18);
+    }
+
+    /**
+     * 一段正文：半透明白底的框里放一段会折行的文字，字号 15。
+     *
+     * <p>申请理由、报修描述、公告正文都是"宿管/学生要认真读的那一段"，从表格里
+     * 拿出来之后统一用这一种样子，三处看起来是同一个东西。</p>
+     */
+    public static JPanel passage(String text) {
+        javax.swing.JTextArea area = paragraph(text);
+        area.setFont(DesignTokens.regular(15));
+        JPanel box = translucentPanel();
+        box.add(area, BorderLayout.CENTER);
+        return box;
+    }
+
     /** 强调方框（浅绿底），用于需要拎出来但不是警告的内容。 */
     public static JPanel accentPanel() {
         return roundedBox(ACCENT_FILL, DesignTokens.PRIMARY_BORDER, 12, 14);

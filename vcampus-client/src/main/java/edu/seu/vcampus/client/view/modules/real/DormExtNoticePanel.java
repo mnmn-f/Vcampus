@@ -14,7 +14,6 @@ import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import edu.seu.vcampus.common.dto.dorm.ext.NoticeExtraDto;
 import edu.seu.vcampus.common.dto.dorm.ext.NoticeExtraRequest;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -31,10 +30,12 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 
 /**
- * 宿舍公告：左边一列标题，右边看正文或改投放设置。
+ * 宿舍公告：宿管端左表右设置；学生端上表下正文。
  *
- * <p>学生端右侧默认是空的——一进来就把某条公告的正文摊开，等于替人决定先读哪条。
- * 点一条展开，再点同一条收起。宿管端右侧固定是投放设置，因为宿管进这一页就是来
+ * <p>学生端是上下两段：上面一张固定五行的目录（类型、标题、日期），点一条，正文在
+ * 下面整幅展开，再点同一条收起。之前试过左目录右正文，330px 的目录把标题截得只剩
+ * 半句，正文又被推到屏幕右半边，读起来两头都别扭；公告本来就是一条一条读的，
+ * 目录短一点、正文宽一点才对。宿管端右侧固定是投放设置，因为宿管进这一页就是来
  * 改类型、范围和置顶的。</p>
  *
  * <p>「写公告」用弹窗：公告正文要占好几行，常驻在页面上会把列表挤到只剩几行高，
@@ -44,14 +45,12 @@ public final class DormExtNoticePanel extends JPanel {
     private static final long serialVersionUID = 1L;
     // 宿管端右栏是投放设置表单，宽度固定就够。
     private static final int SIDE_WIDTH = 580;
-    /**
-     * 学生端左侧目录的宽度。
-     *
-     * <p>学生进这一页只做一件事：读公告。所以左边收成一条固定宽的目录——类型、标题、
-     * 日期三列，够认出是哪一条就行——正文占掉剩下的全部宽度。之前是反过来的：一张
-     * 铺满左半屏的表配一个 580px 的正文框，结果最该读的那段字被挤在角落里。</p>
-     */
-    private static final int LIST_WIDTH = 330;
+    /** 学生端目录每页几条：五条一页，目录高度固定，正文永远在同一个位置出现。 */
+    private static final int READER_PAGE_SIZE = 5;
+    /** 学生端目录里标题最多显示多少个字，超出截成省略号；全文在下方正文区。 */
+    private static final int READER_TITLE_CHARS = 25;
+    /** 学生端目录三列的宽度：类型、日期定宽，标题（0）吃掉剩余宽度，表格铺满整行。 */
+    private static final int[] READER_COLUMN_WIDTHS = {110, 0, 130};
     private static final String[] TYPE_CODES = {NoticeExtraDto.TYPE_GENERAL,
             NoticeExtraDto.TYPE_MAINTENANCE, NoticeExtraDto.TYPE_HYGIENE,
             NoticeExtraDto.TYPE_SAFETY, NoticeExtraDto.TYPE_URGENT};
@@ -103,8 +102,15 @@ public final class DormExtNoticePanel extends JPanel {
         JPanel body = new JPanel();
         body.setOpaque(false);
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        body.add(manage ? DormUi.split(left(), side, SIDE_WIDTH)
-                : DormUi.splitLeading(left(), side, LIST_WIDTH));
+        if (manage) {
+            body.add(DormUi.split(left(), side, SIDE_WIDTH));
+        } else {
+            notices.setFixedColumnWidths(READER_COLUMN_WIDTHS);
+            notices.setPageRows(READER_PAGE_SIZE);
+            body.add(left());
+            body.add(Box.createVerticalStrut(22));
+            body.add(side);
+        }
         if (manage) {
             buildCompose();
             body.add(compose);
@@ -124,9 +130,7 @@ public final class DormExtNoticePanel extends JPanel {
         JComponentActions actions = new JComponentActions();
         column.add(DormUi.header(manage ? "宿舍公告" : "宿舍通知",
                 manage ? "含草稿；置顶排最前，其次按发布时间倒序。"
-                        // 目录只有 330px 宽，一句长说明会被截断，所以拆成两行短句放不下的
-                        // 部分留给右侧正文自己说明。
-                        : "投放到你的公告，置顶在最前。",
+                        : "投放到你的公告，置顶在最前；点一条在下方阅读正文，再点一次收起。",
                 actions.panel, false));
         column.add(notices);
         return column;
@@ -146,17 +150,18 @@ public final class DormExtNoticePanel extends JPanel {
     }
 
     private AsyncPagedTable<NoticeExtraDto> noticeTable() {
-        // 左栏窄，列就得少：标题是主角，类型和范围各留一列，其余信息放右边详情里。
+        // 列要少：标题是主角，类型和范围各留一列，其余信息放详情里。
         String[] columns = manage
                 ? new String[]{"置顶", "类型", "标题", "范围", "状态"}
-                : new String[]{"类型", "标题", "时间"};
+                : new String[]{"类型", "标题", "日期"};
         AsyncPagedTable<NoticeExtraDto> table = new AsyncPagedTable<NoticeExtraDto>("", "", "搜索标题或正文",
                 manage ? new String[]{"全部状态", "草稿", "已发布", "已过期", "已撤回"}
                         : new String[]{"全部类型", "普通通知", "维修通知", "卫生通知", "安全提醒", "紧急通知"},
                 columns,
                 new AsyncPagedTable.Loader<NoticeExtraDto>() {
                     @Override public PageSlice<NoticeExtraDto> load(int p, String keyword, String filter) throws Exception {
-                        DormPageQuery query = new DormPageQuery(p, 20, keyword, filterCode(filter), null, null);
+                        DormPageQuery query = new DormPageQuery(p, manage ? 20 : READER_PAGE_SIZE,
+                                keyword, filterCode(filter), null, null);
                         return RealUi.page(manage ? service.notices(query) : service.myNotices(query));
                     }
                 },
@@ -167,10 +172,10 @@ public final class DormExtNoticePanel extends JPanel {
                                     NoticeExtraDto.typeName(row.getNoticeType()), RealUi.text(row.getTitle()),
                                     row.scopeText(), RealUi.status(row.getStatus())};
                         }
-                        // 置顶不再单独占一列：330px 的目录里，一列只为了偶尔显示两个字太奢侈，
-                        // 标题前加个记号一样看得出来。
+                        // 置顶不单独占一列：一列只为了偶尔显示两个字太奢侈，标题前加个记号
+                        // 一样看得出来。标题超过 25 个字截断，列宽是写死的，长标题会撑不下。
                         return new Object[]{NoticeExtraDto.typeName(row.getNoticeType()),
-                                (row.isPinned() ? "★ " : "") + RealUi.text(row.getTitle()),
+                                (row.isPinned() ? "★ " : "") + clip(RealUi.text(row.getTitle()), READER_TITLE_CHARS),
                                 // 只显示日期：列表里精确到分钟没有意义，却要多占一半宽度。
                                 RealUi.date(row.getPublishAt() == null ? null : row.getPublishAt().toLocalDate())};
                     }
@@ -179,6 +184,14 @@ public final class DormExtNoticePanel extends JPanel {
                     @Override public void onSelected(NoticeExtraDto row) { select(row); }
                 });
         return table;
+    }
+
+    /** 超过 {@code max} 个字符就截断并加省略号；按代码点数，中英文都算一个字。 */
+    private static String clip(String text, int max) {
+        if (text == null) return "";
+        int points = text.codePointCount(0, text.length());
+        if (points <= max) return text;
+        return text.substring(0, text.offsetByCodePoints(0, max)) + "…";
     }
 
     /**
@@ -211,12 +224,12 @@ public final class DormExtNoticePanel extends JPanel {
         renderReader(row);
     }
 
-    /** 学生端右栏：没选中时什么都不显示，只留一句提示。 */
+    /** 学生端下方的正文区：没选中时什么都不显示，只留一句提示。 */
     private void renderReader(NoticeExtraDto row) {
         side.removeAll();
         openedId = row == null ? 0L : row.getAnnouncementId();
         if (row == null) {
-            JLabel hint = DormUi.sub("在左侧点一条公告查看正文。");
+            JLabel hint = DormUi.sub("在上方目录里点一条公告查看正文。");
             hint.setAlignmentX(LEFT_ALIGNMENT);
             side.add(Box.createVerticalStrut(6));
             side.add(hint);
@@ -245,19 +258,31 @@ public final class DormExtNoticePanel extends JPanel {
         side.add(line);
         side.add(Box.createVerticalStrut(16));
 
+        // 正文放在一个 50% 白底的圆角框里：纯白框在米色底上像个输入框，直接铺在底色上
+        // 又和上面的目录分不开；半透明正好介于两者之间。文本域本身不画背景。
         JTextArea body = UiFactory.textArea(10, 28);
         body.setText(RealUi.text(row.getContent()));
         body.setEditable(false);
+        body.setFocusable(false);
+        body.setLineWrap(true);
+        body.setWrapStyleWord(true);
         body.setFont(DesignTokens.regular(15));
-        body.setBackground(java.awt.Color.WHITE);
+        body.setForeground(DesignTokens.TEXT_PRIMARY);
+        body.setOpaque(false);
+        body.setBorder(null);
         body.setCaretPosition(0);
         JScrollPane scroll = new JScrollPane(body);
-        scroll.setBorder(BorderFactory.createLineBorder(DesignTokens.BORDER));
-        scroll.setAlignmentX(LEFT_ALIGNMENT);
-        // 正文占满剩下的宽度，高度给足一屏：公告本来就是拿来读的，不是拿来预览的。
-        scroll.setPreferredSize(new Dimension(720, 520));
-        scroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 520));
-        side.add(scroll);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setBorder(null);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        // 正文占满整幅宽度；高度给到能读完一条普通公告，更长的在框内滚动。
+        scroll.setPreferredSize(new Dimension(760, 300));
+        JPanel box = DormUi.translucentPanel();
+        box.add(scroll, BorderLayout.CENTER);
+        box.setAlignmentX(LEFT_ALIGNMENT);
+        box.setMaximumSize(new Dimension(Integer.MAX_VALUE, 340));
+        side.add(box);
         DormUi.alignLeft(side);
         side.revalidate();
         side.repaint();

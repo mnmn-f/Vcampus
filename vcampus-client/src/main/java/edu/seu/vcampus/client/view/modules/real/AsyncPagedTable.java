@@ -56,6 +56,10 @@ public final class AsyncPagedTable<T> extends SectionCard {
     /** 锁定为「按内容定宽、横向滚动」，之后的 {@link #setColumnsFill(boolean)} 一律忽略。 */
     private boolean naturalWidths;
     private int maxColumnWidth = -1;
+    /** 每列写死的像素宽（0 或负数表示这一列吃掉剩余宽度）；非空时列宽不再按内容计算。 */
+    private int[] fixedWidths;
+    /** 行数被 {@link #setPageRows} 锁定后，{@code DormUi.flatten} 统一设的最小行数不再生效。 */
+    private boolean rowsLocked;
     /** 上次按哪个宽度排的列；窗口没变宽就不重排，免得和滚动条显隐来回打架。 */
     private int lastFitWidth = -1;
 
@@ -113,16 +117,36 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private void refitColumns() {
         if (items.isEmpty()) return;
         int available = viewport.tableWidth();
-        if (available <= 0 || available == lastFitWidth) return;
-        lastFitWidth = available;
-        if (columnsFill) DormTables.fitColumnsWithin(table, available);
-        else DormTables.fitColumns(table, available, maxColumnWidth);
+        if (fixedWidths != null) {
+            applyFixedWidths(available);
+        } else {
+            if (available <= 0 || available == lastFitWidth) return;
+            lastFitWidth = available;
+            if (columnsFill) DormTables.fitColumnsWithin(table, available);
+            else DormTables.fitColumns(table, available, maxColumnWidth);
+        }
+        // 列宽变了，表格要不要横向滚动条也跟着变，滚动面板的高度就得重新算。
+        // JScrollPane 自己是 validate root，表格里的 revalidate 到它就停了，
+        // 所以要从它外面这一层再发一次，父容器才会重新问一遍高度。
+        viewport.revalidate();
     }
 
     public void addAction(JButton button) { toolbar.addAction(button); }
 
     /** 表格最少占几行高，数据不足时用空行补足；见 {@link TableViewport#setMinVisibleRows(int)}。 */
-    public void setMinVisibleRows(int rows) { viewport.setMinVisibleRows(rows); }
+    public void setMinVisibleRows(int rows) { if (!rowsLocked) viewport.setMinVisibleRows(rows); }
+
+    /**
+     * 这张表每页几行：表格高度固定成这么多行，装满就翻页。
+     *
+     * <p>各面板的 Loader 里请求的 pageSize 要和这里一致，否则要么一页装不下要么留空行。
+     * 它是锁：{@code DormUi.flatten} 之后统一设的最小行数对这张表不再生效，
+     * 否则「三行一页」的表会被垫成五行高、底下永远两行空白。</p>
+     */
+    public void setPageRows(int rows) {
+        viewport.setMinVisibleRows(rows);
+        rowsLocked = true;
+    }
 
     /**
      * 列宽装不下时按比例压缩，而不是横向滚动。
@@ -154,6 +178,48 @@ public final class AsyncPagedTable<T> extends SectionCard {
         lastFitWidth = -1;
         refitColumns();
     }
+    /**
+     * 每列写死像素宽，不随内容变化；写 0 的列平分剩余宽度，让表格铺满可用宽度。
+     *
+     * <p>公告目录这种「一眼认出是哪条」的表用它：类型、日期两列定宽，标题列吃掉
+     * 剩下的全部宽度，翻页时列宽不会跳，表格右边也不会空出一截白。和
+     * {@link #setNaturalColumnWidths} 一样是锁，{@code DormUi.flatten} 的压缩模式
+     * 对它不再生效。</p>
+     *
+     * @param widths 按列顺序的像素宽，0 或负数表示弹性列；少给的列当弹性列
+     */
+    public void setFixedColumnWidths(int... widths) {
+        fixedWidths = widths == null ? null : widths.clone();
+        naturalWidths = true;
+        columnsFill = false;
+        lastFitWidth = -1;
+        refitColumns();
+    }
+
+    private void applyFixedWidths(int available) {
+        javax.swing.table.TableColumnModel columns = table.getColumnModel();
+        int count = columns.getColumnCount();
+        int fixedTotal = 0;
+        int flexible = 0;
+        for (int i = 0; i < count; i++) {
+            int width = i < fixedWidths.length ? fixedWidths[i] : 0;
+            if (width > 0) fixedTotal += width; else flexible++;
+        }
+        // 还没布局（available 为 0）时弹性列先给个够看的宽度，拿到真实宽度后再重排。
+        int spare = available > 0 ? Math.max(0, available - fixedTotal - 2) : 0;
+        int share = flexible == 0 ? 0 : Math.max(160, spare / flexible);
+        for (int i = 0; i < count; i++) {
+            int width = i < fixedWidths.length ? fixedWidths[i] : 0;
+            if (width <= 0) width = share;
+            javax.swing.table.TableColumn column = columns.getColumn(i);
+            column.setMinWidth(width);
+            column.setMaxWidth(width);
+            column.setPreferredWidth(width);
+            column.setWidth(width);
+            column.setResizable(false);
+        }
+    }
+
     public void setAdditionalFilters(JComponent filters, FilterCondition condition) {
         toolbar.setAdditionalFilters(filters);
         additionalCondition = condition;

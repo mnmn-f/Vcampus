@@ -41,6 +41,10 @@ public final class DormRoomPlan extends JPanel {
     private String caption = "选择一个房间查看床位分布";
     private DormBedDto picked;
     private Listener listener;
+    /** 只看不点：退宿受理时平面图只用来指出学生睡在哪张床，不接受选床。 */
+    private boolean interactive = true;
+    /** 数据里多出来、没画进图的床位数（重复建床的老库会有）。 */
+    private int hidden;
 
     /** 点中某张床时回调；宿管端用它把床位编号填进分配表单。 */
     public interface Listener {
@@ -63,6 +67,7 @@ public final class DormRoomPlan extends JPanel {
     public DormBedDto pickedBed() { return picked; }
 
     private void pick(java.awt.Point point) {
+        if (!interactive) return;
         for (int i = 0; i < slots.length; i++) {
             if (slots[i] == null || !slots[i].contains(point)) continue;
             DormBedDto bed = bedAt(i);
@@ -74,18 +79,76 @@ public final class DormRoomPlan extends JPanel {
         }
     }
 
+    /**
+     * 是否允许点床。关掉后光标变回箭头，点击没有反应，但仍可通过
+     * {@link #showRoom(String, List, Long)} 预先标出一张床。
+     */
+    public void setInteractive(boolean value) {
+        interactive = value;
+        setCursor(java.awt.Cursor.getPredefinedCursor(
+                value ? java.awt.Cursor.HAND_CURSOR : java.awt.Cursor.DEFAULT_CURSOR));
+        repaint();
+    }
+
+    public boolean isInteractive() { return interactive; }
+
     /** 换一间房；床位按 bedNo 自然序排，1/2 在左，3/4 在右。 */
     public void showRoom(String roomCaption, List<DormBedDto> roomBeds) {
+        showRoom(roomCaption, roomBeds, null);
+    }
+
+    /**
+     * 换一间房并预先标出一张床（金色描边）。
+     *
+     * @param highlightBedId 要标出的床位编号；为 null 或图里没有这张床时不标
+     */
+    public void showRoom(String roomCaption, List<DormBedDto> roomBeds, Long highlightBedId) {
         caption = roomCaption;
         picked = null;
         beds.clear();
-        if (roomBeds != null) beds.addAll(roomBeds);
+        hidden = 0;
+        if (roomBeds != null) beds.addAll(pickFour(roomBeds));
         Collections.sort(beds, new Comparator<DormBedDto>() {
             @Override public int compare(DormBedDto left, DormBedDto right) {
                 return order(left).compareTo(order(right));
             }
         });
+        if (highlightBedId != null) {
+            for (DormBedDto bed : beds) {
+                if (bed.getId() == highlightBedId.longValue()) { picked = bed; break; }
+            }
+        }
         repaint();
+    }
+
+    /**
+     * 一间房超过四张床时挑出要画的四张。
+     *
+     * <p>老库里同一间房可能同时有 A~D 和 1~4 两套床位（两份演示脚本各建了一套），
+     * 这时优先画编号是 1~4 的那套；凑不齐四张就按自然序取前四张。多出来的数量
+     * 记在 {@link #hidden} 里，画在图下方提醒宿管去「住宿与空间」里清理。</p>
+     */
+    private List<DormBedDto> pickFour(List<DormBedDto> all) {
+        if (all.size() <= 4) return all;
+        List<DormBedDto> numbered = new ArrayList<DormBedDto>();
+        for (DormBedDto bed : all) {
+            String no = bed.getBedNo() == null ? "" : bed.getBedNo().trim();
+            if (no.equals("1") || no.equals("2") || no.equals("3") || no.equals("4")) numbered.add(bed);
+        }
+        List<DormBedDto> chosen;
+        if (numbered.size() == 4) {
+            chosen = numbered;
+        } else {
+            chosen = new ArrayList<DormBedDto>(all);
+            Collections.sort(chosen, new Comparator<DormBedDto>() {
+                @Override public int compare(DormBedDto left, DormBedDto right) {
+                    return order(left).compareTo(order(right));
+                }
+            });
+            chosen = new ArrayList<DormBedDto>(chosen.subList(0, 4));
+        }
+        hidden = all.size() - chosen.size();
+        return chosen;
     }
 
     /** 床位号可能是 "1" 也可能是 "A"，统一成可比较的字符串，数字优先。 */
@@ -182,8 +245,14 @@ public final class DormRoomPlan extends JPanel {
         g.drawString(caption == null ? "" : caption, left, top - 8);
         g.setFont(DesignTokens.regular(12));
         g.setColor(DesignTokens.TEXT_SECONDARY);
-        g.drawString(picked == null ? "实心 = 已占用　虚线 = 空闲　点床位可选中"
-                : "已选中 " + RealUiPlanText.bedLabel(picked), left, PLAN_HEIGHT + 16);
+        String footer;
+        if (picked != null) {
+            footer = (interactive ? "已选中 " : "学生现住 ") + RealUiPlanText.bedLabel(picked);
+        } else {
+            footer = interactive ? "实心 = 已占用　虚线 = 空闲　点床位可选中" : "实心 = 已占用　虚线 = 空闲";
+        }
+        if (hidden > 0) footer += "　·　另有 " + hidden + " 张重复床位未画出";
+        g.drawString(footer, left, PLAN_HEIGHT + 16);
         g.dispose();
     }
 

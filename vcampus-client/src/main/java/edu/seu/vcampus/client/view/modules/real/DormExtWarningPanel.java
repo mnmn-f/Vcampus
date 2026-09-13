@@ -64,8 +64,11 @@ public final class DormExtWarningPanel extends JPanel {
         column.add(box);
         return column;
     }
+    /** 预警表每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<AbsenceWarningDto> warningTable() {
-        return new AsyncPagedTable<AbsenceWarningDto>("连续未归预警",
+        AsyncPagedTable<AbsenceWarningDto> table = new AsyncPagedTable<AbsenceWarningDto>("连续未归预警",
                 "按扫描日记录，同一学生同一扫描日只留一条。",
                 "搜索房间或楼栋",
                 new String[]{"全部状态", "待处理", "已通知", "已核实"},
@@ -75,7 +78,7 @@ public final class DormExtWarningPanel extends JPanel {
                     public PageSlice<AbsenceWarningDto> load(int p, String keyword, String filter)
                             throws Exception {
                         DormPage<AbsenceWarningDto> value = service.warnings(
-                                new DormPageQuery(p, 20, keyword, statusCode(filter), null, null));
+                                new DormPageQuery(p, PAGE_ROWS, keyword, statusCode(filter), null, null));
                         return RealUi.page(value);
                     }
                 },
@@ -89,6 +92,8 @@ public final class DormExtWarningPanel extends JPanel {
                                 row.getNotifiedTeacherId() == null ? "未通知" : "已通知"};
                     }
                 }, null);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
     /** 右栏：选中一条预警后在这里通知辅导员或标记已核实。 */
     private JPanel actions() {

@@ -55,13 +55,16 @@ public final class DormManagerAbsencePanel extends JPanel {
         return column;
     }
 
+    /** 晚归记录每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<LateReturnAlertDto> table() {
-        return new AsyncPagedTable<LateReturnAlertDto>("", "", "搜索学生或日期",
+        AsyncPagedTable<LateReturnAlertDto> table = new AsyncPagedTable<LateReturnAlertDto>("", "", "搜索学生或日期",
                 new String[]{"全部状态", "待处理", "已确认", "已清除", "已忽略"},
                 new String[]{"编号", "学生", "日期", "检测时间", "状态", "备注"},
                 new AsyncPagedTable.Loader<LateReturnAlertDto>() {
                     @Override public PageSlice<LateReturnAlertDto> load(int p, String k, String f) throws Exception {
-                        return RealUi.page(service.alerts(new DormPageQuery(p, 20, k, alertStatus(f), null, null), null));
+                        return RealUi.page(service.alerts(new DormPageQuery(p, PAGE_ROWS, k, alertStatus(f), null, null), null));
                     }
                 }, new AsyncPagedTable.RowMapper<LateReturnAlertDto>() {
                     @Override public Object[] values(LateReturnAlertDto row) {
@@ -70,6 +73,8 @@ public final class DormManagerAbsencePanel extends JPanel {
                                 alertLabel(row.getStatus()), RealUi.text(row.getNote())};
                     }
                 }, null);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     private JPanel actions() {

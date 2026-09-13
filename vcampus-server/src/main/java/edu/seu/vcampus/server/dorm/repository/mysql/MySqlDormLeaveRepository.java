@@ -21,8 +21,10 @@ import java.util.List;
 
 /** leave_requests 表 DAO；提交前锁定学生行，避免同一学生的并发重叠申请。 */
 public final class MySqlDormLeaveRepository implements DormLeaveRepository {
-    private static final String COLUMNS = "id,student_user_id,leave_type,start_at,end_at,reason,status,"
-            + "reviewed_by,reviewed_at,review_remark,created_at";
+    // 姓名用标量子查询而不是 JOIN users：lock() 那条带 FOR UPDATE，联表会把用户行也锁住。
+    private static final String COLUMNS = "lr.id,lr.student_user_id,lr.leave_type,lr.start_at,lr.end_at,lr.reason,lr.status,"
+            + "lr.reviewed_by,lr.reviewed_at,lr.review_remark,lr.created_at,"
+            + "(SELECT u.display_name FROM users u WHERE u.id=lr.student_user_id) AS student_name";
 
     @Override public void lockStudent(Connection c, long student) throws SQLException {
         try (PreparedStatement s = c.prepareStatement("SELECT id FROM users WHERE id=? FOR UPDATE")) {
@@ -71,14 +73,14 @@ public final class MySqlDormLeaveRepository implements DormLeaveRepository {
         LeaveQuery q = query == null ? new LeaveQuery() : query;
         List<Object> values = new ArrayList<Object>();
         String where = where(student, q, values);
-        String from = " FROM leave_requests" + where;
+        String from = " FROM leave_requests lr" + where;
         return page(c, "SELECT COUNT(*)" + from,
                 "SELECT " + COLUMNS + from + " ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?",
                 values, q);
     }
 
     @Override public LeaveRequestDto lock(Connection c, long id) throws SQLException {
-        String sql = "SELECT " + COLUMNS + " FROM leave_requests WHERE id=? FOR UPDATE";
+        String sql = "SELECT " + COLUMNS + " FROM leave_requests lr WHERE lr.id=? FOR UPDATE";
         try (PreparedStatement s = c.prepareStatement(sql)) {
             s.setLong(1, id);
             try (ResultSet r = s.executeQuery()) { return r.next() ? read(r) : null; }
@@ -143,7 +145,8 @@ public final class MySqlDormLeaveRepository implements DormLeaveRepository {
         return new LeaveRequestDto(r.getLong("id"), r.getLong("student_user_id"), r.getString("leave_type"),
                 time(r.getTimestamp("start_at")), time(r.getTimestamp("end_at")), r.getString("reason"),
                 r.getString("status"), reviewerNull ? null : Long.valueOf(reviewer),
-                time(r.getTimestamp("reviewed_at")), r.getString("review_remark"), time(r.getTimestamp("created_at")));
+                time(r.getTimestamp("reviewed_at")), r.getString("review_remark"), time(r.getTimestamp("created_at")),
+                r.getString("student_name"));
     }
 
     private static void update(Connection c, String sql, long id) throws SQLException {

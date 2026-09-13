@@ -91,8 +91,11 @@ public final class DormExtHygienePanel extends JPanel {
         column.add(box);
         return column;
     }
+    /** 检查任务每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<HygieneTaskDto> taskTable() {
-        return new AsyncPagedTable<HygieneTaskDto>("检查任务",
+        AsyncPagedTable<HygieneTaskDto> table = new AsyncPagedTable<HygieneTaskDto>("检查任务",
                 "顺序即待办顺序：待检查在最前，复查优先于周检查，同组按计划日期从早到晚。",
                 "搜索房间或楼栋",
                 new String[]{"全部状态", "待检查", "已完成", "已跳过"},
@@ -102,7 +105,7 @@ public final class DormExtHygienePanel extends JPanel {
                     public PageSlice<HygieneTaskDto> load(int p, String keyword, String filter)
                             throws Exception {
                         DormPage<HygieneTaskDto> value = service.hygieneTasks(
-                                new DormPageQuery(p, 20, keyword, taskStatus(filter), null, null));
+                                new DormPageQuery(p, PAGE_ROWS, keyword, taskStatus(filter), null, null));
                         return RealUi.page(value);
                     }
                 },
@@ -118,6 +121,8 @@ public final class DormExtHygienePanel extends JPanel {
                 new AsyncPagedTable.SelectionListener<HygieneTaskDto>() {
                     @Override public void onSelected(HygieneTaskDto row) { pick(row); }
                 });
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     /** 选中任务：把房间编号带进右边的表单，并把分数复位成满分重新打。 */

@@ -31,7 +31,8 @@ final class MySqlDormExtSupport {
                 r.getString("visit_reason"), JdbcDormSupport.localTimestamp(r, "start_at"),
                 JdbcDormSupport.localTimestamp(r, "end_at"), JdbcDormSupport.localTimestamp(r, "submitted_at"),
                 r.getString("audit_status"), JdbcDormSupport.longOrNull(r, "auditor_id"),
-                JdbcDormSupport.localTimestamp(r, "audited_at"), r.getString("audit_remark"));
+                JdbcDormSupport.localTimestamp(r, "audited_at"), r.getString("audit_remark"),
+                r.getString("student_name"));
     }
 
     static AbsenceWarningDto warning(ResultSet r) throws SQLException {

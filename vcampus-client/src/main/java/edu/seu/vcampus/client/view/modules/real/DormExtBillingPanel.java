@@ -56,14 +56,17 @@ public final class DormExtBillingPanel extends JPanel {
         resetForm();
     }
     public void reload() { readings.reload(); }
+    /** 抄表读数每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<MeterReadingDto> readingTable() {
-        return new AsyncPagedTable<MeterReadingDto>("抄表读数",
+        AsyncPagedTable<MeterReadingDto> table = new AsyncPagedTable<MeterReadingDto>("抄表读数",
                 "选中一行或多行后出账；已出账的读数不可再改。按住 Ctrl 或 Shift 可多选。",
                 "搜索房间或楼栋",
                 new String[]{"全部读数", "待出账", "已出账"},
                 new String[]{"编号", "楼栋", "房间", "账期起", "账期止", "用电量", "用水量", "应缴", "状态"},
                 (p, keyword, filter) -> {
-                    DormPage<MeterReadingDto> value = service.meterReadings(new DormPageQuery(p, 20, keyword, null, null, null));
+                    DormPage<MeterReadingDto> value = service.meterReadings(new DormPageQuery(p, PAGE_ROWS, keyword, null, null, null));
                     List<MeterReadingDto> rows = filtered(value.getItems(), filter); loaded = rows;
                     return new PageSlice<MeterReadingDto>(rows, value.getTotalElements(), value.getPageNumber(), value.getPageSize());
                 },
@@ -71,6 +74,8 @@ public final class DormExtBillingPanel extends JPanel {
                         RealUi.date(row.getPeriodStart()), RealUi.date(row.getPeriodEnd()), RealUi.text(row.getElectricityUnits()),
                         RealUi.text(row.getWaterUnits()), RealUi.text(row.getTotalAmount()), row.isLocked() ? "已出账" : "待出账"},
                 this::showReading);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
     private JButton billSelected() {
         JButton button = new PrimaryButton("对选中读数出账");

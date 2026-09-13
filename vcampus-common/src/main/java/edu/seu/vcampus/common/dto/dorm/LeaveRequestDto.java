@@ -17,15 +17,26 @@ public final class LeaveRequestDto implements Serializable {
     private final LocalDateTime reviewedAt;
     private final String reviewRemark;
     private final LocalDateTime createdAt;
+    /** 申请人姓名，服务端联用户表填充；旧的构造入口和内存仓储填 null。 */
+    private final String studentName;
 
     public LeaveRequestDto(long id, long studentUserId, String leaveType,
                            LocalDateTime startAt, LocalDateTime endAt, String reason,
                            String status, Long reviewedBy, LocalDateTime reviewedAt,
                            String reviewRemark, LocalDateTime createdAt) {
+        this(id, studentUserId, leaveType, startAt, endAt, reason, status, reviewedBy, reviewedAt,
+                reviewRemark, createdAt, null);
+    }
+
+    public LeaveRequestDto(long id, long studentUserId, String leaveType,
+                           LocalDateTime startAt, LocalDateTime endAt, String reason,
+                           String status, Long reviewedBy, LocalDateTime reviewedAt,
+                           String reviewRemark, LocalDateTime createdAt, String studentName) {
         this.id = id; this.studentUserId = studentUserId; this.leaveType = leaveType;
         this.startAt = startAt; this.endAt = endAt; this.reason = reason; this.status = status;
         this.reviewedBy = reviewedBy; this.reviewedAt = reviewedAt;
         this.reviewRemark = reviewRemark; this.createdAt = createdAt;
+        this.studentName = studentName;
     }
 
     public long getId() { return id; }
@@ -40,4 +51,9 @@ public final class LeaveRequestDto implements Serializable {
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public String getReviewRemark() { return reviewRemark; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getStudentName() { return studentName; }
+    /** 界面用：有姓名显示姓名，没有就退回「用户 N」。 */
+    public String studentLabel() {
+        return studentName == null || studentName.trim().isEmpty() ? "用户 " + studentUserId : studentName.trim();
+    }
 }

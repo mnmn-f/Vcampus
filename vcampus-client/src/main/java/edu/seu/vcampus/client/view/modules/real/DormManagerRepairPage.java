@@ -80,25 +80,29 @@ public final class DormManagerRepairPage extends JPanel {
         return column;
     }
 
+    /** 工单表每页几条：八条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 8;
+
     private AsyncPagedTable<RepairOrderDto> table() {
         AsyncPagedTable<RepairOrderDto> table = new AsyncPagedTable<RepairOrderDto>("", "",
                 "搜索类别、房间或描述",
                 new String[]{"全部状态", "待派单", "已派单", "处理中", "待宿管审核", "已完成", "已取消"},
-                new String[]{"工单", "房间", "报修人", "类别", "描述", "优先级", "状态", "维修员"},
+                // 「描述」不进表：选中一条之后右栏整段展示，表里只留认出是哪一单要看的列。
+                new String[]{"工单", "房间", "报修人", "类别", "优先级", "状态", "维修员"},
                 new AsyncPagedTable.Loader<RepairOrderDto>() {
                     @Override public PageSlice<RepairOrderDto> load(int p, String k, String f) throws Exception {
-                        return RealUi.page(service.repairs(new DormPageQuery(p, 20, k, repairStatus(f), null, null)));
+                        return RealUi.page(service.repairs(new DormPageQuery(p, PAGE_ROWS, k, repairStatus(f), null, null)));
                     }
                 }, new AsyncPagedTable.RowMapper<RepairOrderDto>() {
                     @Override public Object[] values(RepairOrderDto row) {
                         return new Object[]{Long.valueOf(row.getId()), row.location(), reporter(row), RealUi.status(row.getCategory()),
-                                RealUi.text(row.getDescription()), RealUi.status(row.getPriority()),
-                                RealUi.status(row.getStatus()),
+                                RealUi.status(row.getPriority()), RealUi.status(row.getStatus()),
                                 handler(row)};
                     }
                 }, new AsyncPagedTable.SelectionListener<RepairOrderDto>() {
                     @Override public void onSelected(RepairOrderDto row) { select(row); }
                 });
+        table.setPageRows(PAGE_ROWS);
         return table;
     }
 
@@ -147,6 +151,13 @@ public final class DormManagerRepairPage extends JPanel {
         side.add(DormUi.header("派单 · 工单 " + selected.getId(),
                 RealUi.status(selected.getCategory()) + "　·　" + selected.location()
                         + "　·　" + RealUi.dateTime(selected.getSubmittedAt()), null, false));
+        // 报修描述整段展示：表里已经不放它了，而"坏的是什么、怎么坏的"正是派单要看的。
+        if (selected.getDescription() != null && !selected.getDescription().trim().isEmpty()) {
+            side.add(DormUi.caption("报修描述"));
+            side.add(Box.createVerticalStrut(6));
+            side.add(DormUi.passage(selected.getDescription().trim()));
+            side.add(Box.createVerticalStrut(16));
+        }
 
         if (detail != null) {
             side.add(DormUi.notice(detail.canEnterUnattended() ? DormUi.Tone.OK : DormUi.Tone.WARN,

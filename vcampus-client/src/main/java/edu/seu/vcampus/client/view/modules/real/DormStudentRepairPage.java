@@ -130,13 +130,16 @@ public final class DormStudentRepairPage extends JPanel {
         return column;
     }
 
+    /** 工单表每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<RepairOrderDto> table() {
-        return new AsyncPagedTable<RepairOrderDto>("", "", "按类别或描述搜索",
+        AsyncPagedTable<RepairOrderDto> table = new AsyncPagedTable<RepairOrderDto>("", "", "按类别或描述搜索",
                 new String[]{"全部状态", "待派单", "已派单", "处理中", "待宿管审核", "已完成", "已取消"},
                 new String[]{"工单", "类别", "描述", "优先级", "状态", "提交时间"},
                 new AsyncPagedTable.Loader<RepairOrderDto>() {
                     @Override public PageSlice<RepairOrderDto> load(int p, String keyword, String filter) throws Exception {
-                        return RealUi.page(service.repairs(new DormPageQuery(p, 20, keyword, repairStatus(filter), null, null)));
+                        return RealUi.page(service.repairs(new DormPageQuery(p, PAGE_ROWS, keyword, repairStatus(filter), null, null)));
                     }
                 }, new AsyncPagedTable.RowMapper<RepairOrderDto>() {
                     @Override public Object[] values(RepairOrderDto row) {
@@ -147,6 +150,8 @@ public final class DormStudentRepairPage extends JPanel {
                 }, new AsyncPagedTable.SelectionListener<RepairOrderDto>() {
                     @Override public void onSelected(RepairOrderDto row) { showDetail(row); }
                 });
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     // ---------- 右栏：选中工单的详情 ----------
