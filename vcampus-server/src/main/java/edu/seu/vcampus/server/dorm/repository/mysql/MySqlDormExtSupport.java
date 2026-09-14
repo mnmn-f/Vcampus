@@ -40,7 +40,8 @@ final class MySqlDormExtSupport {
                 r.getString("building_code"), r.getString("room_no"), JdbcDormSupport.localDate(r, "scan_date"),
                 JdbcDormSupport.localTimestamp(r, "last_leave_at"), r.getInt("absence_days"), r.getString("warning_level"),
                 r.getString("handle_status"), JdbcDormSupport.longOrNull(r, "notified_teacher_id"),
-                JdbcDormSupport.localTimestamp(r, "notified_at"), r.getString("note"));
+                JdbcDormSupport.localTimestamp(r, "notified_at"), r.getString("note"),
+                r.getString("student_label"), r.getString("teacher_label"));
     }
 
     static RepairEntryPermitDto permit(ResultSet r) throws SQLException {

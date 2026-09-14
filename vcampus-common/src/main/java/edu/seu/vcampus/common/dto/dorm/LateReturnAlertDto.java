@@ -15,10 +15,18 @@ public final class LateReturnAlertDto implements Serializable {
     private final Long handledBy;
     private final LocalDateTime handledAt;
     private final String note;
+    /** 「姓名（学号）」，表格里直接显示。 */
+    private final String studentLabel;
 
     public LateReturnAlertDto(long id, long studentUserId, LocalDate alertDate,
                               LocalDateTime detectedAt, String status, Long handledBy,
                               LocalDateTime handledAt, String note) {
+        this(id, studentUserId, alertDate, detectedAt, status, handledBy, handledAt, note, null);
+    }
+
+    public LateReturnAlertDto(long id, long studentUserId, LocalDate alertDate,
+                              LocalDateTime detectedAt, String status, Long handledBy,
+                              LocalDateTime handledAt, String note, String studentLabel) {
         this.id = id;
         this.studentUserId = studentUserId;
         this.alertDate = alertDate;
@@ -27,6 +35,7 @@ public final class LateReturnAlertDto implements Serializable {
         this.handledBy = handledBy;
         this.handledAt = handledAt;
         this.note = note;
+        this.studentLabel = studentLabel;
     }
 
     public long getId() { return id; }
@@ -38,4 +47,5 @@ public final class LateReturnAlertDto implements Serializable {
     public Long getHandledBy() { return handledBy; }
     public LocalDateTime getHandledAt() { return handledAt; }
     public String getNote() { return note; }
+    public String getStudentLabel() { return studentLabel; }
 }

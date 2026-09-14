@@ -34,6 +34,7 @@ public final class DormExtCommandRegistry {
                 DormExtCommands.METER_SUBMIT, DormExtCommands.BILL_GENERATE,
                 DormExtCommands.WARNING_SCAN, DormExtCommands.WARNING_LIST,
                 DormExtCommands.WARNING_NOTIFY, DormExtCommands.WARNING_VERIFY,
+                DormExtCommands.WARNING_TEACHERS,
                 DormExtCommands.WARNING_CONFIG_GET, DormExtCommands.WARNING_CONFIG_SET,
                 DormExtCommands.VISITOR_SUBMIT, DormExtCommands.VISITOR_MINE,
                 DormExtCommands.VISITOR_CANCEL, DormExtCommands.VISITOR_LIST,

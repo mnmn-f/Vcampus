@@ -29,6 +29,8 @@ public interface DormExtRepository {
     AbsenceWarningDto findWarning(Connection c, long warningId) throws SQLException;
     AbsenceWarningDto updateWarningStatus(Connection c, long warningId, String status,
                                           Long teacherId, LocalDateTime notifiedAt, String note) throws SQLException;
+    /** 可通知的辅导员：启用中的 TEACHER 账号。 */
+    List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers(Connection c) throws SQLException;
     WarningConfigDto loadWarningConfig(Connection c) throws SQLException;
     WarningConfigDto saveWarningConfig(Connection c, WarningConfigRequest r, long actor) throws SQLException;
 

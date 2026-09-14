@@ -52,7 +52,8 @@ public final class DormExtBillingPanel extends JPanel {
         // 录入表单挪到右栏：抄表是「在表里挑到房间，再在右边填这个月的数」，
         // 表单压在表格下面会让人每填一行都要上下翻。
         setLayout(new BorderLayout());
-        add(DormUi.split(readings, form(), 440), BorderLayout.CENTER);
+        // 右栏拉到和左表一样高，「清空 / 保存读数」和左边的翻页按钮齐平。
+        add(DormUi.split(readings, form(), 440, true), BorderLayout.CENTER);
         resetForm();
     }
     public void reload() { readings.reload(); }
@@ -97,28 +98,13 @@ public final class DormExtBillingPanel extends JPanel {
         fields.add(UiFactory.labelledField("用水量", waterUnits));
         fields.add(UiFactory.labelledField("电费单价", electricityPrice));
         fields.add(UiFactory.labelledField("水费单价", waterPrice));
-        JPanel actions = UiFactory.horizontal(8);
         JButton reset = new SecondaryButton("清空");
         reset.addActionListener(e -> resetForm());
         JButton save = new PrimaryButton("保存读数");
         save.addActionListener(e -> saveReading());
-        actions.add(reset);
-        actions.add(save);
-        JPanel rows = new JPanel();
-        rows.setOpaque(false);
-        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
-        rows.add(fields);
-        rows.add(javax.swing.Box.createVerticalStrut(14));
-        rows.add(actions);
-        JPanel box = DormUi.panel();
-        box.add(rows, BorderLayout.CENTER);
-        JPanel column = new JPanel();
-        column.setOpaque(false);
-        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
-        column.add(DormUi.header("登记抄表读数",
-                "只负责录入；出账在左边的表格里选行执行。选中一条待出账的读数可以直接改。", null, false));
-        column.add(box);
-        return column;
+        return DormUi.sideForm("登记抄表读数",
+                "只负责录入；出账在左边的表格里选行执行。选中一条待出账的读数可以直接改。",
+                fields, reset, save);
     }
     private void showReading(MeterReadingDto value) {
         if (value == null) { resetForm(); return; }

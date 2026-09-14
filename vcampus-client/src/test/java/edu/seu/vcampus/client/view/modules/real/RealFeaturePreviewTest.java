@@ -85,8 +85,10 @@ public final class RealFeaturePreviewTest {
     private static void renderSpaceEditor(int width, int height) throws Exception {
         render("manager-space-editor-" + width + "x" + height, width, height, Role.DORM_MANAGER,
                 new ComponentFactory() { @Override public JComponent create(PreviewPage page) {
-                    return new DormSpaceEditorPanel(page, dormService(new CountDownLatch(0)), new Runnable() {
-                        @Override public void run() { }
+                    return new DormSpaceEditorPanel(page, dormService(new CountDownLatch(0)), new DormSpaceEditorPanel.Listener() {
+                        @Override public void buildingSaved(edu.seu.vcampus.common.dto.dorm.DormBuildingDto v, boolean created) { }
+                        @Override public void roomSaved(edu.seu.vcampus.common.dto.dorm.DormRoomDto v, boolean created) { }
+                        @Override public void bedSaved(edu.seu.vcampus.common.dto.dorm.DormBedDto v, boolean created) { }
                     });
                 } }, new CountDownLatch(0));
     }

@@ -41,12 +41,29 @@ public final class DormManagerSpacePanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.service = service;
         statsRow.setOpaque(false);
-        editor = new DormSpaceEditorPanel(page, service, new Runnable() {
-            @Override public void run() { reload(); }
+        // 保存成功后：改过的那张表定位到这条记录（新建的可能排在最后一页，不定位就看不见），
+        // 下游的表和顶部统计一起重载——新建楼栋不改房间数，但新建房间会改床位表的楼栋列。
+        editor = new DormSpaceEditorPanel(page, service, new DormSpaceEditorPanel.Listener() {
+            @Override public void buildingSaved(DormBuildingDto value, boolean created) {
+                buildings.locate(value.getBuildingCode(), Long.valueOf(value.getId()));
+                rooms.reload(); beds.reload(); loadStats();
+            }
+            @Override public void roomSaved(DormRoomDto value, boolean created) {
+                rooms.locate(value.getRoomNo(), Long.valueOf(value.getId()));
+                beds.reload(); loadStats();
+            }
+            @Override public void bedSaved(DormBedDto value, boolean created) {
+                beds.locate(value.getRoomNo(), Long.valueOf(value.getId()));
+                rooms.reload(); loadStats();
+            }
         });
         buildings = buildingTable();
         rooms = roomTable();
         beds = bedTable();
+        // 按 id 记住选中行：重载后仍然选中同一条，保存完表单不会被清空。
+        buildings.setItemKey(b -> Long.valueOf(b.getId()));
+        rooms.setItemKey(r -> Long.valueOf(r.getId()));
+        beds.setItemKey(b -> Long.valueOf(b.getId()));
 
         renderStats(-1, -1, -1, -1);
         add(DormUi.header("住宿与空间",

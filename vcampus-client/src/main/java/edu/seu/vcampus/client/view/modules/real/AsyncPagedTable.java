@@ -44,6 +44,8 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private final SelectionListener<T> selectionListener;
     private List<T> items = Collections.emptyList();
     private java.util.function.Function<T, Object> itemKey;
+    /** {@link #locate(String, Object)} 要在下次加载完成后选中的那一行的键。 */
+    private Object pendingSelectKey;
     private boolean checkboxSelection;
     private int page = 1;
     private int requestSerial;
@@ -249,6 +251,26 @@ public final class AsyncPagedTable<T> extends SectionCard {
         return result;
     }
     public void reload() { load(1); }
+
+    /**
+     * 把表格定位到某条记录：清掉状态筛选、把关键字填进搜索框再重载。
+     *
+     * <p>新建一条记录后光 {@link #reload()} 不够：表按编码排序、五条一页，新建的 D9 在
+     * 最后一页，第一页看不见它，用户会以为没建成。</p>
+     */
+    public void locate(String keyword) { locate(keyword, null); }
+
+    /** 同 {@link #locate(String)}，加载完成后再选中 {@code key}（按 {@link #setItemKey} 的键）对应的那一行。 */
+    public void locate(String keyword, Object key) {
+        pendingSelectKey = key;
+        toolbar.getSearchField().setText(keyword == null ? "" : keyword.trim());
+        javax.swing.JComboBox<?> filter = toolbar.getFilterBox();
+        if (filter != null && filter.getSelectedIndex() != 0) {
+            filter.setSelectedIndex(0); // 触发一次 load(1)，搜索框已经是新关键字
+        } else {
+            load(1);
+        }
+    }
     public void resetFilters() {
         toolbar.getSearchField().setText("");
         if (toolbar.getFilterBox() != null && toolbar.getFilterBox().getSelectedIndex() != 0) {
@@ -301,6 +323,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
                             values[0] = checkedKeys.contains(itemKey.apply(item));
                         }
                         model.addRow(values);
+                    }
+                    if (pendingSelectKey != null && itemKey != null) {
+                        selectedKeys.clear(); selectedKeys.add(pendingSelectKey); pendingSelectKey = null;
                     }
                     for (int index = 0; index < items.size(); index++) {
                         if (itemKey != null && selectedKeys.contains(itemKey.apply(items.get(index)))) {

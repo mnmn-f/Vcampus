@@ -89,6 +89,8 @@ public final class DormAccommodationPanel extends JPanel {
         noticeHolder.setAlignmentX(LEFT_ALIGNMENT);
         loadCurrent();
         loadSummary();
+        // 顶部「未缴水电」等数字在别的标签页里会变（缴费、打分、审批），回到这一页时重取一次。
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::loadSummary);
     }
 
     public void reload() {

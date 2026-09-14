@@ -37,11 +37,24 @@ public final class AbsenceWarningDto implements Serializable {
     private final Long notifiedTeacherId;
     private final LocalDateTime notifiedAt;
     private final String note;
+    /** 「姓名（学号）」；表格里直接显示，宿管不必拿着 user id 去别处查人。 */
+    private final String studentLabel;
+    /** 已通知的辅导员显示名；没通知过为 null。 */
+    private final String notifiedTeacherLabel;
 
     public AbsenceWarningDto(long id, long studentUserId, long roomId, String buildingCode,
                              String roomNo, LocalDate scanDate, LocalDateTime lastLeaveAt,
                              int absenceDays, String warningLevel, String handleStatus,
                              Long notifiedTeacherId, LocalDateTime notifiedAt, String note) {
+        this(id, studentUserId, roomId, buildingCode, roomNo, scanDate, lastLeaveAt, absenceDays,
+                warningLevel, handleStatus, notifiedTeacherId, notifiedAt, note, null, null);
+    }
+
+    public AbsenceWarningDto(long id, long studentUserId, long roomId, String buildingCode,
+                             String roomNo, LocalDate scanDate, LocalDateTime lastLeaveAt,
+                             int absenceDays, String warningLevel, String handleStatus,
+                             Long notifiedTeacherId, LocalDateTime notifiedAt, String note,
+                             String studentLabel, String notifiedTeacherLabel) {
         this.id = id;
         this.studentUserId = studentUserId;
         this.roomId = roomId;
@@ -55,6 +68,8 @@ public final class AbsenceWarningDto implements Serializable {
         this.notifiedTeacherId = notifiedTeacherId;
         this.notifiedAt = notifiedAt;
         this.note = note;
+        this.studentLabel = studentLabel;
+        this.notifiedTeacherLabel = notifiedTeacherLabel;
     }
 
     public long getId() { return id; }
@@ -70,6 +85,8 @@ public final class AbsenceWarningDto implements Serializable {
     public Long getNotifiedTeacherId() { return notifiedTeacherId; }
     public LocalDateTime getNotifiedAt() { return notifiedAt; }
     public String getNote() { return note; }
+    public String getStudentLabel() { return studentLabel; }
+    public String getNotifiedTeacherLabel() { return notifiedTeacherLabel; }
 
     public boolean isSevere() { return LEVEL_SEVERE.equals(warningLevel); }
     public boolean isExempt() { return LEVEL_EXEMPT.equals(warningLevel); }

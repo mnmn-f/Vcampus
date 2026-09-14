@@ -33,10 +33,17 @@ final class DormAnnouncementService extends DormServiceSupport {
                 || request.getContent() == null || request.getContent().trim().isEmpty()) {
             throw new DormException(ResultCodes.INVALID_INPUT, "公告标题和内容不能为空");
         }
-        if (request.getExpireAt() != null && request.getPublishAt() != null
-                && !request.getExpireAt().isAfter(request.getPublishAt())) {
+        // 发布却没给发布时间，就记为现在：学生端按 publish_at 排序和显示日期，
+        // 留空会让刚发的公告没有日期、排序也靠不住。草稿和撤回不动这个字段。
+        final AnnouncementSaveRequest effective = "PUBLISHED".equals(request.getStatus()) && request.getPublishAt() == null
+                ? new AnnouncementSaveRequest(request.getId(), request.getTitle(), request.getContent(),
+                        request.getVisibleScope(), request.getTargetRoleId(), request.getStatus(),
+                        org.threeten.bp.LocalDateTime.now(), request.getExpireAt())
+                : request;
+        if (effective.getExpireAt() != null && effective.getPublishAt() != null
+                && !effective.getExpireAt().isAfter(effective.getPublishAt())) {
             throw new DormException(ResultCodes.INVALID_INPUT, "公告过期时间必须晚于发布时间");
         }
-        return execute(new Work<DormAnnouncementDto>() { public DormAnnouncementDto run(java.sql.Connection c) throws Exception { return repository.save(c, request, session.getUserId()); } });
+        return execute(new Work<DormAnnouncementDto>() { public DormAnnouncementDto run(java.sql.Connection c) throws Exception { return repository.save(c, effective, session.getUserId()); } });
     }
 }

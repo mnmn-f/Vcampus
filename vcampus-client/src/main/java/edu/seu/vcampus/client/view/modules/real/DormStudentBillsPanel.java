@@ -38,8 +38,16 @@ public final class DormStudentBillsPanel extends JPanel {
         add(statsRow);
         add(Box.createVerticalStrut(22));
         bills = new DormUtilityBillsTable(page, service, true);
+        // 缴费成功的那一刻顶部数字就要跟着变：表格里那一行变成「已缴费」而上面还写着
+        // 「待缴 ¥47.02」，看起来像没交成功。
+        bills.setOnPaid(new Runnable() {
+            @Override public void run() { loadSummary(); }
+        });
         add(bills);
         loadSummary();
+        // 切回这个标签页时也顺手重取一次：宿管那边刚出了新账单或做了减免，
+        // 这里不用重新登录就能看到。
+        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::loadSummary);
     }
 
     public void reload() {

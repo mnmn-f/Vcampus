@@ -277,6 +277,16 @@ public final class DormUi {
      * 让它可以被压缩，压不下的表格自己横向滚动。</p>
      */
     public static JPanel split(JComponent main, JComponent side, int sideWidth) {
+        return split(main, side, sideWidth, false);
+    }
+
+    /**
+     * 同 {@link #split}，但 {@code fillHeight} 为 true 时侧栏拉到和主内容一样高。
+     *
+     * <p>侧栏自己用 BorderLayout 把按钮放 SOUTH，就能和左边表格的翻页按钮对齐在同一
+     * 条水平线上；默认的 NORTH 贴顶摆法做不到这一点。</p>
+     */
+    public static JPanel split(JComponent main, JComponent side, int sideWidth, boolean fillHeight) {
         JPanel row = new JPanel(new BorderLayout(0, 0));
         row.setOpaque(false);
         JPanel left = new JPanel(new BorderLayout());
@@ -284,7 +294,7 @@ public final class DormUi {
         left.setMinimumSize(new Dimension(0, 0));
         if (main != null) left.add(main, BorderLayout.CENTER);
         row.add(left, BorderLayout.CENTER);
-        row.add(sideColumn(side, sideWidth, true), BorderLayout.EAST);
+        row.add(sideColumn(side, sideWidth, true, fillHeight), BorderLayout.EAST);
         return row;
     }
 
@@ -296,6 +306,10 @@ public final class DormUi {
      * 从下面截断，提交按钮直接看不见。宽度和高度得分开表达，所以这里只覆盖宽度。</p>
      */
     private static JPanel sideColumn(JComponent side, final int sideWidth, boolean dividerOnLeft) {
+        return sideColumn(side, sideWidth, dividerOnLeft, false);
+    }
+
+    private static JPanel sideColumn(JComponent side, final int sideWidth, boolean dividerOnLeft, boolean fillHeight) {
         final JPanel holder = new JPanel(new BorderLayout()) {
             @Override public Dimension getPreferredSize() {
                 return new Dimension(sideWidth, super.getPreferredSize().height);
@@ -305,7 +319,7 @@ public final class DormUi {
             }
         };
         holder.setOpaque(false);
-        if (side != null) holder.add(side, BorderLayout.NORTH);
+        if (side != null) holder.add(side, fillHeight ? BorderLayout.CENTER : BorderLayout.NORTH);
 
         JPanel dividerHolder = new JPanel(new BorderLayout());
         dividerHolder.setOpaque(false);
@@ -348,30 +362,100 @@ public final class DormUi {
             block.add(line);
             block.add(Box.createVerticalStrut(18));
         }
-        JPanel row = new JPanel(new BorderLayout(16, 0));
+        // 标题文字放 CENTER 而不是 WEST：WEST 会按说明文字的完整长度要宽度，右边的按钮
+        // 就被顶到文字上面；CENTER 只拿按钮剩下的宽度，说明文字在这个宽度里自动折行。
+        final JPanel row = new JPanel(new BorderLayout(16, 0)) {
+            @Override public Dimension getMaximumSize() {
+                return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+            }
+        };
         row.setOpaque(false);
-        JPanel text = new JPanel();
-        text.setOpaque(false);
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-        JLabel head = new JLabel(title);
-        head.setFont(DesignTokens.medium(17));
-        head.setForeground(DesignTokens.TEXT_PRIMARY);
-        head.setAlignmentX(Component.LEFT_ALIGNMENT);
-        text.add(head);
-        if (subtitle != null && subtitle.length() > 0) {
-            text.add(Box.createVerticalStrut(5));
-            JLabel note = sub(subtitle);
-            note.setAlignmentX(Component.LEFT_ALIGNMENT);
-            text.add(note);
+        row.add(new HeaderText(title, subtitle), BorderLayout.CENTER);
+        if (actions != null) {
+            // 按钮贴标题那一行的顶部对齐，说明文字折成两行时按钮不会跟着往下掉到中间。
+            JPanel top = new JPanel(new BorderLayout());
+            top.setOpaque(false);
+            top.add(actions, BorderLayout.NORTH);
+            row.add(top, BorderLayout.EAST);
         }
-        row.add(text, BorderLayout.WEST);
-        if (actions != null) row.add(actions, BorderLayout.EAST);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
         block.add(row);
         block.add(Box.createVerticalStrut(14));
         block.setAlignmentX(Component.LEFT_ALIGNMENT);
         return block;
+    }
+
+    /**
+     * 标题 + 会折行的说明文字。
+     *
+     * <p>说明文字是 JTextArea 而不是 JLabel：JLabel 只有一行，栏窄了就裁成省略号，
+     * 「点床位，然后通过」变成「点床位，然后通」。这里的高度按当前拿到的宽度算：
+     * 宽度变了就重新折行、重新报高度，外面的 BoxLayout 会跟着把下面的内容往下挪。</p>
+     */
+    private static final class HeaderText extends JPanel {
+        private final javax.swing.JTextArea note;
+
+        HeaderText(String title, String subtitle) {
+            super();
+            setOpaque(false);
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            JLabel head = new JLabel(title);
+            head.setFont(DesignTokens.medium(17));
+            head.setForeground(DesignTokens.TEXT_PRIMARY);
+            head.setAlignmentX(Component.LEFT_ALIGNMENT);
+            add(head);
+            if (subtitle != null && subtitle.length() > 0) {
+                add(Box.createVerticalStrut(5));
+                note = paragraph(subtitle);
+                note.setFont(DesignTokens.regular(12));
+                note.setForeground(DesignTokens.TEXT_SECONDARY);
+                add(note);
+            } else {
+                note = null;
+            }
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override public void componentResized(java.awt.event.ComponentEvent event) {
+                    // 宽度变了，折行数可能变，让父容器重新问一遍高度。
+                    Container parent = getParent();
+                    while (parent != null && !(parent instanceof javax.swing.JScrollPane)) parent = parent.getParent();
+                    if (parent != null) parent.revalidate(); else revalidate();
+                }
+            });
+        }
+
+        @Override public Dimension getPreferredSize() {
+            if (note != null && getWidth() > 0) note.setSize(getWidth(), Short.MAX_VALUE);
+            Dimension size = super.getPreferredSize();
+            // 还没拿到宽度时（首次布局）别按整段文字的长度要宽度，否则按钮又被顶开。
+            if (getWidth() <= 0) size.width = Math.min(size.width, 320);
+            return size;
+        }
+
+        @Override public Dimension getMinimumSize() { return new Dimension(0, 0); }
+        @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, getPreferredSize().height); }
+    }
+
+    /**
+     * 右栏表单：标题在上、表单贴顶、按钮钉底，配合 {@code split(..., true)} 使用。
+     *
+     * <p>按钮行用 vgap 为 0 的 FlowLayout，底边距和左边表格卡片一样是 17px——这样右栏的
+     * 「提交」和左栏的「刷新 / 上一页 / 下一页」落在同一条水平线上。之前用
+     * {@code UiFactory.horizontal(8)}，它的 WrapLayout 上下各带 8px 空隙，按钮就浮高了。</p>
+     */
+    public static JPanel sideForm(String title, String subtitle, JComponent body, JComponent... buttons) {
+        JPanel line = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        line.setOpaque(false);
+        for (JComponent b : buttons) if (b != null) line.add(b);
+        JPanel box = panel();
+        box.setBorder(BorderFactory.createEmptyBorder(12, 14, 17, 14));
+        box.add(body, BorderLayout.NORTH);
+        box.add(line, BorderLayout.SOUTH);
+        JPanel column = new JPanel(new BorderLayout());
+        column.setOpaque(false);
+        column.add(header(title, subtitle, null, false), BorderLayout.NORTH);
+        column.add(box, BorderLayout.CENTER);
+        return column;
     }
 
     /** 一行按钮，右对齐用在 {@link #header} 的操作位。 */

@@ -13,7 +13,9 @@ import org.threeten.bp.LocalDateTime;
 
 /** MySQL persistence for absence warnings and threshold configuration. */
 final class MySqlDormWarningRepository {
-    private static final String COLUMNS = "w.id, w.student_user_id, w.room_id, b.building_code, r.room_no, w.scan_date, w.last_leave_at, w.absence_days, w.warning_level, w.handle_status, w.notified_teacher_id, w.notified_at, w.note";
+    private static final String COLUMNS = "w.id, w.student_user_id, w.room_id, b.building_code, r.room_no, w.scan_date, w.last_leave_at, w.absence_days, w.warning_level, w.handle_status, w.notified_teacher_id, w.notified_at, w.note, "
+            + edu.seu.vcampus.server.db.PersonDisplaySql.label("w.student_user_id") + " student_label, "
+            + "(SELECT COALESCE(NULLIF(t.display_name,''),t.username) FROM users t WHERE t.id = w.notified_teacher_id) teacher_label";
     private static final String FROM = " FROM dorm_absence_warnings w JOIN dorm_rooms r ON r.id = w.room_id JOIN dorm_buildings b ON b.id = r.building_id";
 
     List<ResidentAbsenceSnapshot> residents(Connection c) throws SQLException {
@@ -42,6 +44,19 @@ final class MySqlDormWarningRepository {
         return JdbcDormSupport.page(c, "SELECT COUNT(*)" + FROM + where, "SELECT " + COLUMNS + FROM + where + " ORDER BY w.scan_date DESC, w.absence_days DESC, w.id DESC LIMIT ? OFFSET ?", params, q.getPage(), q.getPageSize(), new JdbcDormSupport.Reader<AbsenceWarningDto>() {
             @Override public AbsenceWarningDto read(ResultSet r) throws SQLException { return MySqlDormExtSupport.warning(r); }
         });
+    }
+
+    /** 可通知的辅导员：启用中的 TEACHER 账号，按显示名排序。写法同维修员名单。 */
+    List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> teachers(Connection c) throws SQLException {
+        String sql = "SELECT u.id, u.display_name, u.username FROM users u"
+                + " JOIN user_roles ur ON ur.user_id = u.id"
+                + " JOIN roles r ON r.id = ur.role_id AND r.code = 'TEACHER'"
+                + " WHERE u.status = 'ACTIVE' ORDER BY u.display_name ASC, u.username ASC";
+        List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> rows = new ArrayList<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>();
+        try (PreparedStatement s = c.prepareStatement(sql); ResultSet r = s.executeQuery()) {
+            while (r.next()) rows.add(new edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto(r.getLong("id"), r.getString("display_name"), r.getString("username")));
+        }
+        return rows;
     }
 
     AbsenceWarningDto find(Connection c, long id) throws SQLException {

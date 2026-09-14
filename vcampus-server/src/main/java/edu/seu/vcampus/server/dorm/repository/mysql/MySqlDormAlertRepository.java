@@ -26,7 +26,8 @@ final class MySqlDormAlertRepository {
         String status = JdbcDormSupport.clean(query.getStatus());
         if (status != null) { where.append(" AND status=?"); p.add(status); }
         return JdbcDormSupport.page(c, "SELECT COUNT(*) FROM late_return_alerts" + where.toString(),
-                "SELECT id,student_user_id,alert_date,detected_at,status,handled_by,handled_at,note"
+                "SELECT id,student_user_id,alert_date,detected_at,status,handled_by,handled_at,note,"
+                + edu.seu.vcampus.server.db.PersonDisplaySql.label("late_return_alerts.student_user_id") + " student_label"
                         + " FROM late_return_alerts" + where.toString() + " ORDER BY alert_date DESC,id DESC LIMIT ? OFFSET ?",
                 p, query.getPage(), query.getPageSize(), new JdbcDormSupport.Reader<LateReturnAlertDto>() { public LateReturnAlertDto read(ResultSet r) throws SQLException { return JdbcDormSupport.alert(r); } });
     }
@@ -48,7 +49,8 @@ final class MySqlDormAlertRepository {
     }
 
     LateReturnAlertDto lock(Connection c, long id) throws SQLException {
-        String sql = "SELECT id,student_user_id,alert_date,detected_at,status,handled_by,handled_at,note"
+        String sql = "SELECT id,student_user_id,alert_date,detected_at,status,handled_by,handled_at,note,"
+                + edu.seu.vcampus.server.db.PersonDisplaySql.label("late_return_alerts.student_user_id") + " student_label"
                 + " FROM late_return_alerts WHERE id=? FOR UPDATE";
         try (PreparedStatement s = c.prepareStatement(sql)) {
             s.setLong(1, id);

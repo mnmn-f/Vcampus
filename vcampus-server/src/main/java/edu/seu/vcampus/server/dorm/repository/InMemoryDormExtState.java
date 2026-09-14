@@ -39,5 +39,6 @@ final class InMemoryDormExtState {
     final Map<Long, Long> repairHandlers = new LinkedHashMap<Long, Long>();
     final Map<Long, String> repairPriorities = new LinkedHashMap<Long, String>();
     final Map<Long, String> repairWorkers = new LinkedHashMap<Long, String>();
+    final Map<Long, edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> teachers = new LinkedHashMap<Long, edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>();
     AccessPolicyDto accessPolicy = new AccessPolicyDto(LocalTime.of(23, 0), LocalTime.of(5, 0), LocalDateTime.now());
 }

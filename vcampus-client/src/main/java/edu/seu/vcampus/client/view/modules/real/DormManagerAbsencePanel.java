@@ -24,6 +24,12 @@ import java.awt.Dimension;
  * <p>和「连续未归预警」是两回事：晚归是人回来了但过了门禁点，连续未归是一直没回来。
  * 两者互补，所以同页上下排，中间有分隔线；合成一张表会让「今晚有几个人没回来」这个
  * 问题再也问不出来。</p>
+ *
+ * <p>一条晚归记录只处理一次：从「待处理」走到三个终态之一，之后不能再改。
+ * 三个终态的区别在于宿管对这次晚归的定性——
+ * 确认属实（CONFIRMED）：核实确实晚归，记录在案，后续可作为谈话/通报依据；
+ * 误报清除（CLEARED）：核实后发现不是晚归，比如有批准的假条、门禁刷错或系统误判，这条记录作废；
+ * 不予追究（IGNORED）：确实晚归但情节轻微或有合理原因，不记入，也不算误报。</p>
  */
 public final class DormManagerAbsencePanel extends JPanel {
     private static final long serialVersionUID = 1L;
@@ -68,7 +74,7 @@ public final class DormManagerAbsencePanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<LateReturnAlertDto>() {
                     @Override public Object[] values(LateReturnAlertDto row) {
-                        return new Object[]{Long.valueOf(row.getId()), "晚归学生",
+                        return new Object[]{Long.valueOf(row.getId()), RealUi.text(row.getStudentLabel()),
                                 RealUi.date(row.getAlertDate()), RealUi.dateTime(row.getDetectedAt()),
                                 alertLabel(row.getStatus()), RealUi.text(row.getNote())};
                     }
@@ -85,14 +91,18 @@ public final class DormManagerAbsencePanel extends JPanel {
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 62));
 
         JPanel buttons = UiFactory.horizontal(9);
-        buttons.add(button("确认", DormAlertStatus.CONFIRMED, true));
-        buttons.add(button("已清除", DormAlertStatus.CLEARED, false));
-        buttons.add(button("忽略", DormAlertStatus.IGNORED, false));
+        buttons.add(button("确认属实", DormAlertStatus.CONFIRMED, true));
+        buttons.add(button("误报清除", DormAlertStatus.CLEARED, false));
+        buttons.add(button("不予追究", DormAlertStatus.IGNORED, false));
 
         JPanel rows = new JPanel();
         rows.setOpaque(false);
         rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
         rows.add(field);
+        rows.add(Box.createVerticalStrut(11));
+        rows.add(hint("确认属实：核实确实晚归，记录在案。"));
+        rows.add(hint("误报清除：有假条、门禁刷错或系统误判，这条记录作废。"));
+        rows.add(hint("不予追究：确实晚归但情节轻微或有合理原因，不记入。"));
         rows.add(Box.createVerticalStrut(14));
         rows.add(buttons);
         JPanel box = DormUi.panel();
@@ -101,9 +111,15 @@ public final class DormManagerAbsencePanel extends JPanel {
         JPanel column = new JPanel();
         column.setOpaque(false);
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
-        column.add(DormUi.header("处理晚归", "选中一条记录后确认、清除或忽略。", null, false));
+        column.add(DormUi.header("处理晚归", "选中一条记录，定性后处理；每条只能处理一次。", null, false));
         column.add(box);
         return column;
+    }
+
+    private static javax.swing.JLabel hint(String text) {
+        javax.swing.JLabel label = UiFactory.muted(text);
+        label.setAlignmentX(LEFT_ALIGNMENT);
+        return label;
     }
 
     private JButton button(String label, final DormAlertStatus status, boolean primary) {
@@ -124,7 +140,7 @@ public final class DormManagerAbsencePanel extends JPanel {
             }
         }, new AsyncTask.Callback<LateReturnAlertDto>() {
             @Override public void onSuccess(LateReturnAlertDto result) {
-                page.showSuccess("晚归记录已处理。");
+                page.showSuccess("晚归记录已处理：" + alertLabel(result.getStatus()) + "。");
                 note.setText("");
                 alerts.reload();
             }

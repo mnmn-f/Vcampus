@@ -20,6 +20,8 @@ final class DormUtilityBillsTable extends JPanel {
     private final DormClientService service;
     private final AsyncPagedTable<UtilityBillDto> bills;
     private final boolean canPay;
+    /** 缴费成功后额外要做的事（比如刷新上方「本月应缴」）；表格自己只管重载自己那份数据。 */
+    private Runnable onPaid;
 
     DormUtilityBillsTable(BasePage page, DormClientService service, boolean canPay) {
         super();
@@ -33,6 +35,8 @@ final class DormUtilityBillsTable extends JPanel {
     }
 
     void reload() { bills.reload(); }
+
+    void setOnPaid(Runnable onPaid) { this.onPaid = onPaid; }
 
     private AsyncPagedTable<UtilityBillDto> createTable() {
         String title = canPay ? "我的水电账单" : "水电账单台账";
@@ -86,6 +90,7 @@ final class DormUtilityBillsTable extends JPanel {
             @Override public void onSuccess(UtilityBillDto result) {
                 page.showSuccess("水电费缴纳成功。");
                 bills.reload();
+                if (onPaid != null) onPaid.run();
             }
 
             @Override public void onFailure(Throwable error) {

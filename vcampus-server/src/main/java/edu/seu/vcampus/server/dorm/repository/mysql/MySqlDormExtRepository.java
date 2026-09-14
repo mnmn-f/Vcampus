@@ -36,6 +36,7 @@ public final class MySqlDormExtRepository implements DormExtRepository {
     @Override public DormPage<AbsenceWarningDto> listWarnings(Connection c, DormPageQuery q) throws SQLException { return warning.list(c, q); }
     @Override public AbsenceWarningDto findWarning(Connection c, long id) throws SQLException { return warning.find(c, id); }
     @Override public AbsenceWarningDto updateWarningStatus(Connection c, long id, String status, Long teacher, LocalDateTime at, String note) throws SQLException { return warning.update(c, id, status, teacher, at, note); }
+    @Override public List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers(Connection c) throws SQLException { return warning.teachers(c); }
     @Override public WarningConfigDto loadWarningConfig(Connection c) throws SQLException { return warning.config(c); }
     @Override public WarningConfigDto saveWarningConfig(Connection c, WarningConfigRequest r, long actor) throws SQLException { return warning.saveConfig(c, r, actor); }
     @Override public List<AbsenceWarningDto> pendingSevereWarnings(Connection c, LocalDate date) throws SQLException { return warning.pendingSevere(c, date); }

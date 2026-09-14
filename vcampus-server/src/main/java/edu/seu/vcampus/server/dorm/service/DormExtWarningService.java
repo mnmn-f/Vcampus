@@ -40,6 +40,10 @@ final class DormExtWarningService extends DormServiceSupport {
             return repository.updateWarningStatus(c, request.getWarningId(), AbsenceWarningDto.STATUS_VERIFIED, current.getNotifiedTeacherId(), current.getNotifiedAt(), request.getNote());
         } });
     }
+    java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> teachers(SessionContext session) {
+        require(session, Permission.DORM_GOVERN);
+        return execute(new Work<java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>>() { @Override public java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> run(Connection c) throws Exception { return repository.warningTeachers(c); } });
+    }
     WarningConfigDto config(SessionContext session) { require(session, Permission.DORM_GOVERN); return execute(new Work<WarningConfigDto>() { @Override public WarningConfigDto run(Connection c) throws Exception { return repository.loadWarningConfig(c); } }); }
     WarningConfigDto saveConfig(SessionContext session, WarningConfigRequest request) {
         require(session, Permission.DORM_GOVERN); if (request == null) throw new DormException(DormExtCommands.INVALID_INPUT, "阈值参数不能为空");
