@@ -26,6 +26,7 @@ final class KnowledgeRanker {
             if (!hasAnchor(queryTerms, title + " " + content)) continue;
             double score = keywordScore(title, content, queryTerms)
                     + cosine(queryVector, vector(title + " " + content)) * 8.0d;
+            if (title.contains("回答范围") || title.contains("知识范围")) score *= 0.1d;
             if (!normalize(query).isEmpty() && content.contains(normalize(query))) score += 12.0d;
             if (score > 0.0d) scored.add(new Scored(chunk, score));
         }
@@ -46,6 +47,7 @@ final class KnowledgeRanker {
     private double keywordScore(String title, String content, Set<String> queryTerms) {
         double score = 0.0d;
         for (String term : queryTerms) {
+            if (term.length() < 2) continue;
             if (title.contains(term)) score += 5.0d;
             if (content.contains(term)) score += 2.0d;
         }
@@ -104,7 +106,7 @@ final class KnowledgeRanker {
             out.append(" 课程与排课 新建时段 保存时段");
         }
         if (contains(value, "校纪", "校规", "纪律", "规定")) {
-            out.append(" 校纪校规 校园规定 纪律 规范");
+            out.append(" 校纪校规 校园规定 纪律 规范 学生违纪处分 学生公寓管理 考试纪律 消防安全");
         }
         if (contains(value, "处分", "作弊", "打架", "申诉", "违纪")) {
             out.append(" 学生违纪 处分 条例 调查 告知 申辩 申诉");

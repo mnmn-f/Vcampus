@@ -12,10 +12,25 @@ import static org.junit.Assert.assertTrue;
 public final class ExpandedDemoDataTest {
     @Test
     public void baselineOrderMatchesCurrentPriceSnapshotConstraint() throws Exception {
-        String sql = resource("/db/migration/V2__demo_data.sql");
-        assertTrue(sql.contains("`original_amount`"));
-        assertTrue(sql.contains("`discount_amount`"));
-        assertTrue(sql.contains("`payment_mode`"));
+        String seed = resource("/db/migration/V2__demo_data.sql");
+        String upgrade = resource("/db/migration/V4__store_experience.sql");
+
+        // V2 runs before the extended order columns exist.
+        assertTrue(seed.contains("INSERT INTO `store_orders`"));
+        assertFalse(seed.contains("`original_amount`"));
+        assertFalse(seed.contains("`discount_amount`"));
+        assertFalse(seed.contains("`payment_mode`"));
+
+        // V4 introduces the columns and backfills historical order amounts.
+        assertTrue(upgrade.contains("ADD COLUMN original_amount"));
+        assertTrue(upgrade.contains("ADD COLUMN discount_amount"));
+        assertTrue(upgrade.contains("ADD COLUMN payment_mode"));
+        String backfill = "UPDATE `store_orders` SET `original_amount`=`total_amount`";
+        String constraint = "ADD CONSTRAINT ck_store_orders_price_snapshot";
+        assertTrue(upgrade.contains(backfill));
+        assertTrue(upgrade.contains(constraint));
+        assertTrue("Historical amounts must be backfilled before adding the constraint",
+                upgrade.indexOf(backfill) < upgrade.indexOf(constraint));
     }
 
     @Test

@@ -9,7 +9,9 @@ public final class ToolIntentParser {
     public AiToolInvocation parse(String text) {
         String q = text == null ? "" : text.trim();
         if (instructionQuestion(q)) return null;
-        Long id = firstNumber(q);
+        AiToolInvocation precise = new PreciseIntentParser().parse(q);
+        if (precise != null) return precise;
+        Long id = PreciseIntentParser.explicitId(q);
         if (contains(q, "取消自习室", "取消研讨室") && contains(q, "预约")) {
             return id == null ? none("library.study-room.cancel", "取消自习室预约")
                     : id("library.study-room.cancel", id.longValue(), "取消自习室预约 " + id);
@@ -216,6 +218,11 @@ public final class ToolIntentParser {
     }
 
     private AiToolInvocation keyword(String tool, String value, String summary) {
+        return new AiToolInvocation(tool, "{\"keyword\":\""
+                + escape(PreciseIntentParser.searchTerm(value)) + "\"}", summary);
+    }
+
+    private AiToolInvocation legacyKeyword(String tool, String value, String summary) {
         String quoted = between(value, '《', '》');
         String clean = quoted != null ? quoted : value.replaceAll("[，。？！,.?!：:;；、\"'“”《》]", " ")
                 .replace("查找", "").replace("搜索", "").replace("查询", "")
@@ -322,16 +329,26 @@ public final class ToolIntentParser {
 
     private String textField(String source, String key, String... labels) {
         String value = labeled(source, labels);
+        if ("leaveType".equals(key) && value != null) {
+            if ("事假".equals(value)) value = "PERSONAL";
+            else if ("病假".equals(value)) value = "ILLNESS";
+            else if ("离校".equals(value) || "离校假".equals(value)) value = "OFF_CAMPUS";
+            else if ("其他".equals(value)) value = "OTHER";
+        }
         return value == null ? null : "\"" + key + "\":\"" + escape(value) + "\"";
     }
 
     private String labeled(String source, String... labels) {
+        String latest = null;
+        int latestAt = -1;
         for (String label : labels) {
             Matcher matcher = Pattern.compile("(?:^|[；;\\r\\n])\\s*" + Pattern.quote(label)
                     + "\\s*[：:]\\s*([^；;\\r\\n]+)").matcher(source);
-            if (matcher.find()) return matcher.group(1).trim();
+            while (matcher.find()) if (matcher.start() >= latestAt) {
+                latest = matcher.group(1).trim(); latestAt = matcher.start();
+            }
         }
-        return null;
+        return latest;
     }
 
     private String object(String... fields) {

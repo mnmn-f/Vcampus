@@ -12,8 +12,6 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 界面入口可先看 [UI 视觉证据画廊](docs/UI_PREVIEW_GALLERY.md)：其中包含登录页、九类职责主页和代表性业务页。画廊图片是离屏预览，用于核对布局与人员分流，不代替真实数据库验收。
 
-本轮合并、实际缺陷、回归测试和未覆盖边界见 [2026-09-12 全模块检查报告](docs/END_TO_END_REVIEW_2026-09-12.md)。
-
 ## 运行前提
 
 - JDK 17 或更高版本；源码和字节码统一按 Java 17 兼容级别构建。
@@ -24,7 +22,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务结构；V17 增加头像上传字段；V18 写入扩展演示数据；V19 将成绩核对权限归入教务管理；V20 保存管理员上传的商品图片。执行顺序固定为：
+V1 建立基线结构；V2 写入演示数据；V3 增加学期、课程学分和绩点统计范围；V4 扩展商店；V5 扩展宿舍；V6 增加教师排课偏好；V7-V9 增加维修员、维修复核和住宿申请调整；V10/V11 增加 AI 系统指南、校纪校规和操作知识；V12 增加知识版本审计和脱敏回答反馈；V13 续期演示欢迎券；V14 增加订单物流；V15 增加图书 PDF 与详情字段；V16 增加 AI 反馈处理状态和关联知识；V17 扩展头像上传字段。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -43,36 +41,28 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
     vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
     vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
-    vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
-    vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
-    vcampus-server/src/main/resources/db/migration/V20__store_product_images.sql
 
-以下重定向命令用于 CMD/bash，`<db-user>` 要替换成实际数据库账号。PowerShell 不支持这样的 `<` 输入重定向：可先在项目根目录运行 `mysql --default-character-set=utf8mb4 -u root -p`，进入 `mysql>` 后依次 `source` 上面的 SQL 路径；V1 完成后先执行 `USE vcampus;`，再继续后续迁移。已有数据库不要为了更新重复导入基线和演示数据，应仅补齐尚未执行的迁移。
+在已创建的 vcampus 数据库上，可以用 MySQL 客户端依次执行：
 
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V3__academic_insights.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V4__store_experience.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V5__dorm_extension.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V6__teacher_time_preferences.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V7__dorm_repair_worker.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V8__dorm_repair_review.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V9__dorm_request_bed_optional.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V10__ai_assistant_knowledge.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V11__ai_knowledge_and_tools.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V12__ai_quality_workbench.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V13__store_coupon_refresh.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V14__store_order_shipping.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p vcampus < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
-    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V20__store_product_images.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V15__library_pdf_and_book_details.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V16__ai_admin_workflow.sql
+    mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V17__identity_avatar_upload.sql
 
-商品详情、评价和图片上传入口见 [图片与评价说明](docs/IMAGES_AND_PRODUCT_REVIEWS.md)。已有 V19 数据库只需补 V20，并同步更新服务端和 Swing 客户端；不要重新导入演示数据。
-
-脚本包含幂等键和重复保护；V18 提供 20 个测试学生、6 个测试教师及多状态业务记录，正式环境不要执行 V2/V18。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券和库存由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
+脚本包含幂等键和重复保护；正式环境不要直接导入演示账号。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券、库存和代付扣款同样由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
 服务端从 JVM 属性或环境变量读取数据库连接：
 
@@ -109,7 +99,13 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
 
 ## AI 校园助手与小松鼠桌宠
 
-校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、校园知识检索、实时业务查询和需要二次确认的校园操作；聊天框上方不再显示横向滑动的快捷问题按钮。查询结果会结合问题中的对象和字段词做精细投影，例如“我的成绩”只返回成绩，“完整学籍信息”才展开学籍，“《书名》的作者”只突出作者；业务事实始终来自原业务服务，配置模型 API 后只允许模型在已授权的实时结果范围内整理和提取，API 不可用时由本地规则完成同样的字段收敛。问答模式收到写指令、代办模式收到查询指令、聊天模式收到 VCampus 查询或操作指令时，会提示切换到相应模式。
+校园助手提供问答、聊天、代办三种模式，支持多轮会话、流式纯文本回答、Enter 发送（Shift+Enter 换行）、校园知识检索、实时业务查询和需要二次确认的校园操作。问答模式只读；代办模式同时支持查询与经确认的操作；聊天模式遇到校园系统问题提示切换。成绩、作者等字段问题先投影真实业务结果，再交给可选模型整理；模型故障时返回本地摘要。课程代码与名称中的数字不再被当成数据库编号；同名对象必须明确选择。自习室、教室和取消记录使用真实候选下拉框，补参绑定原请求，最新补充值生效。未选课程通过课程列表与本人选课记录比较；未支付订单按实际状态筛选。课表支持排序表格和 CSV 导出。登录、注册及桌宠设置不受本次 AI 修复影响。
+
+管理员“路由测试”新增覆盖全部 47 个工具的批量诊断，逐项显示预期、实际路由、参数和缺参原因，并支持复制报告；诊断不执行写操作。项目根目录运行以下命令可一键回归并统计本次测试的失败和跳过数量：
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ai.ps1
+
+详细变更、验证范围和真实环境验收清单见 [AI_MODULE](docs/AI_MODULE.md#16-2026-09-14-修复与验收清单)。自动化成功不代表未启用的 MySQL 集成测试或外部模型 API 已通过。
 
 聊天区使用右侧用户气泡、左侧助手气泡和独立业务结果卡；缺少代办参数时显示可填写的参数卡，自习室、教室和请假时间使用日期时间选择器。“补充并继续代办”会连同原始写指令重新提交已标注参数，保持原工具意图，参数齐全后进入二次确认而不是降级为查询。聊天模式可上传最多 3 个图片或文档，附件处理期间显示进度圈并禁止发送，首次模型初始化失败会在尚未输出内容时自动重试。会话侧栏默认收起，生成期间禁止切换会话；失败重试复用同一逻辑 requestId 并原位替换失败气泡，不重复保存用户消息。侧栏支持搜索、重命名、归档、恢复已归档会话和纯文本导出。每条助手回复可单独点赞、点踩或纠错。默认模型服务为 DeepSeek Responses API，服务端可配置 `VCAMPUS_AI_API_KEY` 或 `DEEPSEEK_API_KEY`。
 
@@ -145,7 +141,6 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 | `demo_librarian` | `library123` | 图书管理员 |
 | `demo_store` | `store123` | 商店管理员 |
 | `demo_dorm` | `dorm123` | 宿管员 |
-| `demo_repair` | 由 V7 创建，口令按本地环境设置 | 维修员 |
 | `demo_ai` | `ai123` | AI 知识管理员 |
 | `demo_system` | `system123` | 系统管理员 |
 
@@ -172,7 +167,6 @@ AI 知识管理员拥有知识库管理、知识测试、批量回归、用户�
 - demo_librarian/library123
 - demo_store/store123
 - demo_dorm/dorm123
-- demo_repair（V7 创建，维修员工作台；口令不写入仓库）
 - demo_ai/ai123
 - demo_system/system123
 

@@ -57,6 +57,7 @@ final class AiMessageCard extends JPanel {
     void complete(Consumer<String> parameterSubmit, List<AiAnswerEvidence> evidence) {
         String value = getText().trim();
         if (value.startsWith("【实时数据｜")) makeBusiness(value);
+        else if (value.startsWith("【课表】")) makeSchedule(value);
         else if (value.startsWith("【待确认操作】")) makePending(value);
         else if (value.startsWith("【还需要一点信息】")) makeParameters(value, parameterSubmit);
         addEvidence(evidence); revalidate(); repaint();
@@ -103,7 +104,8 @@ final class AiMessageCard extends JPanel {
 
     private void makeParameters(String value, Consumer<String> submit) {
         heading.setText("待补充参数");
-        replaceBody(value.replace("【还需要一点信息】", "").trim());
+        replaceBody(value.replace("【还需要一点信息】", "")
+                .replaceAll("(?m)^(候选项：|代办工具：|待补充字段：).*(\\r?\\n|$)", "").trim());
         accent = DesignTokens.WARNING; bubble = DesignTokens.WARNING_BACKGROUND; restyle();
         List<FieldSpec> fields = fieldsFor(value);
         JPanel form = new JPanel(new GridBagLayout()); form.setOpaque(false);
@@ -113,12 +115,14 @@ final class AiMessageCard extends JPanel {
             GridBagConstraints label = new GridBagConstraints(); label.gridx = 0; label.gridy = index;
             label.anchor = GridBagConstraints.WEST; label.insets = new Insets(3, 0, 3, 8);
             form.add(UiFactory.body(spec.label), label);
-            FieldInput field = inputFor(spec); inputs.add(field);
+            FieldInput field = inputFor(spec, value); inputs.add(field);
             GridBagConstraints input = new GridBagConstraints(); input.gridx = 1; input.gridy = index;
             input.weightx = 1; input.fill = GridBagConstraints.HORIZONTAL; input.insets = new Insets(3, 0, 3, 0);
             form.add(field.component, input);
         }
         JButton proceed = new PrimaryButton("补充并继续代办");
+        proceed.setEnabled(submit != null);
+        if (submit == null) proceed.setToolTipText("历史参数卡不能继续执行，请重新提出操作请求。");
         proceed.addActionListener(e -> {
             StringBuilder values = new StringBuilder();
             for (int index = 0; index < inputs.size(); index++) {
@@ -127,9 +131,10 @@ final class AiMessageCard extends JPanel {
                     JOptionPane.showMessageDialog(this, "请填写“" + fields.get(index).label + "”。"); return;
                 }
                 if (values.length() > 0) values.append("；");
-                values.append(fields.get(index).label).append("：").append(entered);
+                values.append("id".equals(fields.get(index).key) ? "对象编号" : fields.get(index).label)
+                        .append("：").append(entered);
             }
-            submit.accept(values.toString());
+            submit.accept(values.toString()); proceed.setEnabled(false);
         });
         form.setAlignmentX(Component.LEFT_ALIGNMENT); proceed.setAlignmentX(Component.LEFT_ALIGNMENT);
         extras.add(Box.createVerticalStrut(6)); extras.add(form); extras.add(Box.createVerticalStrut(7));
@@ -174,8 +179,8 @@ final class AiMessageCard extends JPanel {
                 if (!clean.isEmpty()) addField(fields, clean, value);
             }
         }
-        // 自习室即使被模型自动猜中，也保留房间编号让用户明确选择。
-        if (value.contains("自习室")) {
+        if (fields.isEmpty() && (value.contains("代办工具：library.study-room.reserve")
+                || value.contains("自习室") && !value.contains("取消") && !value.contains("代办工具："))) {
             addFieldAtStart(fields, "roomId", value);
             addField(fields, "startAt", value); addField(fields, "endAt", value);
         }
@@ -216,6 +221,7 @@ final class AiMessageCard extends JPanel {
     }
 
     private String labelFor(String key, String context) {
+        if ("id".equals(key)) return context.contains("取消") ? "待取消记录" : "业务对象";
         if ("roomId".equals(key)) return context.contains("自习室") ? "自习室编号" : "房间编号";
         if ("startAt".equals(key)) return "开始时间";
         if ("endAt".equals(key)) return "结束时间";
@@ -237,13 +243,79 @@ final class AiMessageCard extends JPanel {
         return key;
     }
 
-    private FieldInput inputFor(FieldSpec spec) {
+    private FieldInput inputFor(FieldSpec spec, String context) {
+        final java.util.LinkedHashMap<String, String> choices = new java.util.LinkedHashMap<String, String>();
+        choices.put("请选择…", "");
+        for (String line : context.split("\\r?\\n")) {
+            String prefix = "候选项：" + spec.key + "\t";
+            if (!line.startsWith(prefix)) continue;
+            String[] parts = line.substring(prefix.length()).split("\\t", 2);
+            if (parts.length == 2) choices.put(parts[1], parts[0]);
+        }
+        if ("leaveType".equals(spec.key)) {
+            choices.put("事假", "PERSONAL"); choices.put("病假", "ILLNESS");
+            choices.put("离校", "OFF_CAMPUS"); choices.put("其他", "OTHER");
+        }
+        if (choices.size() > 1) {
+            final JComboBox<String> select = new JComboBox<String>(choices.keySet().toArray(new String[0]));
+            select.setPrototypeDisplayValue("请选择业务对象（名称 / 编号 / 状态）");
+            select.setMaximumRowCount(10);
+            return new FieldInput(select) { String value() { return choices.get(select.getSelectedItem()); }};
+        }
         if ("startAt".equals(spec.key) || "endAt".equals(spec.key)) {
             final AiDateTimeField dateTime = new AiDateTimeField("endAt".equals(spec.key));
             return new FieldInput(dateTime) { String value() { return dateTime.value(); }};
         }
         final JTextField textField = UiFactory.textField(24);
         return new FieldInput(textField) { String value() { return textField.getText(); }};
+    }
+
+    private void makeSchedule(String value) {
+        heading.setText("我的课表 · 可导出");
+        String[] lines = value.substring("【课表】".length()).trim().split("\\r?\\n");
+        if (lines.length < 2 || !lines[0].contains("\t")) return;
+        String[] columns = lines[0].split("\\t", -1);
+        String[][] rows = new String[lines.length - 1][columns.length];
+        for (int i = 1; i < lines.length; i++) {
+            String[] cells = lines[i].split("\\t", -1);
+            for (int j = 0; j < columns.length; j++) rows[i - 1][j] = j < cells.length ? cells[j] : "";
+        }
+        JTable table = new JTable(new javax.swing.table.DefaultTableModel(rows, columns) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        });
+        table.setRowHeight(30); table.setAutoCreateRowSorter(true);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        for (int i = 0; i < columns.length; i++) table.getColumnModel().getColumn(i).setPreferredWidth(i == 0 ? 160 : 125);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setColumnHeaderView(table.getTableHeader());
+        scroll.setPreferredSize(new Dimension(570, Math.min(320, 55 + rows.length * 30)));
+        body.setText("以下是当前账号的课表。横向滚动可查看完整字段，点击表头可排序。");
+        body.setRows(2); body.setColumns(42);
+        extras.add(scroll);
+        JButton export = new SecondaryButton("导出课表 CSV");
+        export.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser(); chooser.setSelectedFile(new java.io.File("我的课表.csv"));
+            if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+            if (chooser.getSelectedFile().exists() && JOptionPane.showConfirmDialog(this,
+                    "文件已存在，是否覆盖？", "导出课表", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+            StringBuilder csv = new StringBuilder("\uFEFF");
+            for (String line : lines) {
+                String[] cells = line.split("\\t", -1);
+                for (int i = 0; i < cells.length; i++) {
+                    if (i > 0) csv.append(',');
+                    String cell = cells[i];
+                    if (cell.matches("^[=+@-].*")) cell = "'" + cell;
+                    csv.append('"').append(cell.replace("\"", "\"\"")).append('"');
+                }
+                csv.append("\r\n");
+            }
+            try {
+                java.nio.file.Files.write(chooser.getSelectedFile().toPath(),
+                        csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                JOptionPane.showMessageDialog(this, "课表已导出。");
+            } catch (java.io.IOException ex) { JOptionPane.showMessageDialog(this, "导出失败：" + ex.getMessage()); }
+        });
+        extras.add(export);
     }
 
     private void replaceBody(String value) {

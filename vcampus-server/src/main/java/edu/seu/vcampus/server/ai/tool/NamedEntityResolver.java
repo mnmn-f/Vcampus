@@ -36,17 +36,72 @@ public final class NamedEntityResolver {
         }
         String name = string(invocation.getArgumentsJson(), "name");
         SearchSpec spec = spec(invocation.getToolName());
-        if (spec == null || name.isEmpty()
-                || hasNumber(invocation.getArgumentsJson(), spec.idKey)) return invocation;
-        Object result = bridge.execute(tools.get(spec.searchTool),
-                "{\"keyword\":\"" + escape(name) + "\"}", session);
-        List<Object> items = new ArrayList<Object>(); collectItems(result, items, 0);
+        if (spec == null) return invocation;
+        Long chosen = number(invocation.getArgumentsJson(), spec.idKey);
+        if (chosen != null) {
+            for (Object raw : ToolDataViews.readAll(tools.get(spec.searchTool), "{}", bridge, session)) {
+                Object item = selectable(raw, spec);
+                if (chosen.equals(entityId(item))) {
+                    String display = getterText(item, spec.primary);
+                    String detail = getterText(item, spec.secondary);
+                    return new AiToolInvocation(invocation.getToolName(), invocation.getArgumentsJson(),
+                            invocation.getSummary() + "（" + (display == null ? spec.label : display)
+                                    + (detail == null ? "" : " / " + detail) + "，编号 " + chosen + "）");
+                }
+            }
+            throw new AiServiceException(ResultCodes.INVALID_INPUT, "所选对象不存在或不在当前可操作记录中，请重新查询并选择。");
+        }
+        if (name.isEmpty()) return invocation;
+        List<Object> items = ToolDataViews.readAll(tools.get(spec.searchTool),
+                "{\"keyword\":\"" + escape(name) + "\"}", bridge, session);
         Match best = best(items, name, spec);
-        if (best == null) throw new AiServiceException(ResultCodes.NOT_FOUND,
-                "没有找到与“" + name + "”匹配的" + spec.label + "，请先查询列表后再试。");
+        // Ambiguity is a selection, never permission to pick the first fuzzy result.
+        if (best == null) return invocation;
         String json = withNumber(invocation.getArgumentsJson(), spec.idKey, best.id);
         return new AiToolInvocation(invocation.getToolName(), json,
                 invocation.getSummary() + "（编号 " + best.id + "，" + best.name + "）");
+    }
+
+    /** Candidate IDs come from the same permission-checked business commands as the UI. */
+    public String choices(AiToolInvocation invocation, SessionContext session) {
+        SearchSpec spec = spec(invocation.getToolName());
+        if (spec == null) return "";
+        List<Object> items = ToolDataViews.readAll(tools.get(spec.searchTool), "{}", bridge, session);
+        StringBuilder out = new StringBuilder();
+        int count = 0;
+        for (Object raw : items) {
+            Object item = selectable(raw, spec);
+            if (item == null) continue;
+            Long id = entityId(item);
+            if (id == null) continue;
+            String primary = getterText(item, spec.primary);
+            String secondary = getterText(item, spec.secondary);
+            String display = (primary == null ? spec.label : primary)
+                    + (secondary == null ? "" : " / " + secondary);
+            for (String getter : new String[] {"getStartAt", "getStatus", "getTotalAmount"}) {
+                String detail = getterText(item, getter);
+                if (detail != null) display += " · " + detail;
+            }
+            out.append("\n候选项：").append(spec.idKey).append('\t').append(id)
+                    .append('\t').append(display.replaceAll("[\\t\\r\\n]", " "))
+                    .append("（编号 ").append(id).append("）");
+            if (++count >= 100) break;
+        }
+        return out.toString();
+    }
+
+    private Object selectable(Object item, SearchSpec spec) {
+        if ("academic.enrollments.read".equals(spec.searchTool)) {
+            if (!"ENROLLED".equals(getterText(invoke(item, "getEnrollment"), "getStatus"))) return null;
+            return invoke(item, "getCourse");
+        }
+        String status = getterText(item, "getStatus");
+        if ("RETURNED".equals(status) || "CANCELLED".equals(status) || "CANCELED".equals(status)
+                || "REJECTED".equals(status) || "COMPLETED".equals(status)) return null;
+        if ("dorm.leave.mine".equals(spec.searchTool) && !"PENDING".equals(status)) return null;
+        if (("store.orders.mine".equals(spec.searchTool) || "dorm.utility.read".equals(spec.searchTool))
+                && ("PAID".equals(status) || "CLOSED".equals(status))) return null;
+        return item;
     }
 
     private AiToolInvocation uniqueOpenStudyRoom(AiToolInvocation invocation,
@@ -74,49 +129,63 @@ public final class NamedEntityResolver {
     }
 
     private SearchSpec spec(String tool) {
-        if ("academic.course.enroll".equals(tool) || "academic.course.drop".equals(tool))
+        if ("academic.course.drop".equals(tool))
+            return new SearchSpec("academic.enrollments.read", "已选课程", "getCourseName", "getCourseCode");
+        if ("academic.course.enroll".equals(tool))
             return new SearchSpec("academic.course.search", "课程", "getCourseName", "getCourseCode");
         if ("library.book.borrow".equals(tool))
             return new SearchSpec("library.book.search", "图书", "getTitle", "getIsbn");
         if ("library.book.return".equals(tool))
             return new SearchSpec("library.borrow.mine", "借阅记录", "getBookTitle", null);
-        if ("campus.competition.register".equals(tool) || "campus.competition.cancel".equals(tool))
+        if ("campus.competition.cancel".equals(tool))
+            return new SearchSpec("campus.competition.mine", "已报名竞赛", "getTitle", null);
+        if ("campus.competition.register".equals(tool))
             return new SearchSpec("campus.competition.search", "竞赛", "getTitle", null);
-        if ("store.cart.add".equals(tool) || "store.cart.update".equals(tool)
-                || "store.cart.remove".equals(tool))
+        if ("store.cart.update".equals(tool) || "store.cart.remove".equals(tool))
+            return new SearchSpec("store.cart.read", "购物车商品", "getProductName", "getSku");
+        if ("store.cart.add".equals(tool))
             return new SearchSpec("store.product.search", "商品", "getName", null);
         if ("library.study-room.reserve".equals(tool))
             return new SearchSpec("library.study-room.search", "自习室", "getBuildingName", "getRoomNo", "roomId");
         if ("campus.classroom.apply".equals(tool))
             return new SearchSpec("campus.classroom.search", "教室", "getBuildingName", "getRoomNo", "classroomId");
+        if ("campus.classroom.cancel".equals(tool))
+            return new SearchSpec("campus.classroom.mine", "教室申请", "getBuildingName", "getRoomNo");
+        if ("library.study-room.cancel".equals(tool))
+            return new SearchSpec("library.study-room.mine", "自习室预约", "getBuildingName", "getRoomNo");
+        if ("dorm.leave.cancel".equals(tool))
+            return new SearchSpec("dorm.leave.mine", "请假记录", "getReason", "getLeaveType");
+        if ("store.order.pay".equals(tool))
+            return new SearchSpec("store.orders.mine", "订单", "getOrderNo", "getStatus", "orderId");
+        if ("dorm.utility.pay".equals(tool))
+            return new SearchSpec("dorm.utility.read", "水电分摊", "getPeriod", "getStatus", "allocationId");
         return null;
     }
 
     private Match best(List<Object> items, String query, SearchSpec spec) {
-        Match best = null; String q = normalize(query);
-        for (Object item : items) {
+        Match best = null; boolean tied = false; String q = normalize(query);
+        for (Object raw : items) {
+            Object item = selectable(raw, spec);
+            if (item == null) continue;
             if ("library.borrow.mine".equals(spec.searchTool)
                     && "RETURNED".equalsIgnoreCase(getterText(item, "getStatus"))) continue;
-            Long id = getterNumber(item, "getId");
+            Long id = entityId(item);
             String primary = getterText(item, spec.primary);
             String secondary = getterText(item, spec.secondary);
             if (id == null || primary == null) continue;
             int score = score(q, normalize(primary));
             if (secondary != null) score = Math.max(score, score(q, normalize(secondary)));
             if (score > 0 && (best == null || score > best.score)) {
-                best = new Match(id.longValue(), primary, score);
-            }
+                best = new Match(id.longValue(), primary, score); tied = false;
+            } else if (best != null && score == best.score) tied = true;
         }
-        return best;
+        return tied ? null : best;
     }
 
     private int score(String query, String candidate) {
         if (query.equals(candidate)) return 100;
-        if (candidate.contains(query)) return 80 - Math.min(30, candidate.length() - query.length());
-        if (query.contains(candidate)) return 60;
-        int common = 0;
-        for (int i = 0; i < query.length(); i++) if (candidate.indexOf(query.charAt(i)) >= 0) common++;
-        return query.length() >= 2 && common * 2 >= query.length() ? common : 0;
+        // A substring is suitable for suggestions, not automatic mutation.
+        return 0;
     }
 
     private void collectItems(Object value, List<Object> out, int depth) {
@@ -134,6 +203,12 @@ public final class NamedEntityResolver {
     private Long getterNumber(Object value, String getter) {
         Object result = invoke(value, getter);
         return result instanceof Number ? Long.valueOf(((Number) result).longValue()) : null;
+    }
+    private Long entityId(Object value) {
+        for (String getter : new String[]{"getId", "getProductId", "getCompetitionId", "getAllocationId"}) {
+            Long id = getterNumber(value, getter); if (id != null) return id;
+        }
+        return null;
     }
 
     private String getterText(Object value, String getter) {

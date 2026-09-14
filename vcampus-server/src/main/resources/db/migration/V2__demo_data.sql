@@ -378,7 +378,6 @@ ON DUPLICATE KEY UPDATE
     `total_amount` = new.total_amount,
     `status` = new.status,
     `paid_at` = new.paid_at;
-
 SET @order_id = (SELECT `id` FROM `store_orders` WHERE `order_no` = 'DEMO-ORDER-0001');
 
 INSERT INTO `store_order_items` (`order_id`, `product_id`, `product_name_snapshot`, `unit_price_snapshot`, `quantity`, `line_amount`)
