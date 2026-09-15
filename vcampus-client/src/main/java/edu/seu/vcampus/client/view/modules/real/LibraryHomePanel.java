@@ -8,6 +8,8 @@ import edu.seu.vcampus.common.dto.campus.*;
 import edu.seu.vcampus.common.dto.library.*;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -26,6 +28,7 @@ final class LibraryHomePanel extends JPanel {
         this.searchBooks = searchBooks; this.openBorrowings = openBorrowings; this.openRooms = openRooms;
         LibraryUi.Surface welcome = new LibraryUi.Surface(DesignTokens.PRIMARY_LIGHT, 24);
         welcome.add(LibraryUi.label(greeting() + "，" + session.getDisplayName(), 25, true));
+        welcome.add(LibraryUi.muted("今天，也读一点喜欢的书。"));
         JTextField search = LibraryUi.search("搜索书名、作者或 ISBN");
         JButton submit = LibraryUi.button("搜索图书", true, () -> this.searchBooks.accept(search.getText().trim()));
         search.addActionListener(e -> submit.doClick()); welcome.add(LibraryUi.between(search, submit)); add(welcome);
@@ -36,7 +39,6 @@ final class LibraryHomePanel extends JPanel {
         JPanel right = LibraryUi.stack(14); JPanel announcementCard = LibraryUi.card(); announcementCard.add(LibraryUi.label("图书馆公告", 18, true)); announcementCard.add(notices); right.add(announcementCard);
         JPanel appointmentCard = LibraryUi.card(); appointmentCard.add(LibraryUi.between(LibraryUi.label("我的预约", 18, true), LibraryUi.link("查看详情 →", openRooms))); appointmentCard.add(appointment); right.add(appointmentCard);
         add(LibraryUi.columns(booksCard, right)); refresh();
-        edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::refresh);
     }
     void refresh() {
         final long request = ++refreshSerial; LibraryUi.replace(recommended, LibraryUi.state("正在加载馆藏…", null));
@@ -73,9 +75,34 @@ final class LibraryHomePanel extends JPanel {
         appointment.revalidate(); appointment.repaint();
     }
     private JPanel notice(CampusAnnouncementDto value) {
-        JPanel row = LibraryUi.stack(5); row.add(LibraryUi.label(value.getTitle(), 13, true));
-        String date = value.getPublishAt() == null ? "" : value.getPublishAt().toLocalDate().toString(); row.add(LibraryUi.muted(date));
-        row.setToolTipText(value.getContent()); row.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, DesignTokens.BORDER_LIGHT), BorderFactory.createEmptyBorder(0, 0, 9, 0))); return row;
+        JPanel row = LibraryUi.stack(5);
+        row.add(LibraryUi.label(value.getTitle(), 13, true));
+        String date = value.getPublishAt() == null ? "" : value.getPublishAt().toLocalDate().toString();
+        row.add(LibraryUi.muted(date));
+        row.setToolTipText("点击查看公告详情");
+        row.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, DesignTokens.BORDER_LIGHT),
+                BorderFactory.createEmptyBorder(0, 0, 9, 0)));
+        MouseAdapter openDetails = new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent event) {
+                if (SwingUtilities.isLeftMouseButton(event)) openAnnouncement(value);
+            }
+        };
+        installAnnouncementClick(row, openDetails);
+        return row;
+    }
+    private void openAnnouncement(CampusAnnouncementDto value) {
+        CampusAnnouncementDetailPanel detailPanel = new CampusAnnouncementDetailPanel(value);
+        LibraryPopup.show(this, "公告详情", "公告详情", "查看公告的完整内容与有效时间",
+                detailPanel, new Dimension(760, 590));
+    }
+    private static void installAnnouncementClick(Component component, MouseAdapter listener) {
+        component.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        component.addMouseListener(listener);
+        if (!(component instanceof Container)) return;
+        for (Component child : ((Container) component).getComponents()) {
+            installAnnouncementClick(child, listener);
+        }
     }
     private static JLabel metric(String text) { JLabel l = LibraryUi.label(text, 26, true); l.setForeground(LibraryUi.GREEN); return l; }
     private JPanel metricCard(String title, JLabel value, Runnable action) {

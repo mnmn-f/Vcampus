@@ -18,18 +18,16 @@ import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import org.threeten.bp.LocalDateTime;
-import org.threeten.bp.format.DateTimeFormatter;
 import java.util.Locale;
 
 /** 公告的行内编辑器，创建、发布和撤回均通过当前页面完成。 */
 public final class CampusAnnouncementEditorPanel extends SectionCard {
     public interface Listener { void onSave(CampusAnnouncementSaveRequest request); }
-    private static final DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final JTextField title = field();
     private final JComboBox<ScopeOption> scope = new JComboBox<ScopeOption>(ScopeOption.values());
     private final JComboBox<RoleOption> targetRole = new JComboBox<RoleOption>(roleOptions());
-    private final JTextField publishAt = field();
-    private final JTextField expireAt = field();
+    private final DateTimeDropdown publishAt = new DateTimeDropdown();
+    private final DateTimeDropdown expireAt = new DateTimeDropdown();
     private final JTextArea content = UiFactory.textArea(4, 28);
     private final JComboBox<RealUi.CodeOption> status = new JComboBox<RealUi.CodeOption>(
             RealUi.options("DRAFT", "PUBLISHED", "SCHEDULED"));
@@ -68,7 +66,7 @@ public final class CampusAnnouncementEditorPanel extends SectionCard {
     public void startNew() {
         id = 0L; title.setText(""); scope.setSelectedItem(ScopeOption.ALL);
         targetRole.setSelectedItem(RoleOption.none());
-        publishAt.setText(""); expireAt.setText(""); content.setText("");
+        publishAt.setDateTime(null); expireAt.setDateTime(null); content.setText("");
         status.setSelectedItem(RealUi.option("DRAFT")); error.setText(" ");
     }
 
@@ -77,15 +75,15 @@ public final class CampusAnnouncementEditorPanel extends SectionCard {
         id = value.getId(); title.setText(RealUi.input(value.getTitle()));
         scope.setSelectedItem(ScopeOption.fromCode(value.getVisibleScope()));
         targetRole.setSelectedItem(RoleOption.fromCode(value.getTargetRoleCode())); updateTargetRoleEnabled();
-        publishAt.setText(value.getPublishAt() == null ? "" : FORMAT.format(value.getPublishAt()));
-        expireAt.setText(value.getExpireAt() == null ? "" : FORMAT.format(value.getExpireAt()));
+        publishAt.setDateTime(value.getPublishAt());
+        expireAt.setDateTime(value.getExpireAt());
         content.setText(RealUi.input(value.getContent())); status.setSelectedItem(RealUi.option(value.getStatus())); error.setText(" ");
     }
 
     private void save() {
         try {
-            LocalDateTime from = parse(publishAt.getText(), "生效时间");
-            LocalDateTime to = parse(expireAt.getText(), "失效时间");
+            LocalDateTime from = publishAt.getDateTime();
+            LocalDateTime to = expireAt.getDateTime();
             if (from != null && to != null && !to.isAfter(from)) throw new IllegalArgumentException("失效时间必须晚于生效时间");
             ScopeOption selectedScope = (ScopeOption) scope.getSelectedItem();
             RoleOption selectedRole = (RoleOption) targetRole.getSelectedItem();
@@ -98,12 +96,6 @@ public final class CampusAnnouncementEditorPanel extends SectionCard {
                     RealUi.code(status.getSelectedItem()), from, to);
             if (listener != null) listener.onSave(request); error.setText(" ");
         } catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }
-    }
-
-    private static LocalDateTime parse(String value, String label) {
-        String text = RealUi.optional(value); if (text == null) return null;
-        try { return LocalDateTime.parse(text, FORMAT); }
-        catch (RuntimeException ex) { throw new IllegalArgumentException(label + "格式应为 yyyy-MM-dd HH:mm"); }
     }
 
     private static JTextField field() { return UiFactory.textField(12); }

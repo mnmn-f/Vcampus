@@ -42,7 +42,7 @@ public final class RealLibraryPage extends BasePage {
                     new LibraryRoomsPanel(this, library, role));
             tabs.addTask("线上资源管理", LineIcon.Kind.SYSTEM,
                     new LibraryOnlinePanel(this, library, session));
-        } else if (role == Role.STUDENT) {
+        } else if (role == Role.STUDENT || role == Role.TEACHER) {
             final LibraryCatalogPanel catalog = new LibraryCatalogPanel(this, library, role);
             final LibraryRoomBookingPanel rooms = new LibraryRoomBookingPanel(this, library);
             final StudentLibraryOnlinePanel online = new StudentLibraryOnlinePanel(this, library, session);

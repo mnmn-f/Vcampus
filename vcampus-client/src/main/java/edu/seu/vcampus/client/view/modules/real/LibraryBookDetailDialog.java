@@ -36,19 +36,28 @@ public final class LibraryBookDetailDialog extends JDialog {
 
     public LibraryBookDetailDialog(Component owner, LibraryClientService service, long bookId,
                                    Role role, Runnable changed) {
-        super(SwingUtilities.getWindowAncestor(owner), "书籍详情", ModalityType.APPLICATION_MODAL);
+        super(SwingUtilities.getWindowAncestor(owner), "图书详情", ModalityType.APPLICATION_MODAL);
         this.service = service; this.bookId = bookId; this.role = role; this.changed = changed;
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE); content.setBackground(java.awt.Color.WHITE);
-        content.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        JPanel shell = new JPanel(new BorderLayout(8, 8));
-        shell.add(new JScrollPane(new edu.seu.vcampus.client.ui.WidthTrackingPanel(content)), BorderLayout.CENTER);
-        JPanel actions = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8));
-        if (role == Role.STUDENT) actions.add(borrow);
+        content.setOpaque(false);
+        JScrollPane scroll = new JScrollPane(
+                new edu.seu.vcampus.client.ui.WidthTrackingPanel(content));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(java.awt.Color.WHITE);
+        JPanel buttons = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8));
+        buttons.setOpaque(false);
+        if (canBorrow()) buttons.add(borrow);
         JButton back = new SecondaryButton("返回列表"); back.addActionListener(event -> dispose());
-        actions.add(back); actions.add(feedback); shell.add(actions, BorderLayout.SOUTH);
+        buttons.add(back);
+        JPanel footer = new JPanel(new BorderLayout(12, 0));
+        footer.setOpaque(false);
+        footer.add(feedback, BorderLayout.CENTER);
+        footer.add(buttons, BorderLayout.EAST);
         borrow.setEnabled(false); borrow.addActionListener(event -> borrow());
-        records.setEditable(false); setContentPane(shell); setMinimumSize(new Dimension(440, 460));
-        setSize(860, 640); setLocationRelativeTo(owner); load();
+        records.setEditable(false);
+        setContentPane(LibraryPopup.shell("图书详情", "馆藏信息、内容简介与个人借阅状态",
+                scroll, footer));
+        LibraryPopup.prepare(this, owner, new Dimension(900, 680));
+        load();
     }
     private void load() {
         AsyncTask.run(() -> service.bookDetail(bookId), new AsyncTask.Callback<BookDetail>() {
@@ -60,20 +69,20 @@ public final class LibraryBookDetailDialog extends JDialog {
         content.removeAll();
         LibraryBookDetailsPanel details = new LibraryBookDetailsPanel(); details.showBook(book);
         content.add(details, BorderLayout.CENTER);
-        if (role == Role.STUDENT) content.add(UiFactory.labelledField("我与这本书的借阅记录", records), BorderLayout.SOUTH);
-        borrow.setEnabled(role == Role.STUDENT && "ON_SHELF".equals(book.getStatus()) && book.getAvailableCopies() > 0);
+        if (canBorrow()) content.add(UiFactory.labelledField("我与这本书的借阅记录", records), BorderLayout.SOUTH);
+        borrow.setEnabled(canBorrow() && "ON_SHELF".equals(book.getStatus()) && book.getAvailableCopies() > 0);
         feedback.setText(" "); content.revalidate(); content.repaint();
     }
     private void loadRecords() {
-        if (role != Role.STUDENT) return;
+        if (!canBorrow()) return;
         AsyncTask.run(() -> {
             StringBuilder text = new StringBuilder(); boolean active = false;
             for (int page = 1; ; page++) {
                 PageResult<BorrowRecordView> result = service.myBorrowings(new BorrowSearchRequest(null, page, 100));
                 for (BorrowRecordView row : result.getItems()) if (row.getBookId() == bookId) {
-                    text.append(RealUi.status(row.getStatus())).append("　借出：").append(RealUi.dateTime(row.getIssuedAt()))
+                    text.append(LibraryCatalogPanel.borrowingStatus(row)).append("　借出：").append(RealUi.dateTime(row.getIssuedAt()))
                             .append("　应还：").append(RealUi.dateTime(row.getDueAt())).append('\n');
-                    active |= "BORROWED".equals(row.getStatus()) || "OVERDUE".equals(row.getStatus());
+                    active |= LibraryCatalogPanel.outstanding(row);
                 }
                 if ((long) page * result.getPageSize() >= result.getTotal()) break;
             }
@@ -92,4 +101,5 @@ public final class LibraryBookDetailDialog extends JDialog {
             @Override public void onFailure(Throwable error) { feedback.setText(AsyncTask.message(error)); borrow.setEnabled(true); }
         });
     }
+    private boolean canBorrow() { return role == Role.STUDENT || role == Role.TEACHER; }
 }

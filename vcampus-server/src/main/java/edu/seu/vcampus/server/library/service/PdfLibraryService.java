@@ -91,7 +91,8 @@ public final class PdfLibraryService extends LibraryServiceSupport {
     }
     private static void uploader(SessionContext session) {
         require(session, Permission.LIBRARY_READ);
-        if (session.getActiveRole() != Role.STUDENT && !session.allows(Permission.LIBRARY_MANAGE))
+        if (session.getActiveRole() != Role.STUDENT && session.getActiveRole() != Role.TEACHER
+                && !session.allows(Permission.LIBRARY_MANAGE))
             throw new LibraryServiceException(ResultCodes.FORBIDDEN, "当前职责不能上传资源");
     }
     private <T> T io(IoWork<T> work) {

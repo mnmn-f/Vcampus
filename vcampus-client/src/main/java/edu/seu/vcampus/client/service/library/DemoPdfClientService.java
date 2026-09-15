@@ -55,7 +55,8 @@ public final class DemoPdfClientService implements PdfClientService {
         }
     }
     @Override public String beginUpload(PdfUploadRequest request) throws Exception {
-        if (session.getActiveRole() != Role.STUDENT && !admin()) throw denied();
+        if (session.getActiveRole() != Role.STUDENT
+                && session.getActiveRole() != Role.TEACHER && !admin()) throw denied();
         return store.files.begin(user(), request);
     }
     @Override public long uploadChunk(PdfUploadChunk chunk) throws Exception { return store.files.append(user(), chunk); }
