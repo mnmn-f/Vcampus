@@ -22,7 +22,7 @@ import java.util.Set;
 
 /** 将已授权的业务 DTO 转成适合聊天框阅读的有界纯文本摘要。 */
 public final class ToolResultFormatter {
-    private static final int MAX_LENGTH = 5000;
+    private static final int MAX_LENGTH = 24000;
     private static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -38,7 +38,7 @@ public final class ToolResultFormatter {
         Focus focus = Focus.from(question);
         StringBuilder out = new StringBuilder();
         Object items = getter(value, "getItems");
-        if (items instanceof Iterable<?>) {
+        if (items instanceof Iterable<?> && getter(value, "getPageSize") != null) {
             Object total = first(value, "getTotal", "getTotalElements");
             if (total != null) out.append("共 ").append(total).append(" 条结果\n\n");
             appendList(out, (Iterable<?>) items, 0, focus);
@@ -66,7 +66,7 @@ public final class ToolResultFormatter {
             }
             return;
         }
-        if (depth >= 3) { out.append(String.valueOf(value)); return; }
+        if (depth >= 8) { out.append("详情层级较深，请查看对应业务页面"); return; }
         appendObject(out, value, depth, focus);
     }
 
@@ -95,15 +95,17 @@ public final class ToolResultFormatter {
                 out.append(field).append("：");
                 if ("状态".equals(field)) out.append(status(child));
                 else append(out, child, depth + 1, focus);
-                if (fields >= 12 || out.length() > MAX_LENGTH) break;
+                if (fields >= 30 || out.length() > MAX_LENGTH) break;
             } catch (Exception ignored) { }
         }
-        if (fields == 0) out.append(String.valueOf(value));
+        if (fields == 0) out.append("未提供所查询的字段");
     }
 
     private void appendMap(StringBuilder out, Map<?, ?> values, int depth, Focus focus) {
         int fields = 0;
         for (Map.Entry<?, ?> entry : values.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            if (sensitive(key)) continue;
             if (fields++ > 0) out.append('\n');
             indent(out, depth);
             out.append(String.valueOf(entry.getKey())).append("：");
@@ -116,13 +118,13 @@ public final class ToolResultFormatter {
     private void appendList(StringBuilder out, Iterable<?> values, int depth, Focus focus) {
         Iterator<?> it = values.iterator();
         int index = 1;
-        while (it.hasNext() && index <= 10) {
+        while (it.hasNext() && index <= 100 && out.length() < MAX_LENGTH) {
             if (index > 1) out.append("\n\n");
             out.append("第 ").append(index++).append(" 条\n");
             append(out, it.next(), depth + 1, focus);
         }
         if (index == 1) out.append("暂无数据");
-        else if (it.hasNext()) out.append("\n\n仅展示前 10 条");
+        else if (it.hasNext()) out.append("\n\n结果较多，以上为部分记录，请按名称或条件缩小查询范围。");
     }
 
     private String scalar(Object value) {
@@ -191,8 +193,7 @@ public final class ToolResultFormatter {
     }
 
     private boolean alias(String name) {
-        return "getCourses".equals(name) || "getCourseId".equals(name)
-                || "getCompetitionId".equals(name) || "getStartTime".equals(name)
+        return "getStartTime".equals(name)
                 || "getEndTime".equals(name) || "getRegistrationCount".equals(name)
                 || "getTotalElements".equals(name) || "getPageNumber".equals(name)
                 || "getTotalPages".equals(name) || "getUserId".equals(name)
@@ -249,6 +250,19 @@ public final class ToolResultFormatter {
         labels.put("buildingName", "教学楼"); labels.put("roomNo", "房间");
         labels.put("roomId", "自习室编号"); labels.put("roomName", "自习室");
         labels.put("openTime", "开放时间"); labels.put("closeTime", "关闭时间");
+        labels.put("courseId", "课程数据库编号"); labels.put("course", "课程信息");
+        labels.put("courses", "课程列表"); labels.put("enrollment", "选课记录");
+        labels.put("schedules", "上课时段"); labels.put("instructors", "授课教师");
+        labels.put("startPeriod", "开始节次"); labels.put("endPeriod", "结束节次");
+        labels.put("startDate", "开始日期"); labels.put("endDate", "结束日期");
+        labels.put("total", "合计"); labels.put("bookId", "图书编号");
+        labels.put("productId", "商品编号"); labels.put("orderId", "订单编号");
+        labels.put("lineAmount", "小计"); labels.put("discountAmount", "优惠金额");
+        labels.put("originalAmount", "原价"); labels.put("borrowerName", "借阅人");
+        labels.put("borrowerId", "借阅人编号"); labels.put("borrowerUserId", "借阅人编号");
+        labels.put("buyerId", "购买人编号"); labels.put("buyerUserId", "购买人编号");
+        labels.put("content", "正文"); labels.put("purpose", "用途");
+        labels.put("reason", "原因"); labels.put("reviewRemark", "审核意见");
         return labels;
     }
 
@@ -273,6 +287,8 @@ public final class ToolResultFormatter {
             add(fields, q, new String[] {"绩点", "gpa"}, "getGradePoint", "getAverageGpa",
                     "getWeightedGpa");
             add(fields, q, new String[] {"作者", "谁写", "谁著"}, "getAuthor");
+            add(fields, q, new String[] {"编号", "代码"}, "getId", "getCourseCode", "getCourseId", "getBookId");
+            add(fields, q, new String[] {"内容", "正文"}, "getContent", "getDescription");
             add(fields, q, new String[] {"出版社"}, "getPublisher");
             add(fields, q, new String[] {"isbn", "书号"}, "getIsbn");
             add(fields, q, new String[] {"出版年份", "哪年出版"}, "getPublicationYear");
@@ -289,7 +305,7 @@ public final class ToolResultFormatter {
             add(fields, q, new String[] {"毕业年份", "哪年毕业"}, "getExpectedGraduationYear");
             add(fields, q, new String[] {"培养层次", "学历"}, "getDegreeLevel");
             add(fields, q, new String[] {"教师", "老师"}, "getTeacherName");
-            add(fields, q, new String[] {"教室"}, "getClassroom", "getBuildingName", "getRoomNo");
+            add(fields, q, new String[] {"上课教室", "哪个教室", "教室在哪"}, "getClassroom", "getBuildingName", "getRoomNo");
             add(fields, q, new String[] {"学分"}, "getCredits");
             add(fields, q, new String[] {"价格", "多少钱", "金额"}, "getUnitPrice",
                     "getAmount", "getTotalAmount");
@@ -320,7 +336,10 @@ public final class ToolResultFormatter {
 
         private static boolean structural(String getter) {
             return "getItems".equals(getter) || "getGrades".equals(getter)
-                    || "getMetrics".equals(getter) || "getEntries".equals(getter);
+                    || "getMetrics".equals(getter) || "getEntries".equals(getter)
+                    || "getCourses".equals(getter) || "getCourse".equals(getter)
+                    || "getEnrollment".equals(getter) || "getSchedules".equals(getter)
+                    || "getInstructors".equals(getter);
         }
 
         private static boolean identity(String getter) {

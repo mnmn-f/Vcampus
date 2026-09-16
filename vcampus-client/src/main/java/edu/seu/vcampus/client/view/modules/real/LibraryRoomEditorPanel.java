@@ -18,7 +18,7 @@ import org.threeten.bp.LocalTime;
 public final class LibraryRoomEditorPanel extends SectionCard implements RealUi.EditorActions {
     public interface Listener { void onSave(StudyRoomUpsertRequest request); }
     private final JTextField building = field(); private final JTextField room = field(); private final JTextField capacity = field();
-    private final JTextField open = field(); private final JTextField close = field(); private final JTextArea description = UiFactory.textArea(3, 28);
+    private final TimeDropdown open = new TimeDropdown(); private final TimeDropdown close = new TimeDropdown(); private final JTextArea description = UiFactory.textArea(3, 28);
     private final JComboBox<String> status = new JComboBox<String>(new String[]{"OPEN", "MAINTENANCE", "CLOSED"});
     private final JLabel error = UiFactory.muted(" "); private final Listener listener; private long id;
 
@@ -30,11 +30,11 @@ public final class LibraryRoomEditorPanel extends SectionCard implements RealUi.
         JPanel actions = RealUi.editorActions("保存自习室", this, error); JPanel content = RealUi.editorContent(fields, description, actions); setContent(content); startNew();
     }
 
-    public void startNew() { id = 0; building.setText(""); room.setText(""); capacity.setText(""); open.setText("08:00"); close.setText("22:00"); description.setText(""); status.setSelectedItem("OPEN"); error.setText(" "); }
-    public void showRoom(StudyRoomView value) { if (value == null) { startNew(); return; } id = value.getId(); building.setText(RealUi.input(value.getBuildingName())); room.setText(RealUi.input(value.getRoomNo())); capacity.setText(String.valueOf(value.getCapacity())); open.setText(RealUi.time(value.getOpenTime())); close.setText(RealUi.time(value.getCloseTime())); status.setSelectedItem(value.getStatus()); description.setText(value.getDescription() == null ? "" : value.getDescription()); error.setText(" "); }
+    public void startNew() { id = 0; building.setText(""); room.setText(""); capacity.setText(""); open.setTime(LocalTime.of(8, 0)); close.setTime(LocalTime.of(22, 0)); description.setText(""); status.setSelectedItem("OPEN"); error.setText(" "); }
+    public void showRoom(StudyRoomView value) { if (value == null) { startNew(); return; } id = value.getId(); building.setText(RealUi.input(value.getBuildingName())); room.setText(RealUi.input(value.getRoomNo())); capacity.setText(String.valueOf(value.getCapacity())); open.setTime(value.getOpenTime()); close.setTime(value.getCloseTime()); status.setSelectedItem(value.getStatus()); description.setText(value.getDescription() == null ? "" : value.getDescription()); error.setText(" "); }
 
     @Override public void save() {
-        try { int seats = Integer.parseInt(RealUi.required(capacity.getText(), "容量")); LocalTime from = LocalTime.parse(RealUi.required(open.getText(), "开放时间")); LocalTime to = LocalTime.parse(RealUi.required(close.getText(), "关闭时间")); if (seats <= 0 || !to.isAfter(from)) throw new IllegalArgumentException("容量或开放时段不正确");
+        try { int seats = Integer.parseInt(RealUi.required(capacity.getText(), "容量")); LocalTime from = open.getTime(); LocalTime to = close.getTime(); if (seats <= 0 || !to.isAfter(from)) throw new IllegalArgumentException("容量或开放时段不正确");
             if (listener != null) listener.onSave(new StudyRoomUpsertRequest(id, RealUi.required(building.getText(), "楼栋"), RealUi.required(room.getText(), "房间号"), seats, from, to, String.valueOf(status.getSelectedItem()), RealUi.optional(description.getText()))); error.setText(" ");
         } catch (Exception ex) { error.setText(ex.getMessage() == null ? "参数不正确" : ex.getMessage()); }
     }

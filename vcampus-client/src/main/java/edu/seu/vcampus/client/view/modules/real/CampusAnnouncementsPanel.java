@@ -15,9 +15,7 @@ import edu.seu.vcampus.common.security.Role;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 
@@ -51,7 +49,8 @@ public final class CampusAnnouncementsPanel extends JPanel {
 
     private AsyncPagedTable<CampusAnnouncementDto> createTable() {
         AsyncPagedTable<CampusAnnouncementDto> value = new AsyncPagedTable<CampusAnnouncementDto>(
-                displayTitle, canManage() ? "公告管理" : "查看已生效公告。", "搜索标题或正文",
+                displayTitle, canManage() ? "公告管理"
+                        : isStudent() ? "查看已生效公告；单击公告可查看完整详情。" : "查看已生效公告。", "搜索标题或正文",
                 canManage() ? new String[]{"全部状态", "已发布", "草稿", "定时发布"} : null,
                 columns(),
                 new AsyncPagedTable.Loader<CampusAnnouncementDto>() {
@@ -71,7 +70,11 @@ public final class CampusAnnouncementsPanel extends JPanel {
         }); value.addAction(open);
         value.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                if (e.getClickCount() == 2) openSelected();
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
+                int clickedRow = value.getTable().rowAtPoint(e.getPoint());
+                if (clickedRow < 0) return;
+                value.getTable().setRowSelectionInterval(clickedRow, clickedRow);
+                if (opensOnRowClick(role, e.getClickCount())) openSelected();
             }
         });
         if (canManage()) {
@@ -94,11 +97,9 @@ public final class CampusAnnouncementsPanel extends JPanel {
     private void openSelected() {
         CampusAnnouncementDto value = table.selectedItem();
         if (value == null) { page.showWarning("请先选择公告。"); return; }
-        JTextArea content = UiFactory.textArea(14, 56); content.setEditable(false);
-        content.setText(RealUi.text(value.getContent())); content.setCaretPosition(0);
-        JScrollPane scroll = new JScrollPane(content); scroll.setPreferredSize(new Dimension(640, 360));
-        JOptionPane.showMessageDialog(this, scroll, RealUi.text(value.getTitle()),
-                JOptionPane.PLAIN_MESSAGE);
+        CampusAnnouncementDetailPanel detailPanel = new CampusAnnouncementDetailPanel(value);
+        LibraryPopup.show(this, "公告详情", "公告详情", "查看公告的完整内容与有效时间",
+                detailPanel, new Dimension(760, 590));
     }
 
     private void save(CampusAnnouncementSaveRequest request) {
@@ -136,5 +137,9 @@ public final class CampusAnnouncementsPanel extends JPanel {
                     RealUi.dateTime(value.getPublishAt()), RealUi.status(value.getStatus())}
             : new Object[]{value.getTitle(), summary(value.getContent()), RealUi.dateTime(value.getPublishAt())}; }
     private static String summary(String value) { if (value == null) return "--"; String text = value.replace('\n', ' ').trim(); return text.length() > 80 ? text.substring(0, 80) + "…" : text; }
+    static boolean opensOnRowClick(Role role, int clickCount) {
+        return role == Role.STUDENT ? clickCount == 1 : clickCount == 2;
+    }
+    private boolean isStudent() { return role == Role.STUDENT; }
     private boolean canManage() { return manageRole != null && manageRole == role; }
 }

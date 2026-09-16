@@ -113,7 +113,7 @@ public final class AiChatPanel extends SectionCard {
         rename.addActionListener(actions); export.addActionListener(actions);
         archived.addActionListener(actions);
         modes.setSelectedItem(AiMode.QA);
-        modes.setToolTipText("问答读取校园实时数据；聊天自由交流；代办可执行需确认的校园操作");
+        modes.setToolTipText("问答只读查询；聊天自由交流；代办支持查询及经确认的校园操作");
         JButton toggleSidebar = new SecondaryButton("展开会话侧栏");
         toggleSidebar.addActionListener(e -> toggleSidebar(toggleSidebar));
         tools.add(toggleSidebar); tools.add(UiFactory.body("模式")); tools.add(modes);
@@ -602,7 +602,7 @@ public final class AiChatPanel extends SectionCard {
                 : "系统".equals(role) ? AiMessageCard.Kind.SYSTEM : AiMessageCard.Kind.ASSISTANT;
         AiMessageCard card = addCard(kind, text);
         appendTranscriptPrefix(role); transcriptText.append(text == null ? "" : text);
-        card.complete(this::submitParameters, java.util.Collections.<AiAnswerEvidence>emptyList());
+        card.complete(null, java.util.Collections.<AiAnswerEvidence>emptyList());
         if (kind == AiMessageCard.Kind.ASSISTANT && targetRequestId != null
                 && !targetRequestId.trim().isEmpty() && text != null
                 && !text.startsWith("【待确认操作】")) {
@@ -640,7 +640,8 @@ public final class AiChatPanel extends SectionCard {
             if (last >= 0) messageList.remove(last);
             messageList.revalidate(); messageList.repaint();
         } else {
-            currentAssistant.complete(this::submitParameters, currentEvidence);
+            final String originalRequest = lastSentText;
+            currentAssistant.complete(values -> submitParameters(originalRequest, values), currentEvidence);
             if (completedRequestId != null
                     && !currentAssistant.getText().startsWith("【待确认操作】")) {
                 installFeedback(currentAssistant, completedRequestId);
@@ -650,9 +651,9 @@ public final class AiChatPanel extends SectionCard {
         scrollToBottom();
     }
 
-    private void submitParameters(String values) {
+    private void submitParameters(String originalRequest, String values) {
         if (requestId != null) return;
-        String original = lastSentText == null ? "" : lastSentText.trim();
+        String original = originalRequest == null ? "" : originalRequest.trim();
         String details = values == null ? "" : values.replace('；', '\n').trim();
         modes.setSelectedItem(AiMode.TASK);
         input.setText((original.isEmpty() ? "请继续执行原代办" : original)

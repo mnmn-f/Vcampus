@@ -65,15 +65,16 @@ final class CampusCommandTool implements AiTool {
     public Serializable payload(String json) {
         if (kind == Kind.NONE) return null;
         if (kind == Kind.BORROW_MINE) return new BorrowSearchRequest();
-        if (kind == Kind.DORM_PAGE) return new DormPageQuery();
-        if (kind == Kind.CAMPUS_PAGE) return new CampusPageQuery(1, 20,
+        if (kind == Kind.DORM_PAGE) return new DormPageQuery(page(json), 100,
+                optionalString(json, "keyword"), null, null, null);
+        if (kind == Kind.CAMPUS_PAGE) return new CampusPageQuery(page(json), 100,
                 optionalString(json, "keyword"), null);
-        if (kind == Kind.BOOK_SEARCH) return new BookSearchRequest(optionalString(json, "keyword"), 1, 10);
-        if (kind == Kind.PRODUCT_SEARCH) return new ProductQuery(optionalString(json, "keyword"), 1, 10);
-        if (kind == Kind.COURSE_SEARCH) return new CourseQuery(1, 20,
+        if (kind == Kind.BOOK_SEARCH) return new BookSearchRequest(optionalString(json, "keyword"), page(json), 100);
+        if (kind == Kind.PRODUCT_SEARCH) return new ProductQuery(optionalString(json, "keyword"), page(json), 100);
+        if (kind == Kind.COURSE_SEARCH) return new CourseQuery(page(json), 100,
                 optionalString(json, "keyword"), null, null);
         if (kind == Kind.STUDY_ROOM_SEARCH) return new StudyRoomSearchRequest(
-                optionalString(json, "keyword"), null, null, null, null, 1, 20);
+                optionalString(json, "keyword"), null, null, null, null, page(json), 100);
         if (kind == Kind.STUDY_ROOM_RESERVE) return new StudyRoomReservationRequest(
                 number(json, "roomId"), time(json, "startAt"), time(json, "endAt"));
         if (kind == Kind.REPAIR_CREATE) return new RepairCreateRequest(number(json, "roomId"),
@@ -104,6 +105,19 @@ final class CampusCommandTool implements AiTool {
     }
 
     public String clarificationFor(String json) {
+        if (kind == Kind.LEAVE_SUBMIT && hasValue(json, "leaveType")
+                && !java.util.Arrays.asList("PERSONAL", "ILLNESS", "OFF_CAMPUS", "OTHER")
+                .contains(optionalString(json, "leaveType")))
+            return "请选择有效的请假类型。\n待补充字段：leaveType";
+        if ((kind == Kind.LEAVE_SUBMIT || kind == Kind.STUDY_ROOM_RESERVE || kind == Kind.CLASSROOM_APPLY)
+                && hasValue(json, "startAt") && hasValue(json, "endAt")) {
+            try {
+                if (!time(json, "endAt").isAfter(time(json, "startAt")))
+                    return "结束时间必须晚于开始时间。\n待补充字段：startAt,endAt";
+            } catch (IllegalArgumentException ex) {
+                return "时间格式应为 yyyy-MM-ddTHH:mm。\n待补充字段：startAt,endAt";
+            }
+        }
         if (kind == Kind.ID_ENROLL) return missingId(json, "请告诉我要操作的课程名称或课程编号。");
         if (kind == Kind.ID_BORROW) return missingId(json, "请告诉我想借哪本书（书名或图书编号）。");
         if (kind == Kind.ID_RETURN_BORROW) return missingId(json, "请告诉我归还哪一本书，或提供借阅记录编号。");
@@ -116,7 +130,7 @@ final class CampusCommandTool implements AiTool {
             String missingProduct = missingId(json, "请告诉我要操作的商品名称或编号。");
             if (missingProduct != null) return missingProduct;
             if (kind == Kind.CART_ITEM && name.contains("cart.update")
-                    && !hasValue(json, "quantity")) return "请告诉我新的商品数量。";
+                    && !hasValue(json, "quantity")) return "请告诉我新的商品数量。\n待补充字段：quantity";
             return null;
         }
         if (kind == Kind.LIBRARY_ID || kind == Kind.LEAVE_CANCEL)
@@ -143,8 +157,10 @@ final class CampusCommandTool implements AiTool {
     }
 
     private String missingId(String json, String message) {
-        return hasValue(json, "id") ? null : message;
+        return hasValue(json, "id") ? null : message + "\n待补充字段：id";
     }
+
+    private int page(String json) { return (int) Math.max(1, Math.min(100, optionalNumber(json, "page", 1))); }
 
     private String missing(String json, String[] keys, String message) {
         List<String> missing = new ArrayList<String>();

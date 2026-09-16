@@ -40,10 +40,20 @@ public final class AiKnowledgeRepository {
         PreparedStatement ps = c.prepareStatement(
                 "SELECT id,source_type,title,content,status,updated_at "
                         + "FROM ai_knowledge_chunks WHERE status='ACTIVE' "
-                        + "ORDER BY updated_at DESC LIMIT 500");
+                        + "ORDER BY updated_at DESC, id DESC");
         try {
+            // MySQL streaming: rank in bounded batches, not just the 500 newest documents.
+            ps.setFetchSize(Integer.MIN_VALUE);
             ResultSet rs = ps.executeQuery();
-            try { return ranker.rank(query, rows(rs), Math.min(20, Math.max(1, topK))); }
+            try {
+                int limit = Math.min(20, Math.max(1, topK));
+                List<AiKnowledgeChunk> candidates = new ArrayList<AiKnowledgeChunk>();
+                while (rs.next()) {
+                    candidates.add(row(rs));
+                    if (candidates.size() >= 500) candidates = ranker.rank(query, candidates, limit);
+                }
+                return ranker.rank(query, candidates, limit);
+            }
             finally { rs.close(); }
         } finally { ps.close(); }
     }

@@ -38,6 +38,7 @@ public final class AiFeedbackPanel extends SectionCard {
     private final JTable table = new JTable(model);
     private final JLabel summary = UiFactory.muted("—");
     private List<AiFeedbackEntry> rows = new ArrayList<AiFeedbackEntry>();
+    private int refreshGeneration;
 
     public AiFeedbackPanel(AiAssistantClientService service) { this(service, null); }
     public AiFeedbackPanel(AiAssistantClientService service, LongConsumer openKnowledge) {
@@ -75,6 +76,7 @@ public final class AiFeedbackPanel extends SectionCard {
     }
 
     private void refresh() {
+        final int generation = ++refreshGeneration;
         final AiFeedbackQuery query;
         try {
             query = new AiFeedbackQuery(choice(rating, "全部评价"), category.getText().trim(),
@@ -86,6 +88,7 @@ public final class AiFeedbackPanel extends SectionCard {
                 try { return service.feedback(query); } catch (Exception ex) { failure = ex; return null; }
             }
             protected void done() {
+                if (generation != refreshGeneration) return;
                 try {
                     if (failure != null) { summary.setText("读取失败：" + failure.getMessage()); return; }
                     rows = get(); model.setRowCount(0); int helpful = 0, pending = 0;

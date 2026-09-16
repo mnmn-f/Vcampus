@@ -28,6 +28,7 @@ import edu.seu.vcampus.server.ai.tool.ToolResultFormatter;
 import edu.seu.vcampus.server.ai.tool.ModelToolIntentResolver;
 import edu.seu.vcampus.server.ai.tool.ModeIntentClassifier;
 import edu.seu.vcampus.server.ai.tool.NamedEntityResolver;
+import edu.seu.vcampus.server.ai.tool.ToolDataViews;
 import edu.seu.vcampus.server.router.StreamWriter;
 import edu.seu.vcampus.server.security.SessionContext;
 
@@ -83,9 +84,10 @@ public final class AiAssistantService {
             if (invocation == null) {
                 invocation = modelIntents.resolve(query.getRequestId(), query.getText(),
                         history, query.getMode());
-            } else {
+            } else if (!query.getText().contains("\n")) {
                 AiTool parsedTool = tools.get(invocation.getToolName());
-                if (parsedTool != null && parsedTool.clarificationFor(
+                if (parsedTool != null && !invocation.getArgumentsJson().contains("\"name\"")
+                        && parsedTool.clarificationFor(
                         invocation.getArgumentsJson()) != null) {
                     AiToolInvocation enriched = modelIntents.resolve(query.getRequestId(),
                             query.getText(), history, query.getMode());
@@ -96,10 +98,6 @@ public final class AiAssistantService {
             }
             if (invocation != null) {
                 AiTool selected = tools.get(invocation.getToolName());
-                if (query.getMode() == AiMode.TASK && selected != null
-                        && !selected.isWriteOperation()) {
-                    modeHint(envelope, query, sessionId, writer, AiMode.QA); return;
-                }
                 if (query.getMode() == AiMode.QA && selected != null
                         && selected.isWriteOperation()) {
                     modeHint(envelope, query, sessionId, writer, AiMode.TASK); return;
@@ -108,17 +106,14 @@ public final class AiAssistantService {
                 String clarification = selected == null ? null
                         : selected.clarificationFor(invocation.getArgumentsJson());
                 if (clarification != null) {
-                    String text = "【还需要一点信息】\n" + clarification;
+                    String text = "【还需要一点信息】\n" + clarification
+                            + "\n代办工具：" + selected.getName() + entities.choices(invocation, session);
                     conversations.saveAssistant(sessionId, query.getRequestId(), text, "COMPLETED");
                     streamText(envelope, query, sessionId, writer, text);
                     complete(envelope, query, sessionId, writer); return;
                 }
                 handleTool(envelope, query, sessionId, session, writer, invocation);
             } else {
-                if (query.getMode() == AiMode.TASK
-                        && modeIntents.recommend(query.getText(), null, tools) == AiMode.QA) {
-                    modeHint(envelope, query, sessionId, writer, AiMode.QA); return;
-                }
                 answer(envelope, query, sessionId, writer, history);
             }
         } catch (AiServiceException ex) {
@@ -244,14 +239,20 @@ public final class AiAssistantService {
         if (tool.isWriteOperation()) {
             long expires = System.currentTimeMillis() + AiToolService.CONFIRM_TTL_MILLIS;
             writer.write(Message.action(envelope, new AiPendingAction(logId, query.getRequestId(),
-                    sessionId, tool.getName(), invocation.getSummary(), expires)));
+                    sessionId, tool.getName(), invocation.getSummary()
+                    + "\n核对参数：" + invocation.getArgumentsJson(), expires)));
             String text = "该操作会修改业务数据，已等待你的确认：" + invocation.getSummary();
             conversations.saveAssistant(sessionId, query.getRequestId(), text, "COMPLETED");
             complete(envelope, query, sessionId, writer); return;
         }
         try {
             Object value = bridge.execute(tool, invocation.getArgumentsJson(), session);
-            String result = formatToolResult(tool, value, query.getText(), query.getRequestId());
+            if (invocation.getArgumentsJson().contains("\"notEnrolled\":1")) {
+                value = ToolDataViews.unselected(ToolDataViews.readAll(tool, "{}", bridge, session),
+                        bridge.execute(tools.get("academic.enrollments.read"), "{}", session));
+            } else value = ToolDataViews.filter(tool.getName(), value, query.getText());
+            String result = "academic.schedule.read".equals(tool.getName()) ? ToolDataViews.schedule(value)
+                    : formatToolResult(tool, value, query.getText(), query.getRequestId());
             toolLogs.finish(logId, "SUCCEEDED", result, null);
             conversations.saveAssistant(sessionId, query.getRequestId(), result, "COMPLETED");
             streamText(envelope, query, sessionId, writer, result); complete(envelope, query, sessionId, writer);
@@ -329,7 +330,9 @@ public final class AiAssistantService {
     }
 
     private String formatToolResult(AiTool tool, Object value) {
-        return "【实时数据｜" + tool.getDescription() + "】\n" + formatter.format(value);
+        return "【实时数据｜" + tool.getDescription() + "】\n"
+                + (tool.isWriteOperation() ? "操作成功：" + tool.getDescription() + "。\n" : "")
+                + (value == null && tool.isWriteOperation() ? "业务记录已更新。" : formatter.format(value));
     }
 
     private String formatToolResult(AiTool tool, Object value, String question, String requestId)
@@ -342,7 +345,7 @@ public final class AiAssistantService {
                 public void onText(String text) { refined.append(text); }
             });
             model.generate(requestId + "-result",
-                    prompts.liveData(question, tool.getDescription(), formatter.format(value)), filter);
+                    prompts.liveData(question, tool.getDescription(), focused), filter);
             filter.finish();
             String answer = refined.toString().trim();
             if (!answer.isEmpty()) focused = answer;
