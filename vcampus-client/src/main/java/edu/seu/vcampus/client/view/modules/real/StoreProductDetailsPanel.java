@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.store.StoreClientService;
+import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.common.dto.store.ProductDto;
@@ -8,6 +9,9 @@ import edu.seu.vcampus.common.dto.store.ProductReviewDto;
 import edu.seu.vcampus.common.dto.store.ProductReviewPage;
 import edu.seu.vcampus.common.dto.store.ProductReviewQuery;
 import java.awt.BorderLayout;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -20,17 +24,21 @@ final class StoreProductDetailsPanel extends JPanel {
     private final JLabel summary = UiFactory.body(" ");
     private final JLabel state = UiFactory.muted(" ");
     private final JTextArea description = UiFactory.textArea(3, 25);
-    private final JTextArea reviewText = UiFactory.textArea(4, 25);
-    private final AsyncPagedTable<ProductReviewDto> reviews;
+    private final JPanel reviewList = UiFactory.vertical(0);
+    private final JLabel reviewTitle = UiFactory.sectionTitle("用户评价");
+    private final JLabel reviewState = UiFactory.muted("正在加载评价…");
     private long productId;
-    private int serial;
-    private boolean loading;
+    private int productSerial;
+    private int reviewSerial;
+    private boolean productLoading;
+    private boolean reviewsLoading;
     StoreProductDetailsPanel(StoreClientService service, ProductDto product) {
         this(service, product, false, null);
     }
     StoreProductDetailsPanel(StoreClientService service, ProductDto product, boolean canPurchase, Runnable cartChanged) {
         super(new BorderLayout(8, 12)); setOpaque(false); this.service = service;
         image = new ProductImageView(180, 140, service);
+        image.enableFullPreview();
         description.setEditable(false); description.setLineWrap(true); description.setWrapStyleWord(true);
         JPanel text = UiFactory.vertical(8); text.add(title); text.add(summary); text.add(description); text.add(state);
         if (canPurchase) {
@@ -47,28 +55,69 @@ final class StoreProductDetailsPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 8)); header.setOpaque(false); header.add(image, BorderLayout.WEST); header.add(text, BorderLayout.CENTER);
         SectionCard information = new SectionCard("商品信息", ""); information.setContent(header); add(information, BorderLayout.NORTH);
         productId = product.getId(); render(product);
-        reviews = new AsyncPagedTable<>("用户评价", "", "搜索评价内容", new String[0],
-                new String[]{"用户", "评分", "评价内容", "时间"},
-                (page, keyword, filter) -> {
-                    ProductReviewPage result = service.listReviews(new ProductReviewQuery(productId, page, 20, keyword));
-                    return new PageSlice<>(result.getItems(), result.getTotal(), page, 20);
-                }, row -> new Object[]{row.getReviewerName(), row.getScore() + " / 5", RealUi.text(row.getContent()), RealUi.dateTime(row.getCreatedAt())},
-                row -> reviewText.setText(row == null ? "" : RealUi.text(row.getContent())));
-        reviewText.setEditable(false); reviewText.setLineWrap(true); reviewText.setWrapStyleWord(true);
-        reviews.setItemKey(ProductReviewDto::getId); add(reviews, BorderLayout.CENTER);
-        reviews.getTable().setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
-        int[] widths = {90, 65, 245, 160};
-        for (int i = 0; i < widths.length; i++) reviews.getTable().getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-        add(UiFactory.labelledField("评价全文", new javax.swing.JScrollPane(reviewText)), BorderLayout.SOUTH);
+        JPanel reviewSection = UiFactory.vertical(8);
+        reviewSection.setBorder(BorderFactory.createEmptyBorder(4, 18, 12, 18));
+        reviewTitle.setAlignmentX(LEFT_ALIGNMENT); reviewState.setAlignmentX(LEFT_ALIGNMENT);
+        reviewList.setAlignmentX(LEFT_ALIGNMENT);
+        reviewSection.add(reviewTitle);
+        reviewSection.add(reviewState);
+        reviewSection.add(reviewList);
+        add(reviewSection, BorderLayout.CENTER);
         edu.seu.vcampus.client.ui.TableInteractionPolicy.install(this);
-        reload(); edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> !loading, this::reload);
+        reload(); edu.seu.vcampus.client.ui.VisibleRefresh.attach(this,
+                () -> !productLoading && !reviewsLoading, this::reload);
     }
     void reload() {
-        final int request = ++serial; loading = true;
+        loadProduct(); loadReviews();
+    }
+    private void loadProduct() {
+        final int request = ++productSerial; productLoading = true;
         AsyncTask.run(() -> service.getProductDetail(productId), new AsyncTask.Callback<ProductDto>() {
-            @Override public void onSuccess(ProductDto product) { if (request != serial) return; loading = false; render(product); state.setText(" "); }
-            @Override public void onFailure(Throwable error) { if (request != serial) return; loading = false; state.setText(AsyncTask.message(error)); }
+            @Override public void onSuccess(ProductDto product) { if (request != productSerial) return; productLoading = false; render(product); state.setText(" "); }
+            @Override public void onFailure(Throwable error) { if (request != productSerial) return; productLoading = false; state.setText(AsyncTask.message(error)); }
         });
+    }
+    private void loadReviews() {
+        final int request = ++reviewSerial; reviewsLoading = true;
+        AsyncTask.run(() -> service.listReviews(new ProductReviewQuery(productId, 1, 100)),
+                new AsyncTask.Callback<ProductReviewPage>() {
+                    @Override public void onSuccess(ProductReviewPage value) {
+                        if (request != reviewSerial) return;
+                        reviewsLoading = false;
+                        renderReviews(value == null ? Collections.emptyList() : value.getItems());
+                    }
+                    @Override public void onFailure(Throwable error) {
+                        if (request != reviewSerial) return;
+                        reviewsLoading = false; reviewState.setText(AsyncTask.message(error));
+                    }
+                });
+    }
+    private void renderReviews(List<ProductReviewDto> values) {
+        reviewList.removeAll();
+        if (values == null || values.isEmpty()) {
+            reviewTitle.setText("用户评价"); reviewState.setText("暂无评价");
+        }
+        else {
+            reviewTitle.setText("用户评价（" + values.size() + "）"); reviewState.setText(" ");
+            for (ProductReviewDto value : values) reviewList.add(review(value));
+        }
+        reviewList.revalidate(); reviewList.repaint();
+    }
+    private static JPanel review(ProductReviewDto value) {
+        JPanel item = new JPanel(new BorderLayout(12, 5)); item.setOpaque(false);
+        item.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, DesignTokens.BORDER_LIGHT));
+        JPanel heading = UiFactory.horizontal(10);
+        heading.add(UiFactory.body(RealUi.text(value.getReviewerName())));
+        heading.add(UiFactory.body(value.getScore() + " / 5"));
+        item.add(heading, BorderLayout.NORTH);
+        JTextArea content = new JTextArea(RealUi.text(value.getContent()));
+        content.setEditable(false); content.setFocusable(false); content.setOpaque(false);
+        content.setLineWrap(true); content.setWrapStyleWord(true);
+        content.setFont(DesignTokens.regular(14)); content.setForeground(DesignTokens.TEXT_PRIMARY);
+        content.setBorder(BorderFactory.createEmptyBorder(5, 0, 12, 0));
+        item.add(content, BorderLayout.CENTER);
+        item.add(UiFactory.muted(RealUi.dateTime(value.getCreatedAt())), BorderLayout.EAST);
+        return item;
     }
     private void render(ProductDto product) {
         title.setText(product.getName());

@@ -20,6 +20,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /** 客户端只传消息并映射 DTO，同时每次请求使用当前会话令牌。 */
 public class NetworkStudentRecordClientServiceTest {
@@ -89,6 +90,8 @@ public class NetworkStudentRecordClientServiceTest {
         assertEquals(StudentCommands.PROFILE_CREATE, gateway.lastRequest.getCommand());
         assertSame(create, gateway.lastRequest.getPayload());
         assertEquals("token-9", gateway.lastRequest.getSessionToken());
+        assertTrue(session.isAuthenticated());
+        assertEquals("registrar", session.getAccount());
     }
 
     private static final class RecordingGateway implements ClientGateway {

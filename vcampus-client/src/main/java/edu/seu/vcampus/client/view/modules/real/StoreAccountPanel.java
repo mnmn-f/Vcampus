@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.store.StoreClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
@@ -34,6 +35,7 @@ public final class StoreAccountPanel extends JPanel {
     public StoreAccountPanel(BasePage page, StoreClientService service) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.service = service;
+        InputLimiter.decimal(amount, 10, 2); InputLimiter.length(remark, 200);
         add(summary()); ledger = ledger(); add(ledger); loadAccount();
         edu.seu.vcampus.client.ui.VisibleRefresh.attach(this, () -> true, this::loadAccount);
     }
@@ -54,15 +56,15 @@ public final class StoreAccountPanel extends JPanel {
 
     private AsyncPagedTable<AccountTransactionDto> ledger() {
         return new AsyncPagedTable<AccountTransactionDto>("账户流水", "",
-                "按类型筛选", new String[]{"全部流水", "充值", "消费", "退款"},
-                new String[]{"流水号", "类型", "金额", "余额后", "关联业务", "时间"},
+                "流水号、类型、金额、余额、关联业务、备注或日期", new String[]{"全部流水", "充值", "消费", "退款", "水电缴费", "调账"},
+                new String[]{"流水号", "类型", "金额", "余额后", "关联业务", "备注", "时间"},
                 new AsyncPagedTable.Loader<AccountTransactionDto>() {
                     @Override public PageSlice<AccountTransactionDto> load(int p, String keyword, String filter) throws Exception {
-                        return slice(service.getAccountLedger(new AccountLedgerQuery(type(filter), p, 20)));
+                        return slice(service.getAccountLedger(new AccountLedgerQuery(type(filter), keyword, p, 20)));
                     }
                 }, new AsyncPagedTable.RowMapper<AccountTransactionDto>() {
                     @Override public Object[] values(AccountTransactionDto row) { return new Object[]{row.getId(), RealUi.status(row.getTransactionType()),
-                            money(row.getAmount()), money(row.getBalanceAfter()), RealUi.text(row.getReferenceType()), RealUi.dateTime(row.getCreatedAt())}; }
+                            money(row.getAmount()), money(row.getBalanceAfter()), RealUi.status(row.getReferenceType()), RealUi.text(row.getRemark()), RealUi.dateTime(row.getCreatedAt())}; }
                 }, null);
     }
 
@@ -95,7 +97,7 @@ public final class StoreAccountPanel extends JPanel {
     }
 
     private static PageSlice<AccountTransactionDto> slice(AccountLedgerPage value) { return new PageSlice<AccountTransactionDto>(value.getItems(), value.getTotal(), value.getPage(), value.getPageSize()); }
-    private static String type(String value) { if ("充值".equals(value)) return "RECHARGE"; if ("消费".equals(value)) return "PURCHASE"; if ("退款".equals(value)) return "REFUND"; return null; }
+    private static String type(String value) { if ("充值".equals(value)) return "RECHARGE"; if ("消费".equals(value)) return "PURCHASE"; if ("退款".equals(value)) return "REFUND"; if ("水电缴费".equals(value)) return "DORM_BILL_PAYMENT"; if ("调账".equals(value)) return "ADJUSTMENT"; return null; }
     private static String money(BigDecimal value) { return value == null ? "--" : (value.signum() >= 0 ? "+¥" : "-¥") + moneyValue(value.abs()); }
     private static String moneyValue(BigDecimal value) { return value == null ? "0.00" : value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(); }
 }

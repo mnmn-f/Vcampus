@@ -63,14 +63,15 @@ final class InMemoryStudentGradeRepository
 
     @Override
     public StudentGradePage find(Connection ignored, long studentUserId, StudentGradeQuery query) {
-        return page(studentUserId, query.getCourseId(), query.getSemesterCode(),
+        return page(studentUserId, query.getCourseId(), query.getCourseKeyword(),
+                query.getSemesterCode(),
                 query.getPage(), query.getPageSize(),
                 query.getOffset());
     }
 
     @Override
     public StudentGradePage review(Connection ignored, StudentGradeReviewQuery query) {
-        return page(query.getStudentUserId(), query.getCourseId(), null, query.getPage(),
+        return page(query.getStudentUserId(), query.getCourseId(), null, null, query.getPage(),
                 query.getPageSize(), query.getOffset());
     }
 
@@ -88,7 +89,14 @@ final class InMemoryStudentGradeRepository
     @Override
     public List<StudentGradeDto> findAll(Connection ignored, long studentUserId,
                                          String semesterCode, Long courseId, int limit) {
-        List<StudentGradeDto> result = rows(studentUserId, courseId, semesterCode);
+        return findAll(ignored, studentUserId, semesterCode, courseId, null, limit);
+    }
+
+    @Override
+    public List<StudentGradeDto> findAll(Connection ignored, long studentUserId,
+                                         String semesterCode, Long courseId,
+                                         String courseKeyword, int limit) {
+        List<StudentGradeDto> result = rows(studentUserId, courseId, courseKeyword, semesterCode);
         if (limit > 0 && result.size() > limit) {
             return new ArrayList<StudentGradeDto>(result.subList(0, limit));
         }
@@ -125,17 +133,18 @@ final class InMemoryStudentGradeRepository
                 course == null ? null : course.credits, true));
     }
 
-    private StudentGradePage page(Long studentUserId, Long courseId, String semesterCode,
+    private StudentGradePage page(Long studentUserId, Long courseId, String courseKeyword,
+                                  String semesterCode,
                                   int page,
                                   int pageSize, int offset) {
-        List<StudentGradeDto> rows = rows(studentUserId, courseId, semesterCode);
+        List<StudentGradeDto> rows = rows(studentUserId, courseId, courseKeyword, semesterCode);
         long total = rows.size();
         int from = Math.min(offset, rows.size());
         int to = Math.min(from + pageSize, rows.size());
         return new StudentGradePage(rows.subList(from, to), total, page, pageSize);
     }
 
-    private List<StudentGradeDto> rows(Long studentUserId, Long courseId,
+    private List<StudentGradeDto> rows(Long studentUserId, Long courseId, String courseKeyword,
                                        String semesterCode) {
         List<StudentGradeDto> rows = new ArrayList<StudentGradeDto>();
         for (StudentGradeDto grade : grades.values()) {
@@ -143,6 +152,7 @@ final class InMemoryStudentGradeRepository
             if (enrollment == null || "DROPPED".equals(enrollment.getStatus())) continue;
             if (studentUserId != null && enrollment.getStudentUserId() != studentUserId) continue;
             if (courseId != null && enrollment.getCourseId() != courseId) continue;
+            if (!matchesCourse(grade, courseKeyword)) continue;
             if (semesterCode != null && !semesterCode.equals(grade.getSemesterCode())) continue;
             rows.add(grade);
         }
@@ -154,6 +164,15 @@ final class InMemoryStudentGradeRepository
             }
         });
         return rows;
+    }
+
+    private static boolean matchesCourse(StudentGradeDto grade, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) return true;
+        String needle = keyword.trim().toLowerCase(java.util.Locale.ROOT);
+        String code = grade.getCourseCode() == null ? "" : grade.getCourseCode();
+        String name = grade.getCourseName() == null ? "" : grade.getCourseName();
+        return code.toLowerCase(java.util.Locale.ROOT).contains(needle)
+                || name.toLowerCase(java.util.Locale.ROOT).contains(needle);
     }
 
     private static String key(long courseId, long teacherUserId) {

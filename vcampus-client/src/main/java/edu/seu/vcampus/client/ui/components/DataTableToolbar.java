@@ -4,6 +4,7 @@ import edu.seu.vcampus.client.ui.DesignTokens;
 import edu.seu.vcampus.client.ui.UiFactory;
 
 import javax.swing.JComboBox;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -16,6 +17,7 @@ import java.awt.event.ActionListener;
 /** 列表页面通用的筛选、搜索和操作工具栏。 */
 public class DataTableToolbar extends JPanel {
     private final JTextField searchField = UiFactory.textField(18);
+    private final JButton searchButton;
     private final JComboBox<String> filterBox;
     private final JLabel resultHint = UiFactory.muted("");
     private final JPanel actions = new JPanel(new edu.seu.vcampus.client.ui.WrapLayout(8));
@@ -34,6 +36,10 @@ public class DataTableToolbar extends JPanel {
         if (searchVisible) {
             left.add(label("搜索"));
             left.add(searchField);
+            searchButton = new PrimaryButton("查询");
+            left.add(searchButton);
+        } else {
+            searchButton = null;
         }
         if (filters != null && filters.length > 0) {
             filterBox = new JComboBox<String>(filters);
@@ -64,6 +70,10 @@ public class DataTableToolbar extends JPanel {
         return filterBox;
     }
 
+    public JButton getSearchButton() {
+        return searchButton;
+    }
+
     public void addAction(javax.swing.JButton button) {
         actions.add(button);
         if (!actionRowAdded) {
@@ -88,6 +98,7 @@ public class DataTableToolbar extends JPanel {
 
     public void onSearch(ActionListener listener) {
         searchField.addActionListener(listener);
+        if (searchButton != null) searchButton.addActionListener(listener);
     }
 
     private JLabel label(String text) {

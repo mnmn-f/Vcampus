@@ -69,6 +69,10 @@ public final class StoreReviewFriendPaymentAcceptanceTest {
         }
         assertEquals(1L, service.listReviews(buyer,
                 new edu.seu.vcampus.common.dto.store.ProductReviewQuery(1L)).getTotal());
+        assertEquals(1L, service.listReviews(buyer,
+                new edu.seu.vcampus.common.dto.store.ProductReviewQuery(0L, 1, 20, null, true)).getTotal());
+        assertEquals(0L, service.listReviews(other,
+                new edu.seu.vcampus.common.dto.store.ProductReviewQuery(0L, 1, 20, null, true)).getTotal());
     }
 
     @Test

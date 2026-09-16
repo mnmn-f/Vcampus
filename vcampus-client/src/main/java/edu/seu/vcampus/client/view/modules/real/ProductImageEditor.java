@@ -35,7 +35,7 @@ final class ProductImageEditor extends JPanel {
     }
     void selectFile(File file) {
         final int request = ++serial; loading = true; state.setText("正在处理图片…");
-        AsyncTask.run(() -> ImageUploadSupport.encode(file, 640, 480, false), new AsyncTask.Callback<byte[]>() {
+        AsyncTask.run(() -> ImageUploadSupport.encode(file, 1280, 960, false), new AsyncTask.Callback<byte[]>() {
             @Override public void onSuccess(byte[] value) { if (request != serial) return; loading = false; bytes = value; reference = null; preview.showBytes(value); state.setText("待保存"); }
             @Override public void onFailure(Throwable error) { if (request != serial) return; loading = false; state.setText(AsyncTask.message(error)); }
         });

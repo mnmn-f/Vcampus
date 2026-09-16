@@ -216,10 +216,6 @@ public final class DormExtNoticePanel extends JPanel {
         side.removeAll();
         openedId = row == null ? 0L : row.getAnnouncementId();
         if (row == null) {
-            JLabel hint = DormUi.sub("在左侧点一条公告查看正文。");
-            hint.setAlignmentX(LEFT_ALIGNMENT);
-            side.add(Box.createVerticalStrut(6));
-            side.add(hint);
             side.revalidate();
             side.repaint();
             return;

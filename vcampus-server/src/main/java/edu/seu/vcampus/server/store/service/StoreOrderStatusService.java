@@ -50,11 +50,12 @@ final class StoreOrderStatusService {
                         OrderDto value = order(c, request.getOrderId(), true);
                         String target = normalized(request.getStatus());
                         if (OrderStatus.CANCELLED.name().equals(target)) require(value, OrderStatus.CREATED);
-                        else if (OrderStatus.COMPLETED.name().equals(target)) require(value, OrderStatus.PAID);
                         else if (OrderStatus.REFUNDED.name().equals(target)) {
                             requireRefund(value);
                             refund(c, value, session.getUserId());
                             return order(c, value.getId(), false);
+                        } else if (OrderStatus.COMPLETED.name().equals(target)) {
+                            throw new StoreServiceException(ResultCodes.CONFLICT, "订单送达后会自动完成，无需手动标记");
                         } else throw new StoreServiceException(ResultCodes.INVALID_INPUT, "不支持的订单状态流转");
                         update(c, value.getId(), target);
                         return order(c, value.getId(), false);

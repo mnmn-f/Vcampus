@@ -11,15 +11,20 @@ public final class ProductReviewQuery implements Serializable {
     private final int page;
     private final int pageSize;
     private final String keyword;
+    private final boolean mineOnly;
     public ProductReviewQuery(long productId, int page, int pageSize) {
         this(productId, page, pageSize, null);
     }
     public ProductReviewQuery(long productId, int page, int pageSize, String keyword) {
+        this(productId, page, pageSize, keyword, false);
+    }
+    public ProductReviewQuery(long productId, int page, int pageSize, String keyword, boolean mineOnly) {
         if (productId < 0L || page < 1 || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("评价分页参数不正确");
         }
         this.productId = productId; this.page = page; this.pageSize = pageSize;
         this.keyword = keyword == null || keyword.trim().isEmpty() ? null : keyword.trim();
+        this.mineOnly = mineOnly;
     }
     public ProductReviewQuery(long productId) { this(productId, 1, 20); }
     public long getProductId() { return productId; }
@@ -27,4 +32,5 @@ public final class ProductReviewQuery implements Serializable {
     public int getPageSize() { return pageSize; }
     public int getOffset() { return (page - 1) * pageSize; }
     public String getKeyword() { return keyword; }
+    public boolean isMineOnly() { return mineOnly; }
 }

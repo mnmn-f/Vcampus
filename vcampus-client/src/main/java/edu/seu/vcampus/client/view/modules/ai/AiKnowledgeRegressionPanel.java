@@ -23,7 +23,7 @@ public final class AiKnowledgeRegressionPanel extends SectionCard {
         public boolean isCellEditable(int row, int column) { return column < 4; }
     };
     private final JTable table = new JTable(model);
-    private final JLabel status = UiFactory.muted("添加用例后可批量回归。");
+    private final JLabel status = UiFactory.muted("");
 
     public AiKnowledgeRegressionPanel(AiAssistantClientService service) {
         super("批量回归测试", "知识更新后批量核对标准答案关键词和预期命中知识。");

@@ -6,6 +6,7 @@ import java.io.Serializable;
 public final class StudentGradeQuery implements Serializable {
     private static final long serialVersionUID = 1L;
     private final Long courseId;
+    private final String courseKeyword;
     private final String semesterCode;
     private final int page;
     private final int pageSize;
@@ -15,8 +16,14 @@ public final class StudentGradeQuery implements Serializable {
     }
 
     public StudentGradeQuery(String semesterCode, Long courseId, int page, int pageSize) {
+        this(semesterCode, courseId, null, page, pageSize);
+    }
+
+    private StudentGradeQuery(String semesterCode, Long courseId, String courseKeyword,
+                              int page, int pageSize) {
         this.semesterCode = clean(semesterCode);
         this.courseId = courseId;
+        this.courseKeyword = clean(courseKeyword);
         this.page = page < 1 ? 1 : Math.min(page, StudentProfileQuery.MAX_PAGE);
         this.pageSize = pageSize < 1 ? StudentProfileQuery.DEFAULT_PAGE_SIZE
                 : Math.min(pageSize, StudentProfileQuery.MAX_PAGE_SIZE);
@@ -26,14 +33,20 @@ public final class StudentGradeQuery implements Serializable {
         return new StudentGradeQuery(null, 1, StudentProfileQuery.DEFAULT_PAGE_SIZE);
     }
 
+    public static StudentGradeQuery search(String semesterCode, String courseKeyword,
+                                           int page, int pageSize) {
+        return new StudentGradeQuery(semesterCode, null, courseKeyword, page, pageSize);
+    }
+
     public Long getCourseId() { return courseId; }
+    public String getCourseKeyword() { return courseKeyword; }
     public String getSemesterCode() { return semesterCode; }
     public int getPage() { return page; }
     public int getPageSize() { return pageSize; }
     public int getOffset() { return (page - 1) * pageSize; }
 
     public StudentGradeQuery withSemesterCode(String value) {
-        return new StudentGradeQuery(value, courseId, page, pageSize);
+        return new StudentGradeQuery(value, courseId, courseKeyword, page, pageSize);
     }
 
     private static String clean(String value) {

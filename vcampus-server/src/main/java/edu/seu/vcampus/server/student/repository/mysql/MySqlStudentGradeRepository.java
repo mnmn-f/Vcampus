@@ -38,12 +38,12 @@ final class MySqlStudentGradeRepository
     @Override
     public StudentGradePage find(Connection connection, long studentUserId, StudentGradeQuery query) {
         return page(connection, Long.valueOf(studentUserId), query.getCourseId(),
-                query.getSemesterCode(),
+                query.getCourseKeyword(), query.getSemesterCode(),
                 query.getPage(), query.getPageSize(), query.getOffset());
     }
     @Override
     public StudentGradePage review(Connection connection, StudentGradeReviewQuery query) {
-        return page(connection, query.getStudentUserId(), query.getCourseId(), null,
+        return page(connection, query.getStudentUserId(), query.getCourseId(), null, null,
                 query.getPage(), query.getPageSize(), query.getOffset());
     }
     @Override
@@ -61,6 +61,13 @@ final class MySqlStudentGradeRepository
                                          String semesterCode, Long courseId, int limit) {
         return MySqlStudentGradeReadRepository.findAll(connection, studentUserId,
                 semesterCode, courseId, limit);
+    }
+    @Override
+    public List<StudentGradeDto> findAll(Connection connection, long studentUserId,
+                                         String semesterCode, Long courseId,
+                                         String courseKeyword, int limit) {
+        return MySqlStudentGradeReadRepository.findAll(connection, studentUserId,
+                semesterCode, courseId, courseKeyword, limit);
     }
     @Override
     public StudentGradeDto findByEnrollment(Connection connection, long enrollmentId) {
@@ -122,14 +129,15 @@ final class MySqlStudentGradeRepository
         }
     }
     private StudentGradePage page(Connection connection, Long studentUserId, Long courseId,
-                                  String semesterCode,
+                                  String courseKeyword, String semesterCode,
                                   int page, int pageSize, int offset) {
-        String where = gradeWhere(studentUserId, courseId, semesterCode);
+        String where = gradeWhere(studentUserId, courseId, courseKeyword, semesterCode);
         String sql = GRADE_SELECT + where + " AND e.status <> 'DROPPED'"
                 + " ORDER BY c.course_code, e.id LIMIT ? OFFSET ?";
         List<StudentGradeDto> items = new ArrayList<StudentGradeDto>();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            int index = bindFilters(statement, studentUserId, courseId, semesterCode, 1);
+            int index = bindFilters(statement, studentUserId, courseId, courseKeyword,
+                    semesterCode, 1);
             statement.setInt(index++, pageSize);
             statement.setInt(index, offset);
             readRows(statement, items);
@@ -137,16 +145,16 @@ final class MySqlStudentGradeRepository
             throw failure("failed to query grades", ex);
         }
         return new StudentGradePage(items, count(connection, studentUserId, courseId,
-                semesterCode),
+                courseKeyword, semesterCode),
                 page, pageSize);
     }
     private long count(Connection connection, Long studentUserId, Long courseId,
-                       String semesterCode) {
+                       String courseKeyword, String semesterCode) {
         String sql = "SELECT COUNT(*)" + GRADE_FROM + gradeWhere(studentUserId, courseId,
-                semesterCode)
+                courseKeyword, semesterCode)
                 + " AND e.status <> 'DROPPED'";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            bindFilters(statement, studentUserId, courseId, semesterCode, 1);
+            bindFilters(statement, studentUserId, courseId, courseKeyword, semesterCode, 1);
             try (ResultSet result = statement.executeQuery()) {
                 result.next();
                 return result.getLong(1);
@@ -156,24 +164,36 @@ final class MySqlStudentGradeRepository
         }
     }
     private static String gradeWhere(Long studentUserId, Long courseId,
-                                     String semesterCode) {
+                                     String courseKeyword, String semesterCode) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (studentUserId != null) where.append(" AND e.student_user_id = ?");
         if (courseId != null) where.append(" AND e.course_id = ?");
+        if (hasText(courseKeyword)) {
+            where.append(" AND (c.course_code LIKE CONCAT('%', ?, '%')")
+                    .append(" OR c.course_name LIKE CONCAT('%', ?, '%'))");
+        }
         if (semesterCode != null && semesterCode.trim().length() > 0) {
             where.append(" AND c.semester_code = ?");
         }
         return where.toString();
     }
     private static int bindFilters(PreparedStatement statement, Long studentUserId,
-                                   Long courseId, String semesterCode, int index)
+                                   Long courseId, String courseKeyword,
+                                   String semesterCode, int index)
             throws SQLException {
         if (studentUserId != null) statement.setLong(index++, studentUserId);
         if (courseId != null) statement.setLong(index++, courseId);
+        if (hasText(courseKeyword)) {
+            statement.setString(index++, courseKeyword.trim());
+            statement.setString(index++, courseKeyword.trim());
+        }
         if (semesterCode != null && semesterCode.trim().length() > 0) {
             statement.setString(index++, semesterCode.trim());
         }
         return index;
+    }
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
     static void readRows(PreparedStatement statement, List<StudentGradeDto> output)
             throws SQLException {

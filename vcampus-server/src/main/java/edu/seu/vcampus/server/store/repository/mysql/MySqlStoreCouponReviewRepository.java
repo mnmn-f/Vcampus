@@ -62,16 +62,16 @@ final class MySqlStoreCouponReviewRepository {
         catch (SQLException ex) { throw fail("使用优惠券失败", ex); }
     }
 
-    ProductReviewPage reviews(Connection c, ProductReviewQuery query) {
+    ProductReviewPage reviews(Connection c, ProductReviewQuery query, Long reviewerUserId) {
         ProductReviewQuery q = query == null ? new ProductReviewQuery(0L) : query;
-        String where = reviewWhere(q);
+        String where = reviewWhere(q, reviewerUserId);
         String sql = "SELECT r.id,r.product_id,r.order_id,p.name,r.score,r.content,r.created_at FROM store_product_reviews r "
                 + "JOIN products p ON p.id=r.product_id" + where + " ORDER BY r.created_at DESC,r.id DESC LIMIT ? OFFSET ?";
         List<ProductReviewDto> rows = new ArrayList<ProductReviewDto>();
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            int i = bindReviews(ps, q); ps.setInt(i++, q.getPageSize()); ps.setInt(i, q.getOffset());
+            int i = bindReviews(ps, q, reviewerUserId); ps.setInt(i++, q.getPageSize()); ps.setInt(i, q.getOffset());
             try (ResultSet rs = ps.executeQuery()) { while (rs.next()) rows.add(readReview(rs)); }
-            return new ProductReviewPage(rows, countReviews(c, q));
+            return new ProductReviewPage(rows, countReviews(c, q, reviewerUserId));
         } catch (SQLException ex) { throw fail("查询商品评价失败", ex); }
     }
 
@@ -104,15 +104,16 @@ final class MySqlStoreCouponReviewRepository {
             ps.setLong(1, id); try (ResultSet rs = ps.executeQuery()) { if (!rs.next()) throw new StoreRepositoryException("评价不存在"); ProductReviewDto v = readReview(rs); return new ProductReviewDto(v.getId(),v.getProductId(),v.getOrderId(),v.getProductName(),v.getScore(),v.getContent(),name,v.getCreatedAt()); }
         }
     }
-    private static long countReviews(Connection c, ProductReviewQuery q) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM store_product_reviews r" + reviewWhere(q);
-        try (PreparedStatement ps = c.prepareStatement(sql)) { bindReviews(ps, q); try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); } }
+    private static long countReviews(Connection c, ProductReviewQuery q, Long user) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM store_product_reviews r" + reviewWhere(q, user);
+        try (PreparedStatement ps = c.prepareStatement(sql)) { bindReviews(ps, q, user); try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); } }
     }
-    private static String reviewWhere(ProductReviewQuery q) {
-        return " WHERE 1=1" + (q.getProductId() > 0 ? " AND r.product_id=?" : "") + (q.getKeyword() != null ? " AND r.content LIKE ?" : "");
+    private static String reviewWhere(ProductReviewQuery q, Long user) {
+        return " WHERE 1=1" + (q.getProductId() > 0 ? " AND r.product_id=?" : "") + (user == null ? "" : " AND r.user_id=?") + (q.getKeyword() != null ? " AND r.content LIKE ?" : "");
     }
-    private static int bindReviews(PreparedStatement ps, ProductReviewQuery q) throws SQLException {
+    private static int bindReviews(PreparedStatement ps, ProductReviewQuery q, Long user) throws SQLException {
         int index = 1; if (q.getProductId() > 0) ps.setLong(index++, q.getProductId());
+        if (user != null) ps.setLong(index++, user.longValue());
         if (q.getKeyword() != null) ps.setString(index++, "%" + q.getKeyword() + "%"); return index;
     }
     private static StoreRepositoryException fail(String m, Throwable x) { return new StoreRepositoryException(m, x); }

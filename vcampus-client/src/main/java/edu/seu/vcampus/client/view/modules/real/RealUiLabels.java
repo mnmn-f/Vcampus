@@ -32,11 +32,13 @@ final class RealUiLabels {
         put("ROLE", "指定角色"); put("ARCHIVED", "已归档"); put("MAINTENANCE", "维护中");
         put("ON_SALE", "在售"); put("OFF_SALE", "已下架"); put("RECHARGE", "充值");
         put("PAYMENT", "消费"); put("PURCHASE", "消费"); put("REFUND", "退款"); put("ADJUSTMENT", "调账");
+        put("ACCOUNT", "校园账户"); put("STORE_ORDER", "商店订单"); put("UTILITY_ALLOCATION", "宿舍水电费"); put("DEMO_SEED", "初始余额");
         put("DORM_BILL_PAYMENT", "水电缴费"); put("CREATED", "待支付");
         put("REGISTERED", "已报名"); put("PAID", "已支付"); put("REFUNDED", "已退款");
         put("COMPLETED", "已完成"); put("NO_SHOW", "未到场"); put("FROZEN", "已冻结"); put("PARTIAL", "部分缴费");
         put("VOID", "已作废"); put("AVAILABLE", "空闲"); put("OCCUPIED", "在住");
         put("ALL", "不限"); put("MIXED", "混住"); put("MALE", "男生"); put("FEMALE", "女生");
+        put("UNKNOWN", "未填写");
         put("PENDING", "待审批"); put("APPROVED", "已通过"); put("REJECTED", "已驳回");
         put("PERSONAL", "事假"); put("ILLNESS", "病假"); put("OFF_CAMPUS", "离校"); put("OTHER", "其他");
         put("DAILY", "日用百货"); put("FOOD", "食品饮料"); put("STATIONERY", "文具用品"); put("CULTURE", "校园文创");

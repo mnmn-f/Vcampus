@@ -46,7 +46,7 @@ public final class DormRepairWorkPanel extends JPanel {
     private final DormExtClientService service;
     private final View view;
     private final AsyncPagedTable<RepairWorkOrderDto> table;
-    private final JLabel detail = DormUi.sub("在上表选中一张工单，这里显示详情。");
+    private final JLabel detail = DormUi.sub("");
     private final JPanel detailBox = DormUi.panel();
 
     public DormRepairWorkPanel(BasePage page, DormExtClientService service, View view) {

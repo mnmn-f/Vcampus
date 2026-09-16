@@ -22,6 +22,7 @@ public final class AppLauncher {
     }
 
     public static void main(String[] args) {
+        ClientFailureLog.installUncaughtExceptionHandler();
         SwingUtilities.invokeLater(new Runnable() {
             @Override public void run() {
                 UiFactory.configureLookAndFeel();
@@ -78,17 +79,26 @@ public final class AppLauncher {
         holder[0] = new LoginFrame(auth, session, new LoginFrame.Listener() {
             @Override public void onLoginSuccess(edu.seu.vcampus.common.dto.auth.LoginResult result) {
                 if (business != null) business.synchronizeSession();
+                final AppFrame[] app = new AppFrame[1];
+                try {
+                    app[0] = new AppFrame(auth, session, new AppFrame.Listener() {
+                        @Override public void onLogout() {
+                            app[0].setVisible(false);
+                            app[0].dispose();
+                            showLogin(auth, session, business, assistant);
+                        }
+                    }, assistant, business);
+                    app[0].setVisible(true);
+                } catch (Throwable failure) {
+                    if (app[0] != null) app[0].dispose();
+                    session.close();
+                    if (business != null) business.clearSession();
+                    auth.logout();
+                    ClientFailureLog.record("登录后打开主界面", failure);
+                    throw new IllegalStateException("主界面加载失败，登录页已保留，请重试。", failure);
+                }
                 holder[0].setVisible(false);
                 holder[0].dispose();
-                final AppFrame[] app = new AppFrame[1];
-                app[0] = new AppFrame(auth, session, new AppFrame.Listener() {
-                    @Override public void onLogout() {
-                        app[0].setVisible(false);
-                        app[0].dispose();
-                        showLogin(auth, session, business, assistant);
-                    }
-                }, assistant, business);
-                app[0].setVisible(true);
             }
         }, business == null ? null : business.identity());
         holder[0].setVisible(true);

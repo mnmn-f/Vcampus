@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="edu.seu.vcampus.fx.StoreController" styleClass="page">
+    <top>
+        <VBox spacing="6.0">
+            <Label text="校园商店" styleClass="page-title"/>
+            <Label text="商品分类与订单" styleClass="page-subtitle"/>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="18.0">
+            <padding><Insets top="24.0" right="34.0" bottom="34.0" left="34.0"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Button text="全部商品" onAction="#showAll" styleClass="category-button"/>
+                <Button text="饮品" onAction="#showFood" styleClass="category-button"/>
+                <Button text="文创" onAction="#showCulture" styleClass="category-button"/>
+                <Button text="数码" onAction="#showTech" styleClass="category-button"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="searchField" promptText="搜索商品" prefWidth="220.0"/>
+            </HBox>
+            <HBox styleClass="store-summary" alignment="CENTER_LEFT" spacing="12.0">
+                <VBox spacing="3.0"><Label text="购物车" styleClass="summary-label"/><Label fx:id="cartCount" text="0" styleClass="summary-value"/></VBox>
+                <VBox spacing="3.0"><Label text="合计" styleClass="summary-label"/><Label fx:id="cartTotal" text="¥0.00" styleClass="summary-value"/></VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="查看购物车" styleClass="outline-button"/>
+            </HBox>
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="plain-scroll">
+                <content>
+                    <FlowPane fx:id="productGrid" hgap="16.0" vgap="16.0" prefWrapLength="900.0"/>
+                </content>
+            </ScrollPane>
+        </VBox>
+    </center>
+</BorderPane>

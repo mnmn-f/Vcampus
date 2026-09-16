@@ -34,7 +34,7 @@ public interface StoreExperienceRepository {
     CouponDto claimCoupon(Connection c, long userId, CouponClaimRequest request);
     CouponDto findCoupon(Connection c, long userId, String code, boolean lock);
     boolean markCouponUsed(Connection c, long userId, String code, long orderId);
-    ProductReviewPage listReviews(Connection c, ProductReviewQuery query);
+    ProductReviewPage listReviews(Connection c, ProductReviewQuery query, Long reviewerUserId);
     ProductReviewDto addReview(Connection c, long userId, ProductReviewWriteRequest request,
                                String reviewerName);
     FriendPaymentDto createFriendPayment(Connection c, long buyerId, FriendPaymentRequest request);

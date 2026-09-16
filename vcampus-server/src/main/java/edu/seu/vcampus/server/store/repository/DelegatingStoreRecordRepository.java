@@ -18,6 +18,7 @@ import edu.seu.vcampus.common.dto.store.StoreSalesQuery;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.List;
+import org.threeten.bp.LocalDate;
 
 /** 将商品、购物车、订单和账户 DAO 组合为一个事务仓储。 */
 public class DelegatingStoreRecordRepository implements StoreRecordRepository {
@@ -53,8 +54,9 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     @Override public ProductPage searchProducts(Connection c, ProductQuery q) {
         return products.searchProducts(c, q);
     }
-    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
-        return products.findProductImage(c, reference, manager);
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager,
+                                              String variant) {
+        return products.findProductImage(c, reference, manager, variant);
     }
     @Override public ProductDto findProduct(Connection c, long id, boolean lock) {
         return products.findProduct(c, id, lock);
@@ -91,6 +93,9 @@ public class DelegatingStoreRecordRepository implements StoreRecordRepository {
     }
     @Override public void clearCart(Connection c, long u) { cart.clearCart(c, u); }
 
+    @Override public int nextOrderSequence(Connection c, LocalDate d) {
+        return orders.nextOrderSequence(c, d);
+    }
     @Override public long insertOrder(Connection c, long u, String n, BigDecimal a) {
         return orders.insertOrder(c, u, n, a);
     }

@@ -22,14 +22,18 @@ import edu.seu.vcampus.server.security.SessionManager;
 public final class IdentityCommandRegistry {
     private IdentityCommandRegistry() { }
 
+    public static IdentityRecordRepository createMySqlRepository() {
+        return new DelegatingIdentityRecordRepository(
+                new MySqlIdentityUserRepository(), new MySqlIdentityRoleRepository(),
+                new MySqlIdentitySessionRepository(), new MySqlIdentityAuditRepository(),
+                new MySqlIdentityMonitorRepository(), new MySqlAccountCancellationRepository());
+    }
+
     public static IdentityService createMySqlService(TransactionManager transactions,
                                                        PasswordHasher hasher,
                                                        SessionManager sessions) {
         if (transactions == null || hasher == null) throw new IllegalArgumentException("identity dependencies required");
-        IdentityRecordRepository repository = new DelegatingIdentityRecordRepository(
-                new MySqlIdentityUserRepository(), new MySqlIdentityRoleRepository(),
-                new MySqlIdentitySessionRepository(), new MySqlIdentityAuditRepository(),
-                new MySqlIdentityMonitorRepository(), new MySqlAccountCancellationRepository());
+        IdentityRecordRepository repository = createMySqlRepository();
         return new IdentityService(repository, hasher,
                 sessions == null ? new SessionManager() : sessions,
                 new IdentityTransactionManagerRunner(transactions));

@@ -9,10 +9,30 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import javax.swing.SwingUtilities;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import java.awt.Component;
+import java.awt.Container;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class AsyncPagedTableRefreshTest {
+    @Test public void queryButtonAndEnterSubmitKeywordFromFirstPage() throws Exception {
+        AtomicReference<String> keyword = new AtomicReference<>();
+        AtomicInteger page = new AtomicInteger();
+        AsyncPagedTable<String> table = create((p, k, f) -> {
+            keyword.set(k); page.set(p); return page(Collections.singletonList(k), p);
+        }, null);
+        await(() -> !table.isLoading());
+        edt(() -> { JTextField field = find(table, JTextField.class);
+            field.setText("B0"); findButton(table, "查询").doClick(); });
+        await(() -> "B0".equals(keyword.get()) && !table.isLoading());
+        assertEquals(1, page.get());
+        edt(() -> { JTextField field = find(table, JTextField.class);
+            field.setText("数据库"); field.postActionEvent(); });
+        await(() -> "数据库".equals(keyword.get()) && !table.isLoading());
+    }
+
     @Test public void refreshPreservesStableSelectionWithoutClearingEditorMidway() throws Exception {
         AtomicReference<List<String>> rows = new AtomicReference<>(Arrays.asList("one", "two"));
         java.util.ArrayList<String> events = new java.util.ArrayList<>();
@@ -80,5 +100,19 @@ public class AsyncPagedTableRefreshTest {
             edt(() -> result.set(condition.getAsBoolean())); if (result.get()) return; Thread.sleep(20);
         }
         fail("等待界面更新超时");
+    }
+    private static JButton findButton(Component root, String text) {
+        if (root instanceof JButton && text.equals(((JButton) root).getText())) return (JButton) root;
+        if (root instanceof Container) for (Component child : ((Container) root).getComponents()) {
+            JButton result = findButton(child, text); if (result != null) return result;
+        }
+        return null;
+    }
+    private static <T extends Component> T find(Component root, Class<T> type) {
+        if (type.isInstance(root)) return type.cast(root);
+        if (root instanceof Container) for (Component child : ((Container) root).getComponents()) {
+            T result = find(child, type); if (result != null) return result;
+        }
+        return null;
     }
 }

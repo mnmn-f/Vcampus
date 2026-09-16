@@ -43,6 +43,11 @@ final class IdentityServiceSupport {
         }
     }
 
+    static void existingPassword(String password) throws IdentityServiceException {
+        text(password, "当前密码");
+        length(password, 72, "当前密码");
+    }
+
     static <T> T inTransaction(IdentityTransactionRunner runner, TransactionWork<T> work)
             throws IdentityServiceException {
         try {

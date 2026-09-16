@@ -16,7 +16,7 @@ public final class AiToolRouteTestPanel extends SectionCard {
     private final AiAssistantClientService service;
     private final JTextField question = UiFactory.textField(48);
     private final JTextArea result = UiFactory.textArea(12, 70);
-    private final JLabel status = UiFactory.muted("输入问题后只检查路由和参数，不会查询或修改业务数据。");
+    private final JLabel status = UiFactory.muted("");
 
     public AiToolRouteTestPanel(AiAssistantClientService service) {
         super("工具路由测试", "验证问法是否命中预期工具，并查看缺失参数；测试绝不会执行工具。");

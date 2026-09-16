@@ -39,6 +39,7 @@ public final class CampusClassroomApplyPanel extends SectionCard {
             if (roomId <= 0L) throw new IllegalArgumentException("请先从教室列表选择教室");
             org.threeten.bp.LocalDateTime from = start.required("开始时间");
             org.threeten.bp.LocalDateTime to = end.required("结束时间");
+            if (from.isBefore(org.threeten.bp.LocalDateTime.now())) throw new IllegalArgumentException("预约开始时间不能早于当前时间");
             if (!to.isAfter(from)) throw new IllegalArgumentException("结束时间必须晚于开始时间");
             if (listener != null) listener.onApply(new ClassroomReservationRequest(roomId, RealUi.required(purpose.getText(), "申请用途"), from, to));
             error.setText(" ");

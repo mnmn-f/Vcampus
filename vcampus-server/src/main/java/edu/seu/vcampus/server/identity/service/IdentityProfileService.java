@@ -6,6 +6,7 @@ import edu.seu.vcampus.common.dto.identity.ProfileUpdateRequest;
 import edu.seu.vcampus.common.dto.identity.RegistrationRequest;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.security.Permission;
+import edu.seu.vcampus.common.validation.InputRules;
 import edu.seu.vcampus.server.db.TransactionWork;
 import edu.seu.vcampus.server.identity.repository.IdentityRecordRepository;
 import edu.seu.vcampus.server.identity.repository.IdentityUserRecord;
@@ -76,7 +77,7 @@ final class IdentityProfileService {
             throws IdentityServiceException {
         IdentityServiceSupport.require(session, Permission.PROFILE_UPDATE);
         if (request == null) throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "密码请求不能为空");
-        IdentityServiceSupport.password(request.getCurrentPassword(), "当前密码");
+        IdentityServiceSupport.existingPassword(request.getCurrentPassword());
         IdentityServiceSupport.password(request.getNewPassword(), "新密码");
         if (request.getCurrentPassword().equals(request.getNewPassword())) {
             throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "新密码不能与旧密码相同");
@@ -106,36 +107,30 @@ final class IdentityProfileService {
         return found;
     }
 
-    private static void validateRegistration(RegistrationRequest request)
+    static void validateRegistration(RegistrationRequest request)
             throws IdentityServiceException {
         if (request == null) throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "注册请求不能为空");
-        String account = IdentityServiceSupport.text(request.getAccount(), "账号");
-        IdentityServiceSupport.length(account, 64, "账号");
-        if (!account.matches("[A-Za-z0-9_.@-]{3,64}")) {
-            throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "账号格式不正确");
+        try {
+            InputRules.account(request.getAccount());
+            InputRules.password(request.getPassword(), "密码");
+            InputRules.personName(request.getDisplayName(), "姓名");
+            InputRules.email(request.getEmail(), false);
+            InputRules.mobile(request.getPhone(), false);
+        } catch (IllegalArgumentException ex) {
+            throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, ex.getMessage());
         }
-        IdentityServiceSupport.password(request.getPassword(), "密码");
-        IdentityServiceSupport.text(request.getDisplayName(), "姓名");
-        IdentityServiceSupport.length(request.getDisplayName(), 100, "姓名");
-        IdentityServiceSupport.length(request.getEmail(), 255, "邮箱");
-        validatePhone(request.getPhone());
     }
 
     private static void validateProfile(ProfileUpdateRequest request)
             throws IdentityServiceException {
         if (request == null) throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "资料请求不能为空");
-        IdentityServiceSupport.text(request.getDisplayName(), "姓名");
-        IdentityServiceSupport.length(request.getDisplayName(), 100, "姓名");
-        IdentityServiceSupport.length(request.getEmail(), 255, "邮箱");
-        validatePhone(request.getPhone());
-        IdentityServiceSupport.length(request.getAvatarUrl(), 400000, "头像图片");
-    }
-
-    private static void validatePhone(String phone) throws IdentityServiceException {
-        IdentityServiceSupport.length(phone, 32, "手机号");
-        if (phone != null && !phone.trim().isEmpty()
-                && !phone.trim().matches("[0-9]{6,32}")) {
-            throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, "手机号只能填写数字");
+        try {
+            InputRules.personName(request.getDisplayName(), "姓名");
+            InputRules.email(request.getEmail(), false);
+            InputRules.mobile(request.getPhone(), false);
+        } catch (IllegalArgumentException ex) {
+            throw IdentityServiceSupport.error(ResultCodes.INVALID_INPUT, ex.getMessage());
         }
+        IdentityServiceSupport.length(request.getAvatarUrl(), 400000, "头像图片");
     }
 }

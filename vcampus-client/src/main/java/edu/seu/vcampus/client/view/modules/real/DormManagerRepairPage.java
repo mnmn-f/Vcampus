@@ -137,8 +137,6 @@ public final class DormManagerRepairPage extends JPanel {
         side.removeAll();
         if (selected == null) {
             side.add(DormUi.header("派单", "在左侧选中一条工单。", null, false));
-            JLabel hint = DormUi.sub("选中后这里显示可派的维修员，以及学生是否授权不在场入内。");
-            side.add(hint);
             DormUi.alignLeft(side);
             side.revalidate();
             side.repaint();

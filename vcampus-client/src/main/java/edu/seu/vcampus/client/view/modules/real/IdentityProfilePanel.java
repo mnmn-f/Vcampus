@@ -3,6 +3,7 @@ package edu.seu.vcampus.client.view.modules.real;
 import edu.seu.vcampus.client.service.identity.IdentityClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
@@ -11,6 +12,7 @@ import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.identity.PasswordChangeRequest;
 import edu.seu.vcampus.common.dto.identity.ProfileDto;
 import edu.seu.vcampus.common.dto.identity.ProfileUpdateRequest;
+import edu.seu.vcampus.common.validation.InputRules;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -44,6 +46,8 @@ public final class IdentityProfilePanel extends JPanel {
                                 IdentityClientService service, Runnable passwordChanged) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
         this.page = page; this.session = session; this.service = service; this.passwordChanged = passwordChanged;
+        InputLimiter.personName(displayName); InputLimiter.email(email); InputLimiter.mobile(phone);
+        InputLimiter.length(currentPassword, 72); InputLimiter.length(newPassword, 72); InputLimiter.length(confirmPassword, 72);
         add(profileCard()); passwordSettings = passwordCard(); passwordSettings.setVisible(false);
         add(passwordSettings); load();
     }
@@ -112,7 +116,7 @@ public final class IdentityProfilePanel extends JPanel {
                 displayName.setText(RealUi.input(value.getDisplayName())); email.setText(RealUi.input(value.getEmail()));
                 phone.setText(RealUi.input(value.getPhone())); avatarData = value.getAvatarUrl();
                 avatarPreview.showProfile(value.getDisplayName(), avatarData);
-                state.setText("资料状态：" + RealUi.status(value.getStatus())); page.showSuccess("个人资料已加载。");
+                state.setText("资料状态：" + RealUi.status(value.getStatus()));
             }
             @Override public void onFailure(Throwable error) { state.setText("资料加载失败"); page.showError(AsyncTask.message(error)); }
         });
@@ -120,12 +124,10 @@ public final class IdentityProfilePanel extends JPanel {
 
     private void save() {
         try {
-            final String name = RealUi.required(displayName.getText(), "显示名");
-            final String mobile = RealUi.optional(phone.getText());
-            if (mobile != null && !mobile.matches("[0-9]{6,32}")) {
-                throw new IllegalArgumentException("手机号只能填写数字");
-            }
-            final ProfileUpdateRequest request = new ProfileUpdateRequest(name, RealUi.optional(email.getText()), mobile, avatarData);
+            final String name = InputRules.personName(displayName.getText(), "姓名");
+            final String mobile = InputRules.mobile(phone.getText(), false);
+            final ProfileUpdateRequest request = new ProfileUpdateRequest(name,
+                    InputRules.email(email.getText(), false), mobile, avatarData);
             AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
                 @Override public ProfileDto run() throws Exception { return service.updateProfile(request); }
             },
@@ -153,10 +155,8 @@ public final class IdentityProfilePanel extends JPanel {
         final String old = new String(currentPassword.getPassword()); final String next = new String(newPassword.getPassword());
         if (old.trim().isEmpty() || next.trim().isEmpty()) { page.showWarning("请填写当前密码和新密码。"); return; }
         if (!next.equals(new String(confirmPassword.getPassword()))) { page.showWarning("两次输入的新密码不一致。"); return; }
-        if (next.length() < 8 || next.length() > 72 || !next.matches(".*[A-Z].*")
-                || !next.matches(".*[a-z].*") || !next.matches(".*[0-9].*")) {
-            page.showWarning("新密码至少8位且须包含大小写字母和数字。"); return;
-        }
+        try { InputRules.password(next, "新密码"); }
+        catch (IllegalArgumentException ex) { page.showWarning(ex.getMessage()); return; }
         final PasswordChangeRequest request = new PasswordChangeRequest(old, next);
         AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
             @Override public ProfileDto run() throws Exception { return service.changePassword(request); }

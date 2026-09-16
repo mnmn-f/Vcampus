@@ -6,7 +6,7 @@ import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.LayoutManager;
 
-/** 按实际可用宽度决定列数；高度随行数变化，供滚动页面使用。 */
+/** 按实际可用宽度决定列数；每个控件保持自身高度，供滚动表单使用。 */
 public final class ResponsiveGridLayout implements LayoutManager {
     private final int minWidth;
     private final int maxColumns;
@@ -23,23 +23,42 @@ public final class ResponsiveGridLayout implements LayoutManager {
         return Math.max(1, Math.min(maxColumns, width > 0 ? (width + gap) / (minWidth + gap) : maxColumns));
     }
     @Override public Dimension preferredLayoutSize(Container parent) {
-        Insets insets = parent.getInsets(); int height = 0; int count = 0;
+        Insets insets = parent.getInsets(); int count = 0; int totalHeight = 0; int rowHeight = 0;
+        int columns = columns(parent);
         for (Component child : parent.getComponents()) if (child.isVisible()) {
-            height = Math.max(height, child.getPreferredSize().height); count++;
+            rowHeight = Math.max(rowHeight, child.getPreferredSize().height); count++;
+            if (count % columns == 0) {
+                if (totalHeight > 0) totalHeight += gap;
+                totalHeight += rowHeight; rowHeight = 0;
+            }
         }
-        int columns = columns(parent); int rows = (count + columns - 1) / columns;
+        if (count % columns != 0) {
+            if (totalHeight > 0) totalHeight += gap;
+            totalHeight += rowHeight;
+        }
         return new Dimension(minWidth * columns + gap * (columns - 1) + insets.left + insets.right,
-                rows * height + Math.max(0, rows - 1) * gap + insets.top + insets.bottom);
+                totalHeight + insets.top + insets.bottom);
     }
     @Override public Dimension minimumLayoutSize(Container parent) { return new Dimension(0, 0); }
     @Override public void layoutContainer(Container parent) {
-        Insets insets = parent.getInsets(); int columns = columns(parent); int index = 0;
+        Insets insets = parent.getInsets(); int columns = columns(parent); int count = 0;
         int width = Math.max(0, (parent.getWidth() - insets.left - insets.right - gap * (columns - 1)) / columns);
-        int height = 0;
-        for (Component child : parent.getComponents()) if (child.isVisible()) height = Math.max(height, child.getPreferredSize().height);
+        for (Component child : parent.getComponents()) if (child.isVisible()) count++;
+        int[] rowHeights = new int[(count + columns - 1) / columns];
+        int index = 0;
         for (Component child : parent.getComponents()) if (child.isVisible()) {
+            int row = index / columns;
+            rowHeights[row] = Math.max(rowHeights[row], child.getPreferredSize().height); index++;
+        }
+        int[] rowTops = new int[rowHeights.length];
+        for (int row = 1; row < rowTops.length; row++) {
+            rowTops[row] = rowTops[row - 1] + rowHeights[row - 1] + gap;
+        }
+        index = 0;
+        for (Component child : parent.getComponents()) if (child.isVisible()) {
+            int row = index / columns;
             child.setBounds(insets.left + (index % columns) * (width + gap),
-                    insets.top + (index / columns) * (height + gap), width, height); index++;
+                    insets.top + rowTops[row], width, child.getPreferredSize().height); index++;
         }
     }
 }

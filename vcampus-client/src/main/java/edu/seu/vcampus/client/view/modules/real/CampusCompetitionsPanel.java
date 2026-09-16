@@ -27,7 +27,7 @@ import java.util.Map;
 public final class CampusCompetitionsPanel extends JPanel {
     private final BasePage page; private final CampusClientService service; private final Role role;
     private final AsyncPagedTable<CompetitionDto> table; private final CompetitionEditorPanel editor;
-    private final JLabel detail = UiFactory.muted("选择比赛查看详情。");
+    private final JLabel detail = UiFactory.muted("");
     private final JTextArea roster = UiFactory.textArea(4, 60);
     private final Map<Long, String> myRegistrations = new HashMap<Long, String>();
     private JButton registerButton;
@@ -95,7 +95,7 @@ public final class CampusCompetitionsPanel extends JPanel {
 
     private void select(CompetitionDto value) {
         if (role == Role.STUDENT) updateActions(value);
-        if (value == null) { detail.setText("选择比赛查看详情。"); if (editor != null) editor.startNew(); return; }
+        if (value == null) { detail.setText(""); if (editor != null) editor.startNew(); return; }
         detail.setText("比赛详情：" + RealUi.text(value.getTitle()) + "　" + RealUi.text(value.getDescription())
                 + "　报名 " + value.getRegisteredCount() + "/" + RealUi.text(value.getCapacity()));
         if (editor != null) { editor.showCompetition(value); loadRoster(); }

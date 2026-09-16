@@ -64,7 +64,7 @@ public final class StoreProductsPanel extends JPanel {
                 "搜索商品名称、编码或说明", role == Role.STUDENT
                         ? new String[]{"全部商品", "在售"}
                         : new String[]{"全部状态", "在售", "已下架", "草稿", "已归档"},
-                new String[]{"图片", "编码", "商品", "分类", "单价", "库存", "状态"},
+                new String[]{"图片", "编码", "商品", "分类", "单价", "评分", "库存", "状态"},
                 new AsyncPagedTable.Loader<ProductDto>() {
                     @Override public PageSlice<ProductDto> load(int p, String keyword, String filter) throws Exception {
                         StoreCategoryOption selected = (StoreCategoryOption) category.getSelectedItem();
@@ -73,7 +73,7 @@ public final class StoreProductsPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<ProductDto>() {
                     @Override public Object[] values(ProductDto row) { return new Object[]{row.getImageUrl(), RealUi.text(row.getSku()), row.getName(), categoryLabel(row.getCategory()),
-                            "¥" + RealUi.text(row.getPrice()), lowStock(row.getStockQty()), RealUi.status(row.getStatus())}; }
+                            "¥" + RealUi.text(row.getPrice()), row.getRatingCount() == 0 ? "暂无" : row.getRatingAverage() + " / 5（" + row.getRatingCount() + "）", lowStock(row.getStockQty()), RealUi.status(row.getStatus())}; }
                 }, new AsyncPagedTable.SelectionListener<ProductDto>() {
                     @Override public void onSelected(ProductDto row) { select(row); }
                 });
@@ -184,6 +184,7 @@ public final class StoreProductsPanel extends JPanel {
     private static PageSlice<ProductDto> slice(ProductPage value) {
         return new PageSlice<ProductDto>(value.getItems(), value.getTotal(), value.getPage(), value.getPageSize());
     }
+    public void reload() { products.refreshCurrentPage(); }
     private static String status(String filter) {
         if ("在售".equals(filter)) return "ON_SALE"; if ("已下架".equals(filter)) return "OFF_SALE";
         if ("草稿".equals(filter)) return "DRAFT"; if ("已归档".equals(filter)) return "ARCHIVED"; return null;

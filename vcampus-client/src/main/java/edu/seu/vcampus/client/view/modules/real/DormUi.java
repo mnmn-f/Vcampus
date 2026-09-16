@@ -333,7 +333,7 @@ public final class DormUi {
     }
 
     /**
-     * 分区标题行：左边标题加说明，右边操作按钮。
+     * 分区标题行：左边标题，右边操作按钮。
      *
      * <p>{@code topRule} 为 true 时在上方画一条深色分隔线——两个分区之间必须看得出
      * 断点，否则一页内容会连成一片。</p>
@@ -358,12 +358,6 @@ public final class DormUi {
         head.setForeground(DesignTokens.TEXT_PRIMARY);
         head.setAlignmentX(Component.LEFT_ALIGNMENT);
         text.add(head);
-        if (subtitle != null && subtitle.length() > 0) {
-            text.add(Box.createVerticalStrut(5));
-            JLabel note = sub(subtitle);
-            note.setAlignmentX(Component.LEFT_ALIGNMENT);
-            text.add(note);
-        }
         row.add(text, BorderLayout.WEST);
         if (actions != null) row.add(actions, BorderLayout.EAST);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);

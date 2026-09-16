@@ -29,6 +29,10 @@ public class SectionCard extends JPanel {
     private boolean topRule = true;
 
     public SectionCard(String title, String subtitle) {
+        this(title);
+    }
+
+    public SectionCard(String title) {
         super(new BorderLayout(0, DesignTokens.SPACE_12));
         setOpaque(false);
         setBackground(Color.WHITE);
@@ -38,9 +42,6 @@ public class SectionCard extends JPanel {
         heading.setOpaque(false);
         JLabel titleLabel = UiFactory.sectionTitle(title);
         heading.add(titleLabel, BorderLayout.NORTH);
-        if (subtitle != null && subtitle.trim().length() > 0) {
-            heading.add(UiFactory.muted(subtitle), BorderLayout.SOUTH);
-        }
         add(heading, BorderLayout.NORTH);
 
         body.setOpaque(false);

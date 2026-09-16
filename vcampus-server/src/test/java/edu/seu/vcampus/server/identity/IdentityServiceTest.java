@@ -76,6 +76,12 @@ public final class IdentityServiceTest {
         } catch (IdentityServiceException ex) { assertEquals(ResultCodes.FORBIDDEN, ex.getResultCode()); }
     }
 
+    @Test public void registrationRejectsMalformedPersonContactFields() throws Exception {
+        assertInvalid(new RegistrationRequest("bad_email", "ValidPass123", "王晨茜", "wrong@", null));
+        assertInvalid(new RegistrationRequest("bad_name", "ValidPass123", "王123", null, null));
+        assertInvalid(new RegistrationRequest("bad_phone", "ValidPass123", "王晨茜", null, "02583790000"));
+    }
+
     @Test public void passwordAndSelfLockoutRulesApply() throws Exception {
         SessionContext target = login("target", "Target1234").context;
         service.changePassword(target, new PasswordChangeRequest("Target1234", "Target5678"));
@@ -87,6 +93,13 @@ public final class IdentityServiceTest {
             service.revokeRole(admin, new RoleRevokeRequest(2L, Role.STUDENT));
             fail("last role must be retained");
         } catch (IdentityServiceException ex) { assertEquals(ResultCodes.CONFLICT, ex.getResultCode()); }
+    }
+
+    @Test public void legacyInitialPasswordCanBeChangedToStrongPassword() throws Exception {
+        repository.addUser(3L, "legacy", hasher.hash("student123"), "王晨茜", Role.STUDENT);
+        SessionContext legacy = login("legacy", "student123").context;
+        service.changePassword(legacy, new PasswordChangeRequest("student123", "CampusNew123"));
+        assertEquals("legacy", login("legacy", "CampusNew123").result.getAccount());
     }
 
     @Test public void loginSessionCanBeListedAndRevokedWithoutObservationHook() throws Exception {
@@ -122,6 +135,11 @@ public final class IdentityServiceTest {
         AuthService auth = new AuthService(repository.getAuthRepository(), hasher, sessions);
         LoginResult result = auth.login(account, password);
         return new Login(result, sessions.resolve(result.getSessionToken()));
+    }
+
+    private void assertInvalid(RegistrationRequest request) throws Exception {
+        try { service.register(request); fail("malformed registration must fail"); }
+        catch (IdentityServiceException ex) { assertEquals(ResultCodes.INVALID_INPUT, ex.getResultCode()); }
     }
 
     private static final class Login {

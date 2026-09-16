@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import javax.swing.AbstractButton;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 import javax.swing.JTextField;
 import java.awt.Component;
@@ -116,10 +117,41 @@ public final class StoreControlledChoicesTest {
         assertEquals("食品饮料", String.valueOf(category.getItemAt(1)));
         assertFalse("77".equals(String.valueOf(product.getItemAt(1))));
         textField(panel, "code").setText("P-TEST"); textField(panel, "name").setText("食品优惠");
-        textField(panel, "value").setText("1"); combo(panel, "scope").setSelectedItem(RealUi.option("CATEGORY"));
+        textField(panel, "value").setText("1"); textField(panel, "threshold").setText("10");
+        combo(panel, "scope").setSelectedItem(RealUi.option("CATEGORY"));
         category.setSelectedIndex(1); click(panel, "保存促销");
         assertTrue(saved.await(2, TimeUnit.SECONDS)); assertEquals("FOOD", sent.get().getCategoryCode());
         assertEquals(null, sent.get().getProductId());
+    }
+
+    @Test
+    public void percentagePromotionIsEnteredAndDisplayedAsChineseFold() throws Exception {
+        PromotionDto original = new PromotionDto(12L, "OPEN-90", "开学季九折", "PERCENT", null,
+                new BigDecimal("90.00"), "ALL", null, null,
+                org.threeten.bp.LocalDateTime.now().minusDays(1),
+                org.threeten.bp.LocalDateTime.now().plusDays(30), false, true);
+        AtomicReference<PromotionWriteRequest> sent = new AtomicReference<>();
+        StoreClientService service = (StoreClientService) Proxy.newProxyInstance(
+                StoreClientService.class.getClassLoader(), new Class<?>[]{StoreClientService.class},
+                (proxy, method, args) -> {
+                    if ("listPromotions".equals(method.getName())) return new PromotionPage(Collections.singletonList(original), 1L);
+                    if ("listCategories".equals(method.getName())) return categories();
+                    if ("searchProducts".equals(method.getName())) return products();
+                    if ("savePromotion".equals(method.getName())) { sent.set((PromotionWriteRequest) args[0]); return original; }
+                    return null;
+                });
+        StorePromotionPanel panel = new StorePromotionPanel(new TestPage(), service);
+        AsyncPagedTable<?> table = field(panel, "table");
+        AsyncPagedTableRefreshTest.await(() -> table.getTable().getRowCount() == 1);
+        AsyncPagedTableRefreshTest.edt(() -> table.getTable().setRowSelectionInterval(0, 0));
+        assertEquals("9", textField(panel, "value").getText());
+        assertEquals("折扣（折）", ((JLabel) field(panel, "valueLabel")).getText());
+        assertEquals("9折", table.getTable().getValueAt(0,
+                table.getTable().getColumnModel().getColumnIndex("优惠内容")));
+        textField(panel, "value").setText("8.5");
+        AsyncPagedTableRefreshTest.edt(() -> click(panel, "保存促销"));
+        AsyncPagedTableRefreshTest.await(() -> sent.get() != null);
+        assertEquals(0, sent.get().getValue().compareTo(new BigDecimal("85")));
     }
 
     @Test

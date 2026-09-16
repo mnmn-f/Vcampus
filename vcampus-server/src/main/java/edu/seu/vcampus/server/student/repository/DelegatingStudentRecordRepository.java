@@ -35,6 +35,8 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
         List<StudentGradeDto> findAll(Connection c, long id, String semesterCode, int limit);
         List<StudentGradeDto> findAll(Connection c, long id, String semesterCode,
                                       Long courseId, int limit);
+        List<StudentGradeDto> findAll(Connection c, long id, String semesterCode,
+                                      Long courseId, String courseKeyword, int limit);
         StudentGradePage review(Connection c, StudentGradeReviewQuery q);
         StudentGradeDto findByEnrollment(Connection c, long id);
         EnrollmentRecord findEnrollment(Connection c, long id);
@@ -95,6 +97,13 @@ public abstract class DelegatingStudentRecordRepository implements StudentRecord
                                                        String semesterCode, Long courseId,
                                                        int limit) {
         return grades.findAll(c, id, semesterCode, courseId, limit);
+    }
+
+    @Override
+    public final List<StudentGradeDto> findAllGrades(Connection c, long id,
+                                                       String semesterCode, Long courseId,
+                                                       String courseKeyword, int limit) {
+        return grades.findAll(c, id, semesterCode, courseId, courseKeyword, limit);
     }
 
     @Override

@@ -38,6 +38,7 @@ final class StoreAccountService {
             throws StoreServiceException {
         requirePurchase(session);
         final AccountLedgerQuery safe = query == null ? new AccountLedgerQuery() : query;
+        StoreServiceSupport.maxLength(safe.getKeyword(), 100, "搜索内容");
         return StoreServiceSupport.inTransaction(transactions,
                 new TransactionWork<AccountLedgerPage>() {
                     @Override public AccountLedgerPage execute(Connection c)

@@ -37,6 +37,10 @@ public interface StudentRecordRepository {
     List<StudentGradeDto> findAllGrades(Connection connection, long studentUserId,
                                         String semesterCode, Long courseId, int limit);
 
+    List<StudentGradeDto> findAllGrades(Connection connection, long studentUserId,
+                                        String semesterCode, Long courseId,
+                                        String courseKeyword, int limit);
+
     StudentGradePage reviewGrades(Connection connection, StudentGradeReviewQuery query);
 
     StudentGradeDto findGradeByEnrollment(Connection connection, long enrollmentId);

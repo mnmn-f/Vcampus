@@ -17,9 +17,9 @@ import java.sql.Timestamp;
 import org.threeten.bp.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 /** products 表的 MySQL PreparedStatement DAO。 */
 public final class MySqlStoreProductRepository implements StoreProductRepository {
+    private final MySqlStoreProductImages images = new MySqlStoreProductImages();
     private static final String COLUMNS = "id, sku, name, COALESCE(category_code, category) AS category, description, price, "
             + "stock_qty, status, image_url, rating_average, rating_count, created_by, "
             + "created_at, updated_at";
@@ -67,31 +67,32 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
             throw fail("检查商品编码失败", ex);
         }
     }
-
     @Override
     public void insertProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "INSERT INTO products (sku, name, category, description, price, "
-                + "stock_qty, status, image_url, created_by, category_code, image_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "stock_qty, status, image_url, created_by, category_code) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             bindWrite(ps, r, actor);
-            ps.setBytes(11, r.getImageData());
             ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (!keys.next()) throw new StoreRepositoryException("商品编号生成失败");
+                images.sync(c, keys.getLong(1), r.getImageUrl(), r.getImageData());
+            }
         } catch (SQLException ex) {
             throw fail("新增商品失败", ex);
         }
     }
-
     @Override
     public void updateProduct(Connection c, ProductWriteRequest r, long actor) {
         String sql = "UPDATE products SET sku = ?, name = ?, category = ?, description = ?, "
-                + "price = ?, stock_qty = ?, status = ?, image_data = CASE WHEN ? IS NOT NULL THEN ? WHEN image_url <=> ? THEN image_data ELSE NULL END, image_url = ?, category_code = ?, "
+                + "price = ?, stock_qty = ?, status = ?, image_url = ?, category_code = ?, "
                 + "version = version + 1 WHERE id = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             bindCommon(ps, r);
-            ps.setBytes(8, r.getImageData()); ps.setBytes(9, r.getImageData());
-            ps.setString(10, r.getImageUrl()); ps.setString(11, r.getImageUrl());
-            ps.setString(12, r.getCategory()); ps.setLong(13, r.getId());
+            ps.setString(9, r.getCategory()); ps.setLong(10, r.getId());
             if (ps.executeUpdate() != 1) throw new StoreRepositoryException("商品不存在");
+            images.sync(c, r.getId(), r.getImageUrl(), r.getImageData());
         } catch (SQLException ex) {
             throw fail("修改商品失败", ex);
         }
@@ -112,13 +113,9 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
             throw fail("调整商品库存失败", ex);
         }
     }
-
-    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
-        String sql = "SELECT image_data FROM products WHERE image_url=?" + (manager ? "" : " AND status='ON_SALE'");
-        try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, reference);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getBytes(1) : null; }
-        } catch (SQLException ex) { throw fail("读取商品图片失败", ex); }
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager,
+                                              String variant) {
+        return images.find(c, reference, manager, variant);
     }
 
     @Override
@@ -129,14 +126,12 @@ public final class MySqlStoreProductRepository implements StoreProductRepository
             if (ps.executeUpdate() != 1) throw new StoreRepositoryException("商品不存在");
         } catch (SQLException ex) { throw fail("更新商品评分失败", ex); }
     }
-
     private long count(Connection c, ProductQuery q, String where) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*)" + TABLE + where)) {
             bindFilters(ps, q, 1);
             try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); }
         }
     }
-
     private static String filters(ProductQuery q) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         if (q.getKeyword() != null) where.append(" AND (sku LIKE ? OR name LIKE ? OR description LIKE ?)");

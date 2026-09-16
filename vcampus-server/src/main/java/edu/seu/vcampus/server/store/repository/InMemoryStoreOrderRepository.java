@@ -13,12 +13,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import org.threeten.bp.LocalDate;
 
 /** 订单和库存内存仓储，状态修改受共享状态锁保护。 */
 final class InMemoryStoreOrderRepository implements StoreOrderRepository {
     private final InMemoryStoreState state;
 
     InMemoryStoreOrderRepository(InMemoryStoreState state) { this.state = state; }
+
+    @Override
+    public int nextOrderSequence(Connection c, LocalDate orderDate) {
+        if (orderDate == null) throw new IllegalArgumentException("orderDate is required");
+        synchronized (state) {
+            String key = orderDate.toString();
+            int next = state.orderDailySequences.getOrDefault(key, Integer.valueOf(0)) + 1;
+            state.orderDailySequences.put(key, Integer.valueOf(next));
+            return next;
+        }
+    }
 
     @Override
     public long insertOrder(Connection c, long buyerId, String orderNo, BigDecimal total) {

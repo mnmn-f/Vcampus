@@ -40,6 +40,9 @@ public final class RealStoreDormFeatureTest {
         BasePage managerStore = new RealStorePage(session(Role.STORE_MANAGER), managerServices);
         BasePage managerDorm = new RealDormPage(session(Role.DORM_MANAGER), managerServices);
         assertTrue(hasText(managerStore, "销售统计"));
+        assertFalse(hasButton(managerStore, "标记已完成"));
+        assertFalse(hasButton(managerStore, "更新物流"));
+        assertTrue(hasButton(managerStore, "保存物流进度"));
         assertTrue(hasText(managerDorm, "空间维护"));
         assertTrue(hasText(managerDorm, "待我处理的申请"));
         assertFalse(hasText(managerDorm, "离校请假"));

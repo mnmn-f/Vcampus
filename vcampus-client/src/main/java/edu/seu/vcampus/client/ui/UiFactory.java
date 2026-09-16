@@ -9,6 +9,7 @@ import javax.swing.JTextField;
 import javax.swing.border.Border;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -101,6 +102,27 @@ public final class UiFactory {
         return panel;
     }
 
+    /** 表单网格中的操作区；按钮保持标准尺寸，不随网格单元拉伸。 */
+    public static JPanel formActionCell(Component... components) {
+        JPanel row = new JPanel();
+        row.setOpaque(false);
+        row.setLayout(new javax.swing.BoxLayout(row, javax.swing.BoxLayout.X_AXIS));
+        if (components != null) for (Component component : components) {
+            if (component == null) continue;
+            if (row.getComponentCount() > 0) {
+                row.add(javax.swing.Box.createHorizontalStrut(DesignTokens.SPACE_8));
+            }
+            if (component instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent) component).setAlignmentY(Component.CENTER_ALIGNMENT);
+            }
+            if (component instanceof javax.swing.AbstractButton) {
+                component.setMaximumSize(component.getPreferredSize());
+            }
+            row.add(component);
+        }
+        return labelledField(" ", row);
+    }
+
     public static JPanel vertical(int gap) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -145,12 +167,14 @@ public final class UiFactory {
 
     public static JTextField textField(int columns) {
         JTextField field = new JTextField(columns);
+        InputLimiter.length(field, 500);
         styleField(field);
         return field;
     }
 
     public static JTextArea textArea(int rows, int columns) {
         JTextArea area = new JTextArea(rows, columns);
+        InputLimiter.length(area, 10000);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
         area.setFont(DesignTokens.regular(15));

@@ -12,6 +12,14 @@ import javax.imageio.stream.ImageInputStream;
 final class StoreImagePolicy {
     private StoreImagePolicy() { }
     static boolean reference(String value) { return value != null && value.matches("store-image:[0-9a-fA-F-]{36}"); }
+    static String variant(String value) throws StoreServiceException {
+        String normalized = value == null ? "FULL"
+                : value.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!"FULL".equals(normalized) && !"THUMBNAIL".equals(normalized)) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "图片尺寸类型不正确");
+        }
+        return normalized;
+    }
     static void validate(ProductWriteRequest request) throws StoreServiceException {
         String value = request.getImageUrl(); byte[] bytes = request.getImageData();
         try {

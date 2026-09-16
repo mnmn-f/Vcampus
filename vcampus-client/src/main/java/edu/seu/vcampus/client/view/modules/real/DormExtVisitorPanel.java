@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
@@ -10,6 +11,7 @@ import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import edu.seu.vcampus.common.dto.dorm.ext.VisitorAuditRequest;
 import edu.seu.vcampus.common.dto.dorm.ext.VisitorRegistrationDto;
 import edu.seu.vcampus.common.dto.dorm.ext.VisitorRegistrationRequest;
+import edu.seu.vcampus.common.validation.InputRules;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -47,6 +49,8 @@ public final class DormExtVisitorPanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.page = page;
         this.service = service;
+        InputLimiter.personName(visitorName); InputLimiter.identityDocument(visitorIdCard);
+        InputLimiter.mobile(visitorPhone); InputLimiter.length(visitReason, 500);
         this.registrations = table();
         add(form());
         add(registrations);
@@ -148,10 +152,10 @@ public final class DormExtVisitorPanel extends JPanel {
         final VisitorRegistrationRequest request;
         try {
             request = new VisitorRegistrationRequest(
-                    RealUi.required(visitorName.getText(), "来访人姓名"),
-                    RealUi.required(visitorIdCard.getText(), "来访人证件号"),
-                    RealUi.optional(visitorPhone.getText()),
-                    RealUi.required(visitReason.getText(), "来访事由"),
+                    InputRules.personName(visitorName.getText(), "来访人姓名"),
+                    InputRules.identityDocument(visitorIdCard.getText()),
+                    InputRules.mobile(visitorPhone.getText(), false),
+                    InputRules.limited(visitReason.getText(), 500, "来访事由", true),
                     startAt.required("来访时间"),
                     endAt.required("离开时间"));
         } catch (IllegalArgumentException ex) {

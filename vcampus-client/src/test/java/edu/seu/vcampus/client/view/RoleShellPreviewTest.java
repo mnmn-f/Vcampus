@@ -51,6 +51,7 @@ public final class RoleShellPreviewTest {
             case LIBRARIAN: return "图书管理员";
             case STORE_MANAGER: return "商店管理员";
             case DORM_MANAGER: return "宿管老师";
+            case REPAIR_WORKER: return "维修人员";
             case AI_KNOWLEDGE_ADMIN: return "知识管理员";
             default: return "系统管理员";
         }

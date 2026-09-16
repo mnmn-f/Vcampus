@@ -235,8 +235,6 @@ public final class AiKnowledgePanel extends SectionCard {
             preview.getColumnModel().getColumn(2).setMaxWidth(65);
             final JCheckBox skipDuplicates = new JCheckBox("跳过与知识库中正文完全相同的片段", true);
             JPanel previewPanel = new JPanel(new BorderLayout(0, 8));
-            previewPanel.add(UiFactory.muted("可取消选择、修改标题或正文；确认后整批提交，失败时不会部分导入。"),
-                    BorderLayout.NORTH);
             JScrollPane previewScroll = new JScrollPane(preview);
             previewScroll.setPreferredSize(new Dimension(850, 420));
             previewPanel.add(previewScroll, BorderLayout.CENTER);

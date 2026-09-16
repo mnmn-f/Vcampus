@@ -16,7 +16,6 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -26,8 +25,8 @@ import org.threeten.bp.LocalDate;
 /** 商店管理员销售统计；仅已支付和已完成订单计入汇总。 */
 public final class StoreSalesPanel extends JPanel {
     private final StoreClientService service;
-    private final JTextField startDate = UiFactory.textField(10);
-    private final JTextField endDate = UiFactory.textField(10);
+    private final DormDateField startDate = new DormDateField(10);
+    private final DormDateField endDate = new DormDateField(10);
     private final JComboBox<StoreProductOption> product = new JComboBox<StoreProductOption>();
     private final JLabel error = UiFactory.muted(" ");
     private final JLabel summary = UiFactory.body("筛选汇总：销量 -- · 销售额 --");
@@ -48,7 +47,7 @@ public final class StoreSalesPanel extends JPanel {
     public void reload() { sales.reload(); }
 
     private JPanel filters() {
-        SectionCard card = new SectionCard("销售统计", "按自然日查询；仅统计已支付和已完成的订单，退款不计入销售统计。");
+        SectionCard card = new SectionCard("销售统计", "");
         JPanel fields = new JPanel(new GridLayout(0, 3, 12, 8));
         fields.setOpaque(false);
         fields.add(UiFactory.labelledField("开始日期", startDate));
@@ -92,8 +91,8 @@ public final class StoreSalesPanel extends JPanel {
 
     private StoreSalesQuery query(int page, String keyword) {
         try {
-            LocalDate start = date(startDate.getText(), "开始日期");
-            LocalDate end = date(endDate.getText(), "结束日期");
+            LocalDate start = startDate.getDate();
+            LocalDate end = endDate.getDate();
             if (start != null && end != null && end.isBefore(start)) {
                 throw new IllegalArgumentException("结束日期不能早于开始日期");
             }
@@ -105,13 +104,6 @@ public final class StoreSalesPanel extends JPanel {
             showError(ex.getMessage());
             throw ex;
         }
-    }
-
-    private static LocalDate date(String text, String label) {
-        String value = RealUi.optional(text);
-        if (value == null) return null;
-        try { return LocalDate.parse(value); }
-        catch (RuntimeException ex) { throw new IllegalArgumentException(label + "格式应为 yyyy-MM-dd"); }
     }
 
     private void updateSummary(final long quantity, final BigDecimal amount) {
@@ -141,5 +133,7 @@ public final class StoreSalesPanel extends JPanel {
         });
     }
     JComboBox<StoreProductOption> productBox() { return product; }
+    DormDateField startDateField() { return startDate; }
+    DormDateField endDateField() { return endDate; }
     private static String money(BigDecimal value) { return value == null ? "¥0.00" : "¥" + value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(); }
 }

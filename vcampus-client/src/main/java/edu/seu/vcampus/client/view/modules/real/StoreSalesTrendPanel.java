@@ -5,71 +5,133 @@ import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
-import edu.seu.vcampus.common.dto.store.StoreSalesTrendDto;
+import edu.seu.vcampus.common.dto.store.StoreSalesPage;
+import edu.seu.vcampus.common.dto.store.StoreSalesQuery;
 import edu.seu.vcampus.common.dto.store.StoreSalesTrendPage;
 import edu.seu.vcampus.common.dto.store.StoreSalesTrendQuery;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GridLayout;
-import java.awt.RenderingHints;
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
+import org.threeten.bp.LocalDate;
+
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.JScrollPane;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 
-/** 商店自然日销售趋势；轻量 Swing 折线图，不阻塞界面线程。 */
+/** 商店自然日销售趋势与商品销量构成。 */
 public final class StoreSalesTrendPanel extends SectionCard {
     private final BasePage page;
     private final StoreClientService service;
-    private final JTextField start = UiFactory.textField(10);
-    private final JTextField end = UiFactory.textField(10);
+    private final DormDateField start = new DormDateField(10);
+    private final DormDateField end = new DormDateField(10);
     private final JLabel state = UiFactory.muted(" ");
-    private final TrendCanvas canvas = new TrendCanvas();
+    private final StoreTrendChart trend = new StoreTrendChart();
+    private final StoreSalesPieChart pie = new StoreSalesPieChart();
 
     public StoreSalesTrendPanel(BasePage page, StoreClientService service) {
-        super("销售趋势", "按自然日查看已支付和已完成订单；退款不计入。 ");
-        if (page == null || service == null) throw new IllegalArgumentException("趋势依赖不能为空");
-        this.page = page; this.service = service;
-        JPanel fields = new JPanel(new GridLayout(1, 3, 12, 8)); fields.setOpaque(false);
-        fields.add(UiFactory.labelledField("开始日期", start)); fields.add(UiFactory.labelledField("结束日期", end));
-        JButton query = new SecondaryButton("查询趋势"); query.addActionListener(new java.awt.event.ActionListener() { @Override public void actionPerformed(java.awt.event.ActionEvent e) { load(); } });
-        fields.add(query); JPanel content = UiFactory.vertical(10); content.add(fields); content.add(canvas); content.add(state); setContent(content); load();
+        super("销售趋势", "");
+        if (page == null || service == null) {
+            throw new IllegalArgumentException("趋势依赖不能为空");
+        }
+        this.page = page;
+        this.service = service;
+        JPanel content = UiFactory.vertical(10);
+        content.add(filters());
+        content.add(charts());
+        content.add(state);
+        setContent(content);
+        load();
     }
 
     public void reload() { load(); }
-    private void load() {
-        if (invalidDate(start.getText()) || invalidDate(end.getText())) { state.setText("日期格式应为 yyyy-MM-dd"); return; }
-        final org.threeten.bp.LocalDate from = date(start.getText());
-        final org.threeten.bp.LocalDate to = date(end.getText());
-        if (from != null && to != null && to.isBefore(from)) { state.setText("结束日期不能早于开始日期"); return; }
-        state.setText("正在加载…");
-        AsyncTask.run(new AsyncTask.Work<StoreSalesTrendPage>() { @Override public StoreSalesTrendPage run() throws Exception { return service.salesTrend(new StoreSalesTrendQuery(from, to)); } }, new AsyncTask.Callback<StoreSalesTrendPage>() {
-            @Override public void onSuccess(StoreSalesTrendPage value) { canvas.setItems(value == null ? null : value.getItems()); state.setText(canvas.items.isEmpty() ? "暂无销售数据" : "共 " + canvas.items.size() + " 天"); }
-            @Override public void onFailure(Throwable error) { state.setText(AsyncTask.message(error)); page.showError(AsyncTask.message(error)); }
-        });
-    }
-    private static org.threeten.bp.LocalDate date(String value) { String v=RealUi.optional(value); if(v==null)return null; try{return org.threeten.bp.LocalDate.parse(v);}catch(RuntimeException ex){return null;} }
-    private static boolean invalidDate(String value) { return RealUi.optional(value) != null && date(value) == null; }
 
-    private static final class TrendCanvas extends JPanel {
-        private List<StoreSalesTrendDto> items = Collections.emptyList();
-        TrendCanvas() { setPreferredSize(new Dimension(760, 280)); setMinimumSize(new Dimension(0, 220)); setBackground(Color.WHITE); setToolTipText(""); }
-        void setItems(List<StoreSalesTrendDto> value) { items=value==null?Collections.<StoreSalesTrendDto>emptyList():value; repaint(); }
-        @Override protected void paintComponent(Graphics graphics) {
-            super.paintComponent(graphics); Graphics2D g=(Graphics2D)graphics; g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-            int left=48, bottom=getHeight()-38, right=getWidth()-20, top=20; g.setColor(new Color(0xD9,0xE2,0xDE)); g.drawLine(left,bottom,right,bottom); g.drawLine(left,top,left,bottom);
-            if(items.isEmpty()){g.setColor(new Color(0x8A,0x98,0x92));g.drawString("选择日期后暂无销售数据",left+20,(top+bottom)/2);return;}
-            BigDecimal max=BigDecimal.ZERO; for(StoreSalesTrendDto v:items)if(v.getAmount().compareTo(max)>0)max=v.getAmount(); if(max.signum()==0)max=BigDecimal.ONE;
-            g.setColor(new Color(0x4D,0x7B,0x2A)); g.setStroke(new BasicStroke(2f)); int count=items.size(); int lastX=-1,lastY=-1;
-            for(int i=0;i<count;i++){StoreSalesTrendDto v=items.get(i); int x=left+(right-left)*i/Math.max(1,count-1); int y=bottom-(int)(v.getAmount().doubleValue()/max.doubleValue()*(bottom-top)); if(lastX>=0)g.drawLine(lastX,lastY,x,y);g.fillOval(x-4,y-4,8,8); if(count<=12||i==0||i==count-1)g.drawString(v.getDate().toString(),x-28,bottom+22); lastX=x;lastY=y;}
-            g.setColor(new Color(0x5B,0x67,0x61));g.drawString("销售额（元）",left,top-5);
+    private JPanel filters() {
+        JPanel fields = new JPanel(new GridBagLayout());
+        fields.setOpaque(false);
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridy = 0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.weightx = 1.0;
+        constraints.insets = new Insets(0, 0, 0, 12);
+        constraints.gridx = 0;
+        fields.add(UiFactory.labelledField("开始日期", start), constraints);
+        constraints.gridx = 1;
+        fields.add(UiFactory.labelledField("结束日期", end), constraints);
+        JButton query = new SecondaryButton("查询");
+        query.setPreferredSize(new Dimension(96, 38));
+        query.addActionListener(event -> load());
+        constraints.gridx = 2;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.anchor = GridBagConstraints.SOUTH;
+        constraints.insets = new Insets(0, 0, 0, 0);
+        fields.add(query, constraints);
+        return fields;
+    }
+
+    private JPanel charts() {
+        JPanel charts = new JPanel(new GridBagLayout());
+        charts.setOpaque(false);
+        JScrollPane scroll = new JScrollPane(trend,
+                JScrollPane.VERTICAL_SCROLLBAR_NEVER,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scroll.setBorder(null);
+        scroll.getHorizontalScrollBar().setUnitIncrement(32);
+        scroll.setPreferredSize(new Dimension(720, 330));
+        GridBagConstraints left = new GridBagConstraints();
+        left.gridx = 0;
+        left.gridy = 0;
+        left.weightx = 1;
+        left.fill = GridBagConstraints.BOTH;
+        left.insets = new Insets(0, 0, 0, 16);
+        charts.add(scroll, left);
+        GridBagConstraints right = new GridBagConstraints();
+        right.gridx = 1;
+        right.gridy = 0;
+        right.fill = GridBagConstraints.VERTICAL;
+        charts.add(pie, right);
+        return charts;
+    }
+
+    private void load() {
+        final LocalDate from = start.getDate();
+        final LocalDate to = end.getDate();
+        if (from != null && to != null && to.isBefore(from)) {
+            state.setText("结束日期不能早于开始日期");
+            return;
         }
-        @Override public String getToolTipText(java.awt.event.MouseEvent event) { if(items.isEmpty())return null; int left=48,right=getWidth()-20; int index=Math.round((event.getX()-left)*(items.size()-1)/(float)Math.max(1,right-left)); if(index<0||index>=items.size())return null; StoreSalesTrendDto v=items.get(index); return v.getDate()+"　销量 "+v.getQuantity()+"　销售额 ¥"+v.getAmount(); }
+        state.setText("正在加载…");
+        AsyncTask.run(() -> new Result(
+                service.salesTrend(new StoreSalesTrendQuery(from, to)),
+                service.salesReport(new StoreSalesQuery(from, to, (Long) null,
+                        null, 1, StoreSalesQuery.MAX_PAGE_SIZE))),
+                new AsyncTask.Callback<Result>() {
+                    @Override public void onSuccess(Result value) {
+                        trend.setItems(value.trend == null ? null : value.trend.getItems());
+                        pie.setItems(value.sales == null ? null : value.sales.getItems());
+                        state.setText(trend.itemCount() == 0
+                                ? "暂无销售数据" : "共 " + trend.itemCount() + " 天");
+                    }
+                    @Override public void onFailure(Throwable error) {
+                        state.setText(AsyncTask.message(error));
+                        page.showError(AsyncTask.message(error));
+                    }
+                });
+    }
+
+    DormDateField startDateField() { return start; }
+    DormDateField endDateField() { return end; }
+    StoreTrendChart trendChart() { return trend; }
+    StoreSalesPieChart pieChart() { return pie; }
+
+    private static final class Result {
+        private final StoreSalesTrendPage trend;
+        private final StoreSalesPage sales;
+        private Result(StoreSalesTrendPage trend, StoreSalesPage sales) {
+            this.trend = trend;
+            this.sales = sales;
+        }
     }
 }

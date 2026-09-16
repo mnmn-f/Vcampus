@@ -97,6 +97,10 @@ public final class StoreService {
     public byte[] getProductImage(SessionContext session, String reference) throws StoreServiceException {
         return products.image(session, reference);
     }
+    public byte[] getProductImage(SessionContext session, String reference, String variant)
+            throws StoreServiceException {
+        return products.image(session, reference, variant);
+    }
     public edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(SessionContext session, ProductReviewQuery query) throws StoreServiceException {
         return experience.reviewCandidates(session, query);
     }

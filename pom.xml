@@ -15,6 +15,7 @@
     <modules>
         <module>vcampus-common</module>
         <module>vcampus-client</module>
+        <module>vcampus-client-fx</module>
         <module>vcampus-server</module>
     </modules>
 

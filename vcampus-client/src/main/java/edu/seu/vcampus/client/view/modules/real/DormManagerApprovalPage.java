@@ -110,8 +110,6 @@ public final class DormManagerApprovalPage extends JPanel {
         field.add(remark, BorderLayout.CENTER);
         field.setPreferredSize(new Dimension(420, 60));
         row.add(field, BorderLayout.WEST);
-        row.add(DormUi.sub("通过与驳回按类别分别调用各自的审批接口，备注会一并写进对应的审核记录。"),
-                BorderLayout.CENTER);
         box.add(row, BorderLayout.CENTER);
         box.setMaximumSize(new Dimension(Integer.MAX_VALUE, 96));
         return box;

@@ -2,12 +2,12 @@
 
 ## 1. 基线与执行顺序
 
-数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入基础演示数据，V3-V16 逐步扩展业务结构，V17 增加头像上传字段，V18 写入扩展演示数据，V19 调整成绩管理权限。
+数据库名称为 `vcampus`，目标版本为 MySQL 8.0.16 及以上。字符集统一使用 `utf8mb4`，存储引擎统一使用 InnoDB。V1 创建基线，V2 写入基础演示数据，V3-V22 逐步扩展业务结构和自然业务数据，V23 增加每日订单流水，V24 将商品原图与缩略图迁入独立图片表，V25 扩展订单的叠加促销快照容量。
 
 执行顺序：
 
 ```text
-V1__baseline.sql -> V2__demo_data.sql -> V3__academic_insights.sql -> ... -> V18__expanded_demo_data.sql -> V19__academic_grade_permissions.sql
+V1__baseline.sql -> V2__demo_data.sql -> ... -> V23__store_order_daily_sequence.sql -> V24__store_product_image_variants.sql -> V25__store_promotion_snapshot_capacity.sql
 ```
 
 PowerShell 或命令行执行示例：
@@ -51,9 +51,21 @@ mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
 mysql --default-character-set=utf8mb4 -u <user> -p < \
   vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V20__store_product_images.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V21__natural_campus_demo_data.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V22__readable_product_codes.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V23__store_order_daily_sequence.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V24__store_product_image_variants.sql
+mysql --default-character-set=utf8mb4 -u <user> -p < \
+  vcampus-server/src/main/resources/db/migration/V25__store_promotion_snapshot_capacity.sql
 ```
 
-脚本使用自然键和重复保护，因此可以在同一个演示库重复执行。V7 会创建 `demo_repair` 并授予维修员角色，登录后进入宿舍的维修员工作台。V18 提供 20 个测试学生、6 个测试教师，以及大量课程、成绩、图书、订单、优惠券、宿舍和审批记录；测试账号统一使用本地演示密码 `student123`。V19 将成绩登记保留给任课教师，并将成绩核对权限交给教务管理员。演示数据面向开发/验收库，生产环境不应执行 V2/V18。
+脚本使用自然键和重复保护，因此可以在同一个演示库重复执行。V7 会创建 `demo_repair` 并授予维修员角色，登录后进入宿舍的维修员工作台。V18 提供多学生、多教师，以及大量课程、成绩、图书、订单、优惠券、宿舍和审批记录；账号统一使用本地验收密码 `student123`。V19 将成绩登记保留给任课教师，并将成绩核对权限交给教务管理员。V21 只更新可识别的验收占位数据，不覆盖用户自行修改的姓名和业务内容。演示数据面向开发/验收库，生产环境不应执行 V2/V18。
 
 V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希，用于验证真实 TCP/MySQL 登录链路。正式部署必须修改密码或停用演示账号；任何注册、改密和重置密码流程都禁止写入明文。
 
@@ -67,8 +79,8 @@ V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希�
 
 - `STUDENT`：个人学籍、成绩、选退课、借阅预约、购物、宿舍申请与 AI 查询。
 - `TEACHER`：本人授课课程、本人课程成绩和教室申请。
-- `REGISTRAR`：学籍档案与成绩档案。
-- `ACADEMIC_ADMIN`：课程排期、教务公告、比赛、SRTP、教室审批。
+- `REGISTRAR`：学生学籍档案。
+- `ACADEMIC_ADMIN`：课程排期、成绩核对、教务公告、比赛、SRTP、教室审批。
 - `LIBRARIAN`：图书借还、自习室、线上资源和图书馆公告。
 - `STORE_MANAGER`：商品、库存、订单和销售统计。
 - `DORM_MANAGER`：住宿、调宿退宿、门禁预警、卫生、报修、水电和宿舍公告。
@@ -102,7 +114,7 @@ V2 中的 `password_hash` 是 README 所列本地演示密码的 BCrypt 哈希�
 | 身份资料 | `student_profiles`、`teacher_profiles` |
 | 教务 | `courses`、`course_instructors`、`course_schedules`、`classrooms`、`enrollments`、`course_grades`、`announcements`、`competitions`、`competition_registrations`、`srtp_records`、`classroom_reservations` |
 | 图书馆 | `books`、`borrow_records`、`study_rooms`、`study_room_reservations`、`online_resources`、`online_resource_access_logs` |
-| 商店与账户 | `accounts`、`account_transactions`、`products`、`shopping_carts`、`cart_items`、`store_orders`、`store_order_items`、`store_categories`、`store_promotions`、`store_coupons`、`store_user_coupons`、`store_product_reviews`、`store_friend_payments` |
+| 商店与账户 | `accounts`、`account_transactions`、`products`、`store_product_images`、`shopping_carts`、`cart_items`、`store_orders`、`store_order_daily_sequences`、`store_order_items`、`store_categories`、`store_promotions`、`store_coupons`、`store_user_coupons`、`store_product_reviews`、`store_friend_payments` |
 | 宿舍 | `dorm_buildings`、`dorm_rooms`、`dorm_beds`、`accommodation_records`、`accommodation_requests`、`leave_requests`、`access_records`、`late_return_alerts`、`hygiene_inspections`、`repair_orders`、`utility_bills`、`utility_allocations` |
 | AI 接口存储 | `ai_chat_sessions`、`ai_chat_messages`、`ai_knowledge_chunks`、`ai_knowledge_versions`、`ai_tool_call_logs`、`ai_answer_feedback` |
 

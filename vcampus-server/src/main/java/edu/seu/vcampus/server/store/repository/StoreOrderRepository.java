@@ -7,9 +7,11 @@ import edu.seu.vcampus.common.dto.store.OrderQuery;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.List;
+import org.threeten.bp.LocalDate;
 
 /** store_orders/store_order_items 及商品库存的事务写边界。 */
 public interface StoreOrderRepository {
+    int nextOrderSequence(Connection connection, LocalDate orderDate);
     long insertOrder(Connection connection, long buyerId, String orderNo,
                      BigDecimal totalAmount);
     void updateOrderPricing(Connection connection, long orderId, BigDecimal originalAmount,

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import org.junit.Rule;
@@ -38,13 +39,14 @@ public class StoreDetailUploadReviewTest {
         });
         AtomicReference<StoreProductDetailsPanel> panel = new AtomicReference<>();
         AsyncPagedTableRefreshTest.edt(() -> panel.set(new StoreProductDetailsPanel(service, product, true, cartChanged::incrementAndGet)));
-        AsyncPagedTable<?> reviews = field(panel.get(), "reviews");
-        AsyncPagedTableRefreshTest.await(() -> reviews.getTable().getRowCount() == 1);
+        JPanel reviews = field(panel.get(), "reviewList");
+        AsyncPagedTableRefreshTest.await(() -> reviews.getComponentCount() == 1);
         AsyncPagedTableRefreshTest.edt(() -> {
-            assertEquals(7, query.get().getProductId()); assertEquals("质量很好", reviews.getTable().getValueAt(0,2));
-            assertEquals(product.getDescription(), find(panel.get(), JTextArea.class).getText());
-            reviews.getTable().setRowSelectionInterval(0, 0);
-            try { assertEquals("质量很好", ((JTextArea) field(panel.get(), "reviewText")).getText()); } catch (Exception e) { throw new AssertionError(e); }
+            assertEquals(7, query.get().getProductId()); assertNull(query.get().getKeyword());
+            assertEquals(100, query.get().getPageSize());
+            assertTrue(hasText(panel.get(), product.getDescription()));
+            assertTrue(hasText(panel.get(), "质量很好"));
+            assertNull(button(panel.get(), "查询"));
             button(panel.get(), "加入购物车").doClick();
         });
         AsyncPagedTableRefreshTest.await(() -> cartChanged.get() == 1);
@@ -72,21 +74,25 @@ public class StoreDetailUploadReviewTest {
         try { ImageUploadSupport.encode(files.newFile("bad.png"),640,480,false); fail(); } catch (IllegalArgumentException expected) { }
     }
     @Test public void reviewSubmitDisablesRepeatAndRemovesCandidateAfterSuccess() throws Exception {
-        AtomicInteger writes = new AtomicInteger(); CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger writes = new AtomicInteger(); AtomicInteger productReloads = new AtomicInteger();
+        AtomicReference<ProductReviewQuery> historyQuery = new AtomicReference<>(); CountDownLatch release = new CountDownLatch(1);
         StoreClientService service = service((method,args) -> {
             if (method.equals("reviewCandidates")) return new ReviewCandidatePage(writes.get()==0 ? Collections.singletonList(new ReviewCandidateDto(2,7,"ORDER-2","校园杯",1)) : Collections.emptyList(),writes.get()==0 ? 1:0);
+            if (method.equals("listReviews")) { historyQuery.set((ProductReviewQuery) args[0]); return new ProductReviewPage(Collections.emptyList(),0); }
             if (method.equals("addReview")) { writes.incrementAndGet(); assertTrue(release.await(5,TimeUnit.SECONDS)); return new ProductReviewDto(1,7,2,"校园杯",5,"好","匿名用户",LocalDateTime.now()); }
             return null;
         });
         AtomicReference<StoreReviewPanel> holder = new AtomicReference<>();
-        AsyncPagedTableRefreshTest.edt(() -> holder.set(new StoreReviewPanel(new BasePage(new ClientSession(),"商店",""){},service)));
+        AsyncPagedTableRefreshTest.edt(() -> { holder.set(new StoreReviewPanel(new BasePage(new ClientSession(),"商店",""){},service)); holder.get().setReviewChanged(productReloads::incrementAndGet); });
         AsyncPagedTable<?> candidates = field(holder.get(),"candidates");
         AsyncPagedTableRefreshTest.await(() -> candidates.getTable().getRowCount()==1);
+        AsyncPagedTableRefreshTest.await(() -> historyQuery.get()!=null);
+        assertTrue(historyQuery.get().isMineOnly());
         try {
             AsyncPagedTableRefreshTest.edt(() -> { candidates.getTable().setRowSelectionInterval(0,0); button(holder.get(),"提交评价").doClick(); button(holder.get(),"提交评价").doClick(); });
             AsyncPagedTableRefreshTest.await(() -> writes.get()==1); release.countDown();
             AsyncPagedTableRefreshTest.await(() -> candidates.getTable().getRowCount()==0);
-            assertEquals(1,writes.get());
+            assertEquals(1,writes.get()); assertEquals(1,productReloads.get());
         } finally { release.countDown(); }
     }
     private File imageFile() throws Exception { File file=files.newFile("product.png"); ImageIO.write(new java.awt.image.BufferedImage(400,300,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",file); return file; }
@@ -99,4 +105,5 @@ public class StoreDetailUploadReviewTest {
     @SuppressWarnings("unchecked") private static <T>T field(Object value,String name)throws Exception{java.lang.reflect.Field f=value.getClass().getDeclaredField(name);f.setAccessible(true);return (T)f.get(value);}
     private static JButton button(Container root,String name){for(Component c:root.getComponents()){if(c instanceof JButton&&name.equals(((JButton)c).getText()))return (JButton)c;if(c instanceof Container){JButton b=button((Container)c,name);if(b!=null)return b;}}return null;}
     private static <T>T find(Container root,Class<T> type){for(Component c:root.getComponents()){if(type.isInstance(c))return type.cast(c);if(c instanceof Container){T result=find((Container)c,type);if(result!=null)return result;}}return null;}
+    private static boolean hasText(Container root,String value){for(Component c:root.getComponents()){if(c instanceof JTextArea&&value.equals(((JTextArea)c).getText()))return true;if(c instanceof Container&&hasText((Container)c,value))return true;}return false;}
 }

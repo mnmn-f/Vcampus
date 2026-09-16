@@ -179,6 +179,9 @@ public final class StudentGradeService {
         if (query.getCourseId() != null && query.getCourseId() <= 0) {
             throw invalid("课程编号必须为正数");
         }
+        if (query.getCourseKeyword() != null && query.getCourseKeyword().length() > 120) {
+            throw invalid("课程关键词长度不能超过120个字符");
+        }
         if (query.getSemesterCode() != null && query.getSemesterCode().length() > 32) {
             throw invalid("学期编号长度不能超过32个字符");
         }

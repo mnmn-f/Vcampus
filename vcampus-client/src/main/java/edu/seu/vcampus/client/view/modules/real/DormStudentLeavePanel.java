@@ -35,7 +35,7 @@ public final class DormStudentLeavePanel extends JPanel {
     private final DormDateField end = new DormDateField(10);
     private final JTextField reason = UiFactory.textField(18);
     private final JLabel error = UiFactory.muted(" ");
-    private final JLabel selection = UiFactory.muted("选择待审核记录可撤回。");
+    private final JLabel selection = UiFactory.muted("");
     private final JButton cancel = new DangerButton("撤回申请");
     private final AsyncPagedTable<LeaveRequestDto> history;
 
@@ -158,7 +158,7 @@ public final class DormStudentLeavePanel extends JPanel {
 
     private void selectionChanged(LeaveRequestDto value) {
         boolean pending = value != null && "PENDING".equalsIgnoreCase(value.getStatus());
-        cancel.setEnabled(pending); selection.setText(value == null ? "选择待审核记录可撤回。"
+        cancel.setEnabled(pending); selection.setText(value == null ? ""
                 : pending ? "当前记录可撤回。" : "当前记录已处理，不能撤回。");
     }
 

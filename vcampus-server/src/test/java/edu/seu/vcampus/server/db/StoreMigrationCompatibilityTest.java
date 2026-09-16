@@ -24,6 +24,27 @@ public final class StoreMigrationCompatibilityTest {
         assertFalse(migration.contains("DROP TABLE")); assertFalse(migration.contains("DELETE FROM"));
     }
 
+    @Test public void orderSequenceMigrationIsBoundedAndNonDestructive() throws Exception {
+        String migration = resource("/db/migration/V23__store_order_daily_sequence.sql");
+        assertTrue(migration.contains("PRIMARY KEY (`order_date`)"));
+        assertTrue(migration.contains("BETWEEN 1 AND 9999"));
+        assertFalse(migration.contains("DROP TABLE")); assertFalse(migration.contains("DELETE FROM"));
+    }
+
+    @Test public void productImageMigrationSeparatesOriginalAndThumbnail() throws Exception {
+        String migration = resource("/db/migration/V24__store_product_image_variants.sql");
+        assertTrue(migration.contains("`original_data` MEDIUMBLOB"));
+        assertTrue(migration.contains("`thumbnail_data` MEDIUMBLOB"));
+        assertTrue(migration.contains("`reference` VARCHAR(64)"));
+        assertFalse(migration.contains("DROP TABLE")); assertFalse(migration.contains("DELETE FROM"));
+    }
+
+    @Test public void promotionSnapshotMigrationSupportsStackedPromotions() throws Exception {
+        String migration = resource("/db/migration/V25__store_promotion_snapshot_capacity.sql");
+        assertTrue(migration.contains("`promotion_code` TEXT NULL"));
+        assertFalse(migration.contains("DROP TABLE")); assertFalse(migration.contains("DELETE FROM"));
+    }
+
     private static String resource(String name) throws Exception {
         try (InputStream input = StoreMigrationCompatibilityTest.class.getResourceAsStream(name);
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {

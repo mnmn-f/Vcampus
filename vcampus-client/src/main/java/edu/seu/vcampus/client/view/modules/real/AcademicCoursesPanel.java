@@ -23,7 +23,7 @@ public final class AcademicCoursesPanel extends JPanel {
     private final BasePage page;
     private final AcademicClientService service;
     private final Role role;
-    private final JLabel detail = UiFactory.muted("选择课程查看详情。");
+    private final JLabel detail = UiFactory.muted("");
     private final AcademicCourseFilters filters;
     private final AsyncPagedTable<CourseDto> courses;
     private final CourseEditorPanel editor;
@@ -92,7 +92,7 @@ public final class AcademicCoursesPanel extends JPanel {
     private void selectCourse(CourseDto value) {
         updateStudentActions(value);
         if (value == null) {
-            detail.setText("选择课程查看详情。");
+            detail.setText("");
             if (editor != null) editor.startNew();
             if (scheduleEditor != null) scheduleEditor.showCourse(null);
             return;

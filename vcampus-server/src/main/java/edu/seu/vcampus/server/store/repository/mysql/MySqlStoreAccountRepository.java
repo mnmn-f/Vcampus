@@ -39,7 +39,7 @@ public final class MySqlStoreAccountRepository implements StoreAccountRepository
     public AccountLedgerPage findLedger(Connection c, long userId, AccountLedgerQuery query) {
         AccountLedgerQuery q = query == null ? new AccountLedgerQuery() : query;
         String type = q.getTransactionType();
-        String where = type == null ? "" : " AND t.transaction_type = ?";
+        String where = (type == null ? "" : " AND t.transaction_type = ?") + keywordWhere(q);
         String sql = "SELECT t.id, t.account_id, t.transaction_type, t.amount, "
                 + "t.balance_before, t.balance_after, t.reference_type, t.reference_id, "
                 + "t.idempotency_key, t.operator_id, t.remark, t.created_at "
@@ -47,16 +47,14 @@ public final class MySqlStoreAccountRepository implements StoreAccountRepository
                 + "WHERE a.user_id = ?" + where + " ORDER BY t.created_at DESC, t.id DESC LIMIT ? OFFSET ?";
         List<AccountTransactionDto> items = new ArrayList<AccountTransactionDto>();
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            int i = 1;
-            ps.setLong(i++, userId);
-            if (type != null) ps.setString(i++, type);
+            int i = bind(ps, userId, q);
             ps.setInt(i++, q.getPageSize());
             ps.setInt(i, q.getOffset());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) items.add(read(rs));
             }
             return new AccountLedgerPage(items, q.getPage(), q.getPageSize(),
-                    count(c, userId, type));
+                    count(c, userId, q));
         } catch (SQLException ex) {
             throw fail("查询账户流水失败", ex);
         }
@@ -137,15 +135,25 @@ public final class MySqlStoreAccountRepository implements StoreAccountRepository
         }
     }
 
-    private long count(Connection c, long userId, String type) throws SQLException {
+    private long count(Connection c, long userId, AccountLedgerQuery q) throws SQLException {
         String sql = "SELECT COUNT(*) FROM account_transactions t JOIN accounts a "
                 + "ON a.id = t.account_id WHERE a.user_id = ?"
-                + (type == null ? "" : " AND t.transaction_type = ?");
+                + (q.getTransactionType() == null ? "" : " AND t.transaction_type = ?") + keywordWhere(q);
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, userId);
-            if (type != null) ps.setString(2, type);
+            bind(ps, userId, q);
             try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); }
         }
+    }
+
+    private static String keywordWhere(AccountLedgerQuery q) {
+        return q.getKeyword() == null ? "" : " AND CONCAT_WS(' ',CAST(t.id AS CHAR),t.transaction_type,CASE t.transaction_type WHEN 'RECHARGE' THEN '充值' WHEN 'PURCHASE' THEN '消费' WHEN 'REFUND' THEN '退款' WHEN 'DORM_BILL_PAYMENT' THEN '水电缴费' WHEN 'ADJUSTMENT' THEN '调账' ELSE '' END,CAST(t.amount AS CHAR),CAST(t.balance_after AS CHAR),t.reference_type,CASE t.reference_type WHEN 'ACCOUNT' THEN '校园账户' WHEN 'STORE_ORDER' THEN '商店订单' WHEN 'UTILITY_ALLOCATION' THEN '宿舍水电费' WHEN 'DEMO_SEED' THEN '初始余额' ELSE '' END,CAST(t.reference_id AS CHAR),t.remark,DATE_FORMAT(t.created_at,'%Y-%m-%d %H:%i')) LIKE ?";
+    }
+
+    private static int bind(PreparedStatement ps, long userId, AccountLedgerQuery q) throws SQLException {
+        int i = 1; ps.setLong(i++, userId);
+        if (q.getTransactionType() != null) ps.setString(i++, q.getTransactionType());
+        if (q.getKeyword() != null) ps.setString(i++, "%" + q.getKeyword() + "%");
+        return i;
     }
 
     private static AccountTransactionDto read(ResultSet rs) throws SQLException {

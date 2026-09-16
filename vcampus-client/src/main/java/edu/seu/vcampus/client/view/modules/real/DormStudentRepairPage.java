@@ -156,9 +156,6 @@ public final class DormStudentRepairPage extends JPanel {
         detail.removeAll();
         if (value == null) {
             detail.add(DormUi.header("工单详情", "在左侧选中一条工单。", null, false));
-            JLabel empty = DormUi.sub("还没有选中工单。新建报修后，这里会显示它走到了哪一步。");
-            empty.setAlignmentX(LEFT_ALIGNMENT);
-            detail.add(empty);
             DormUi.alignLeft(detail);
             detail.revalidate();
             detail.repaint();

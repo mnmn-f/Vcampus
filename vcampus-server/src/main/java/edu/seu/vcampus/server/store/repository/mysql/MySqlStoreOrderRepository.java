@@ -7,7 +7,6 @@ import edu.seu.vcampus.common.dto.store.OrderQuery;
 import edu.seu.vcampus.server.store.repository.CartLine;
 import edu.seu.vcampus.server.store.repository.StoreOrderRepository;
 import edu.seu.vcampus.server.store.repository.StoreRepositoryException;
-
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,10 +15,17 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.threeten.bp.LocalDate;
 /** 订单、明细和库存的 MySQL DAO。 */
 public final class MySqlStoreOrderRepository implements StoreOrderRepository {
     private final MySqlStoreShippingWriter shipping = new MySqlStoreShippingWriter();
+    private final MySqlStoreOrderSequence sequence = new MySqlStoreOrderSequence();
+    private final MySqlStoreOrderPricingWriter pricing = new MySqlStoreOrderPricingWriter();
+    @Override
+    public int nextOrderSequence(Connection c, LocalDate orderDate) {
+        return sequence.next(c, orderDate);
+    }
+
     @Override
     public long insertOrder(Connection c, long buyerId, String orderNo, BigDecimal total) {
         String sql = "INSERT INTO store_orders (order_no, buyer_id, total_amount, original_amount, "
@@ -41,13 +47,7 @@ public final class MySqlStoreOrderRepository implements StoreOrderRepository {
 
     @Override public void updateOrderPricing(Connection c, long id, BigDecimal original,
             BigDecimal discount, String promotion, String coupon, String mode) {
-        String sql = "UPDATE store_orders SET original_amount=?,discount_amount=?,promotion_code=?,coupon_code=?,payment_mode=? WHERE id=?";
-        try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setBigDecimal(1, original); ps.setBigDecimal(2, discount);
-            if (promotion == null) ps.setNull(3, java.sql.Types.VARCHAR); else ps.setString(3, promotion);
-            if (coupon == null) ps.setNull(4, java.sql.Types.VARCHAR); else ps.setString(4, coupon);
-            ps.setString(5, mode == null ? "SELF" : mode); ps.setLong(6, id); ps.executeUpdate();
-        } catch (SQLException ex) { throw fail("保存订单价格快照失败", ex); }
+        pricing.update(c, id, original, discount, promotion, coupon, mode);
     }
 
     @Override

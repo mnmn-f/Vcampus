@@ -173,6 +173,22 @@ public final class DatabaseCompatibilityTest {
         assertFalse(migration.contains("DELETE FROM"));
     }
 
+    @Test
+    public void naturalCampusDataMigrationIsTargetedAndUsesCurriculumCourses() throws Exception {
+        String migration = resource("/db/migration/V21__natural_campus_demo_data.sql");
+        assertTrue(migration.contains("START TRANSACTION;"));
+        assertTrue(migration.contains("COMMIT;"));
+        assertTrue(migration.contains("'王晨茜'"));
+        assertTrue(migration.contains("'龚巧璇'"));
+        assertTrue(migration.contains("'B09D0012','数据库原理'"));
+        assertTrue(migration.contains("'B09S0061','软件工程'"));
+        assertTrue(migration.contains("'SEU-STATIONERY-"));
+        assertTrue(migration.contains("WHERE u.display_name=p.old_name"));
+        assertFalse(migration.contains("DELETE FROM"));
+        assertFalse(migration.contains("TRUNCATE TABLE"));
+        assertFalse(migration.contains("DROP TABLE"));
+    }
+
     private static String tableBlock(String schema, String table) {
         String marker = "CREATE TABLE IF NOT EXISTS `" + table + "` (";
         int start = schema.indexOf(marker);

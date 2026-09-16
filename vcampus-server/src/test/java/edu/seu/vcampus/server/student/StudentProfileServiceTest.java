@@ -25,6 +25,27 @@ import static org.junit.Assert.assertTrue;
 
 /** 学籍本人读取、分页过滤、唯一学号和管理员权限测试。 */
 public class StudentProfileServiceTest {
+    @Test public void serverRejectsYearsThatDisagreeWithCohort() throws Exception {
+        StudentProfileWriteRequest invalid = new StudentProfileWriteRequest(1L, "S001",
+                "建筑学院", "建筑学", "建筑学2026级2班", 2026, 2030, "UNDERGRADUATE",
+                "UNKNOWN", null, null, null, null, StudentStatus.ENROLLED);
+        try {
+            service.createProfile(registrar, invalid);
+            throw new AssertionError("must reject mismatched cohort years");
+        } catch (StudentRecordException ex) {
+            assertEquals(ResultCodes.INVALID_INPUT, ex.getResultCode());
+        }
+        StudentProfileWriteRequest valid = new StudentProfileWriteRequest(1L, "S001",
+                "建筑学院", "建筑学", "建筑学2026级2班", 2026, 2031, "UNDERGRADUATE",
+                "UNKNOWN", null, null, null, null, StudentStatus.ENROLLED);
+        assertEquals(Integer.valueOf(2031), service.createProfile(registrar, valid).getExpectedGraduationYear());
+        try {
+            service.updateProfile(registrar, invalid);
+            throw new AssertionError("must reject edited cohort years");
+        } catch (StudentRecordException ex) {
+            assertEquals(ResultCodes.INVALID_INPUT, ex.getResultCode());
+        }
+    }
     private InMemoryStudentRecordRepository repository;
     private StudentRecordService service;
     private SessionContext student;

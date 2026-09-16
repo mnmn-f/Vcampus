@@ -8,6 +8,7 @@ import edu.seu.vcampus.common.dto.store.CouponClaimRequest;
 import edu.seu.vcampus.common.dto.store.CouponDto;
 import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.ProductWriteRequest;
+import edu.seu.vcampus.common.dto.store.PromotionDto;
 import edu.seu.vcampus.common.protocol.ResultCodes;
 import edu.seu.vcampus.common.security.Role;
 import edu.seu.vcampus.server.security.SessionContext;
@@ -85,6 +86,15 @@ public final class StoreCheckoutCouponAcceptanceTest {
         } catch (StoreServiceException ex) {
             assertEquals(ResultCodes.CONFLICT, ex.getResultCode());
         }
+    }
+
+    @Test public void percentageMeansPricePercentageRatherThanDiscountPercentage() throws Exception {
+        experience.addPromotion(new PromotionDto(1L, "OPEN-90", "九折优惠", "PERCENT",
+                null, new BigDecimal("90.00"), "ALL", null, null, null, null, false, true));
+        service.addCartItem(buyer, new CartItemRequest(1L, 1));
+        CheckoutPreviewDto preview = service.checkoutPreview(buyer, null);
+        assertEquals(new BigDecimal("2.00"), preview.getPromotionDiscount());
+        assertEquals(new BigDecimal("18.00"), preview.getPayable());
     }
 
     private static SessionContext session(long id, Role role) {

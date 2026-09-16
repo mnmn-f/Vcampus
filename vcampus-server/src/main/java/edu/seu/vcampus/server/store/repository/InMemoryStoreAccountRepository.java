@@ -38,7 +38,7 @@ final class InMemoryStoreAccountRepository implements StoreAccountRepository {
             List<AccountTransactionDto> all = state.ledgers.get(account.id);
             if (all != null) {
                 for (AccountTransactionDto value : all) {
-                    if (q.getTransactionType() == null || q.getTransactionType().equalsIgnoreCase(value.getTransactionType())) {
+                    if ((q.getTransactionType() == null || q.getTransactionType().equalsIgnoreCase(value.getTransactionType())) && matches(value, q.getKeyword())) {
                         found.add(value);
                     }
                 }
@@ -154,5 +154,13 @@ final class InMemoryStoreAccountRepository implements StoreAccountRepository {
 
     private static AccountDto toDto(InMemoryStoreState.MemoryAccount account) {
         return new AccountDto(account.id, account.userId, account.balance, account.status);
+    }
+
+    private static boolean matches(AccountTransactionDto value, String keyword) {
+        if (keyword == null) return true;
+        String type = "RECHARGE".equals(value.getTransactionType()) ? "充值" : "PURCHASE".equals(value.getTransactionType()) ? "消费" : "REFUND".equals(value.getTransactionType()) ? "退款" : "DORM_BILL_PAYMENT".equals(value.getTransactionType()) ? "水电缴费" : "ADJUSTMENT".equals(value.getTransactionType()) ? "调账" : "";
+        String reference = "ACCOUNT".equals(value.getReferenceType()) ? "校园账户" : "STORE_ORDER".equals(value.getReferenceType()) ? "商店订单" : "UTILITY_ALLOCATION".equals(value.getReferenceType()) ? "宿舍水电费" : "DEMO_SEED".equals(value.getReferenceType()) ? "初始余额" : "";
+        String text = value.getId() + " " + value.getTransactionType() + " " + type + " " + value.getAmount() + " " + value.getBalanceAfter() + " " + value.getReferenceType() + " " + reference + " " + value.getReferenceId() + " " + value.getRemark() + " " + value.getCreatedAt();
+        return text.toLowerCase(java.util.Locale.ROOT).contains(keyword.toLowerCase(java.util.Locale.ROOT));
     }
 }

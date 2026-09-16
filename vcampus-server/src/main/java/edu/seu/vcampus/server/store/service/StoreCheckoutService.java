@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import org.threeten.bp.LocalDate;
 
 /** 服务端结算预览和确认；最终金额始终从锁定的购物车重算。 */
 final class StoreCheckoutService {
@@ -58,7 +59,10 @@ final class StoreCheckoutService {
                     throw new StoreServiceException(ResultCodes.CONFLICT, "购物车为空或库存不足");
                 }
                 BigDecimal total = pricing.getPayable();
-                long id = core.insertOrder(c, session.getUserId(), orderNo(), total);
+                LocalDate date = LocalDate.now();
+                String orderNo = StoreOrderNumber.create(date,
+                        core.nextOrderSequence(c, date));
+                long id = core.insertOrder(c, session.getUserId(), orderNo, total);
                 // 明细保留原价，折扣以订单价格快照记录，避免把促销结果伪装成商品单价。
                 core.insertOrderItems(c, id, lines);
                 core.updateOrderPricing(c, id, pricing.getSubtotal(), discount(pricing),
@@ -113,7 +117,9 @@ final class StoreCheckoutService {
             BigDecimal eligible = eligibleAmount(c, p, lines);
             if (eligible.signum() <= 0 || p.getThreshold() != null && eligible.compareTo(p.getThreshold()) < 0) continue;
             BigDecimal value = p.getValue() == null ? BigDecimal.ZERO : p.getValue();
-            if ("PERCENT".equalsIgnoreCase(p.getType())) value = eligible.multiply(value).divide(BigDecimal.valueOf(100L), 2, RoundingMode.HALF_UP);
+            if ("PERCENT".equalsIgnoreCase(p.getType())) value = eligible.multiply(
+                    BigDecimal.valueOf(100L).subtract(value)).divide(
+                    BigDecimal.valueOf(100L), 2, RoundingMode.HALF_UP);
             if ("THRESHOLD".equalsIgnoreCase(p.getType()) || "FIXED".equalsIgnoreCase(p.getType())) { }
             if (value.compareTo(eligible) > 0) value = eligible;
             if (p.isStackable()) { stack = stack.add(value); stackCodes = join(stackCodes, p.getCode()); }
@@ -141,6 +147,5 @@ final class StoreCheckoutService {
     }
     private static BigDecimal total(List<CartLine> lines) { BigDecimal value=BigDecimal.ZERO; for(CartLine l:lines)value=value.add(l.lineAmount()); return value.setScale(2,RoundingMode.HALF_UP); }
     private static String join(String previous, String next) { return previous == null ? next : previous + "," + next; }
-    private static String orderNo() { return "VC-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8); }
     private static final class Discount { final BigDecimal amount; final String code; Discount(BigDecimal a,String c){amount=a;code=c;} }
 }

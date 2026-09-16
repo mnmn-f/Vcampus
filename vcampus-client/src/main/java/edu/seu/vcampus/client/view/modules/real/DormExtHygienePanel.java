@@ -37,7 +37,7 @@ public final class DormExtHygienePanel extends JPanel {
     private final AsyncPagedTable<HygieneTaskDto> tasks;
     private final JTextField room = UiFactory.textField(8);
     /** 选中任务后显示「在给哪间房打分」；只填一个数字编号，人是认不出房间的。 */
-    private final javax.swing.JLabel target = DormUi.sub("在左边选一条待检任务，房间编号会自动填好。");
+    private final javax.swing.JLabel target = DormUi.sub("");
     private final JTextField[] scores = new JTextField[HygieneItemScoreDto.ITEM_CODES.length];
     private final JTextField issue = UiFactory.textField(20);
     public DormExtHygienePanel(BasePage page, DormExtClientService service) {
@@ -124,7 +124,7 @@ public final class DormExtHygienePanel extends JPanel {
     private void pick(HygieneTaskDto task) {
         if (task == null) {
             room.setText("");
-            target.setText("在左边选一条待检任务，房间编号会自动填好。");
+            target.setText("");
             return;
         }
         room.setText(String.valueOf(task.getRoomId()));

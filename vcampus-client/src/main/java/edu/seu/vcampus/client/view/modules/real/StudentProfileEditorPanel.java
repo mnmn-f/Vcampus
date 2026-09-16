@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
@@ -9,6 +10,7 @@ import edu.seu.vcampus.common.dto.student.StudentProfileCreateRequest;
 import edu.seu.vcampus.common.dto.student.StudentProfileDto;
 import edu.seu.vcampus.common.dto.student.StudentProfileWriteRequest;
 import edu.seu.vcampus.common.dto.student.StudentStatus;
+import edu.seu.vcampus.common.validation.InputRules;
 import org.threeten.bp.LocalDate;
 
 import javax.swing.BorderFactory;
@@ -110,13 +112,17 @@ public final class StudentProfileEditorPanel extends SectionCard {
         else { noBirthDate.setSelected(false); birthDate.setValue(java.sql.Date.valueOf(value.getBirthDate().toString())); }
         address.setText(text(value.getAddress())); emergencyContact.setText(text(value.getEmergencyContact()));
         emergencyPhone.setText(text(value.getEmergencyPhone())); error.setText(" "); changingAccount = false;
+        synchronizeCohortYears();
     }
 
     private void configure() {
+        InputLimiter.studentNumber(studentNo); InputLimiter.length(address, 255);
+        InputLimiter.personName(emergencyContact); InputLimiter.contactPhone(emergencyPhone);
         RealUi.codeRenderer(status); RealUi.codeRenderer(degreeLevel); RealUi.codeRenderer(gender);
         birthDate.setEditor(new JSpinner.DateEditor(birthDate, "yyyy-MM-dd"));
         birthDate.setFont(DesignTokens.regular(13)); major.addActionListener(e -> refreshClasses());
         college.addActionListener(e -> { refreshMajors(); refreshClasses(); });
+        className.addActionListener(e -> synchronizeCohortYears());
         account.addActionListener(e -> {
             if (changingAccount || !update) return;
             String selected = selectedAccount();
@@ -126,7 +132,8 @@ public final class StudentProfileEditorPanel extends SectionCard {
 
     private void save() {
         try {
-            String no = required(studentNo.getText(), "学号");
+            synchronizeCohortYears();
+            String no = InputRules.studentNumber(studentNo.getText());
             String collegeValue = requiredChoice(StudentDirectoryOptions.selected(college), "学院");
             String majorValue = requiredChoice(StudentDirectoryOptions.selected(major), "专业");
             String classValue = requiredChoice(StudentDirectoryOptions.selected(className), "班级");
@@ -134,6 +141,9 @@ public final class StudentProfileEditorPanel extends SectionCard {
             Integer graduate = requiredItem(graduationYear, "预计毕业年份");
             String degree = requiredCode(degreeLevel, "学历层次");
             String sex = requiredCode(gender, "性别");
+            InputRules.limited(address.getText(), 255, "地址", false);
+            if (!emergencyContact.getText().trim().isEmpty()) InputRules.personName(emergencyContact.getText(), "紧急联系人");
+            InputRules.contactPhone(emergencyPhone.getText(), false);
             if (update) listener.onUpdate(write(selectedUserId, no));
             else listener.onCreate(new StudentProfileCreateRequest(requiredAccount(), no,
                     collegeValue, majorValue, classValue, enroll, graduate, degree, sex, date(),
@@ -166,6 +176,16 @@ public final class StudentProfileEditorPanel extends SectionCard {
 
     private void refreshMajors() { StudentDirectoryOptions.majorsFor(major, StudentDirectoryOptions.selected(college)); }
     private void refreshClasses() { StudentDirectoryOptions.classesFor(className, StudentDirectoryOptions.selected(major)); }
+    private void synchronizeCohortYears() {
+        String cohort = StudentDirectoryOptions.selected(className);
+        Integer year = edu.seu.vcampus.common.validation.StudentCohortYears.enrollment(cohort);
+        enrollmentYear.setEnabled(year == null);
+        graduationYear.setEnabled(year == null);
+        if (year != null) {
+            enrollmentYear.setSelectedItem(year);
+            graduationYear.setSelectedItem(edu.seu.vcampus.common.validation.StudentCohortYears.graduation(cohort));
+        }
+    }
     private <T> T selected(JComboBox<T> box) { return box.getSelectedIndex() < 0 ? null : (T) box.getSelectedItem(); }
     private static String code(JComboBox<RealUi.CodeOption> box) { return RealUi.code(box.getSelectedItem()); }
     private static String requiredChoice(String value, String label) {
@@ -181,7 +201,6 @@ public final class StudentProfileEditorPanel extends SectionCard {
         return box.getItemAt(box.getSelectedIndex());
     }
     private static String optional(JTextField field) { return field.getText().trim().isEmpty() ? null : field.getText().trim(); }
-    private static String required(String value, String label) { if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(label + "不能为空"); return value.trim(); }
     private static void add(JPanel panel, String label, java.awt.Component field) { panel.add(UiFactory.labelledField(label, field)); }
     private static JTextField field() { return UiFactory.textField(12); }
     private static Integer[] years() { Integer[] values = new Integer[41]; for (int i = 0; i < values.length; i++) values[i] = 2000 + i; return values; }

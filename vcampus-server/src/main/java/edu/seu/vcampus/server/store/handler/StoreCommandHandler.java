@@ -31,9 +31,12 @@ import edu.seu.vcampus.server.router.CommandHandler;
 import edu.seu.vcampus.server.security.SessionContext;
 import edu.seu.vcampus.server.store.service.StoreService;
 import edu.seu.vcampus.server.store.service.StoreServiceException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** 将商店命令适配到统一服务门面，并只接受明确的 Common DTO。 */
 public final class StoreCommandHandler implements CommandHandler {
+    private static final Logger LOG = Logger.getLogger(StoreCommandHandler.class.getName());
     private final String command;
     private final StoreService service;
 
@@ -72,8 +75,12 @@ public final class StoreCommandHandler implements CommandHandler {
                 return Message.success(request, service.adjustProductStock(session,
                         require(payload, StockAdjustRequest.class)));
             }
-            if (StoreCommands.PRODUCT_IMAGE.equals(command)) return Message.success(request, service.getProductImage(session,
-                    require(payload, edu.seu.vcampus.common.dto.store.ProductImageRequest.class).getReference()));
+            if (StoreCommands.PRODUCT_IMAGE.equals(command)) {
+                edu.seu.vcampus.common.dto.store.ProductImageRequest image = require(payload,
+                        edu.seu.vcampus.common.dto.store.ProductImageRequest.class);
+                return Message.success(request, service.getProductImage(session,
+                        image.getReference(), image.getVariant()));
+            }
             if (StoreCommands.CATEGORY_LIST.equals(command)) return Message.success(request, service.listCategories(session));
             if (StoreCommands.CATEGORY_SAVE.equals(command)) return Message.success(request, service.saveCategory(session, require(payload, StoreCategoryWriteRequest.class)));
             if (StoreCommands.CART_GET.equals(command)) return Message.success(request, service.getCart(session));
@@ -146,10 +153,14 @@ public final class StoreCommandHandler implements CommandHandler {
             if (StoreCommands.FRIEND_PAY_DECIDE.equals(command)) return Message.success(request, service.decideFriendPayment(session, require(payload, FriendPaymentDecisionRequest.class)));
             return Message.failure(request, ResultCodes.INVALID_INPUT, "不支持的商店操作");
         } catch (StoreServiceException ex) {
+            if (ResultCodes.INTERNAL_ERROR.equals(ex.getResultCode())) {
+                LOG.log(Level.WARNING, "Store command failed: " + command, ex);
+            }
             return Message.failure(request, ex.getResultCode(), ex.getUserMessage());
         } catch (IllegalArgumentException ex) {
             return Message.failure(request, ResultCodes.INVALID_INPUT, "请求参数格式不正确");
         } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Unexpected store command failure: " + command, ex);
             return Message.failure(request, ResultCodes.INTERNAL_ERROR, "商店服务暂时不可用");
         }
     }

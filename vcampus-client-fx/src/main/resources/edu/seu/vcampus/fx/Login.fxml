@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="edu.seu.vcampus.fx.LoginController" styleClass="login-page">
+    <children>
+        <HBox AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"
+              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+            <VBox prefWidth="430.0" HBox.hgrow="NEVER" styleClass="login-brand" spacing="24.0">
+                <padding><Insets top="64.0" right="52.0" bottom="64.0" left="64.0"/></padding>
+                <HBox spacing="12.0" alignment="CENTER_LEFT">
+                    <Label text="SEU" styleClass="brand-mark"/>
+                    <Label text="东南大学" styleClass="brand-name"/>
+                </HBox>
+                <VBox VBox.vgrow="ALWAYS" spacing="10.0" alignment="CENTER_LEFT">
+                    <Label text="VCampus" styleClass="login-title"/>
+                    <Label text="一站式校园服务" styleClass="login-subtitle"/>
+                </VBox>
+                <Label text="东南大学校园服务" styleClass="login-caption"/>
+            </VBox>
+            <VBox HBox.hgrow="ALWAYS" alignment="CENTER" styleClass="login-content">
+                <VBox maxWidth="440.0" spacing="25.0" styleClass="login-card">
+                    <Label text="欢迎回来" styleClass="section-title"/>
+                    <Label text="使用校园账号登录" styleClass="muted"/>
+                    <VBox spacing="8.0">
+                        <Label text="校园账号 / 学号" styleClass="field-label"/>
+                        <TextField fx:id="accountField" promptText="请输入校园账号或学号" styleClass="large-field"/>
+                    </VBox>
+                    <VBox spacing="8.0">
+                        <Label text="登录密码" styleClass="field-label"/>
+                        <PasswordField fx:id="passwordField" promptText="请输入登录密码" styleClass="large-field"/>
+                    </VBox>
+                    <Label fx:id="feedback" styleClass="error-text" minHeight="20.0"/>
+                    <Button text="登录" onAction="#submit" maxWidth="1.7976931348623157E308"
+                            styleClass="primary-button" defaultButton="true"/>
+                    <Label text="账号遇到问题？请联系校园服务中心" styleClass="login-help"/>
+                </VBox>
+            </VBox>
+        </HBox>
+    </children>
+</AnchorPane>

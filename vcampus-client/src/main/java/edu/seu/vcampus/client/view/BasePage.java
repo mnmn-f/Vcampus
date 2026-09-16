@@ -93,6 +93,10 @@ public abstract class BasePage extends JPanel {
         error(text);
     }
 
+    public final void clearError(String text) {
+        feedback.hideError(text);
+    }
+
     protected final void setHeaderContext(String text) {
         pageHeader.setContext(text);
     }

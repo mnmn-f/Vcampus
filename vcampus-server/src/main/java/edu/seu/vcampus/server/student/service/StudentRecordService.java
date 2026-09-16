@@ -24,16 +24,30 @@ import edu.seu.vcampus.server.student.repository.StudentRecordRepository;
 public final class StudentRecordService {
     private final StudentProfileService profiles;
     private final StudentGradeService grades;
+    private final StudentAdmissionService admissions;
 
     public StudentRecordService(StudentRecordRepository repository,
                                 TransactionManager transactionManager) {
-        this(repository, new TransactionManagerRunner(transactionManager));
+        this(repository, new TransactionManagerRunner(transactionManager), null);
+    }
+
+    public StudentRecordService(StudentRecordRepository repository,
+                                TransactionManager transactionManager,
+                                StudentAccountProvisioner accounts) {
+        this(repository, new TransactionManagerRunner(transactionManager), accounts);
     }
 
     public StudentRecordService(StudentRecordRepository repository,
                                 StudentTransactionRunner transactions) {
+        this(repository, transactions, null);
+    }
+
+    public StudentRecordService(StudentRecordRepository repository,
+                                StudentTransactionRunner transactions,
+                                StudentAccountProvisioner accounts) {
         profiles = new StudentProfileService(repository, transactions);
         grades = new StudentGradeService(repository, transactions);
+        admissions = new StudentAdmissionService(repository, transactions, accounts);
     }
 
     public StudentProfileDto getOwnProfile(SessionContext session)
@@ -83,7 +97,9 @@ public final class StudentRecordService {
     public StudentProfileDto createProfile(SessionContext session,
                                            StudentProfileCreateRequest request)
             throws StudentRecordException {
-        return profiles.createFromAccount(session, request);
+        return request != null && request.isCreateAccount()
+                ? admissions.create(session, request)
+                : profiles.createFromAccount(session, request);
     }
 
     public StudentProfileDto updateProfile(SessionContext session,

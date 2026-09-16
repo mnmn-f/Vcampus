@@ -17,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -40,7 +41,10 @@ public final class StudentRegistrarPanel extends JPanel {
             @Override public void onCreate(StudentProfileCreateRequest request) { saveNew(request); }
             @Override public void onUpdate(StudentProfileWriteRequest request) { saveUpdate(request); }
         });
-        profiles = profileTable(); add(profiles); add(accountToolbar()); add(editor); loadCandidates();
+        profiles = profileTable();
+        JButton admission = new PrimaryButton("录入新生");
+        admission.addActionListener(e -> admitStudent()); profiles.addAction(admission);
+        add(profiles); add(accountToolbar()); add(editor); loadCandidates();
     }
 
     private AsyncPagedTable<StudentProfileDto> profileTable() {
@@ -68,8 +72,6 @@ public final class StudentRegistrarPanel extends JPanel {
             @Override public boolean isActive() { return hasText(studentNo) || hasText(college)
                     || hasText(major) || hasText(className); }
         });
-        JButton query = new PrimaryButton("查询");
-        query.addActionListener(e -> table.reload()); table.addAction(query);
         studentNo.addActionListener(e -> table.reload()); college.addActionListener(e -> table.reload());
         major.addActionListener(e -> table.reload()); className.addActionListener(e -> table.reload());
         table.getTable().getColumnModel().getColumn(0).setPreferredWidth(110);
@@ -88,8 +90,25 @@ public final class StudentRegistrarPanel extends JPanel {
 
     private JPanel profileFilters() {
         JPanel filters = new JPanel(new GridLayout(2, 2, 12, 6)); filters.setOpaque(false);
-        filters.add(filter("学号", studentNo)); filters.add(UiFactory.labelledField("学院", college));
+        studentNo.setToolTipText("输入学号");
+        filters.add(UiFactory.labelledField("学号", studentNo)); filters.add(UiFactory.labelledField("学院", college));
         filters.add(UiFactory.labelledField("专业", major)); filters.add(UiFactory.labelledField("班级", className)); return filters;
+    }
+
+    private void admitStudent() {
+        StudentAdmissionForm form = new StudentAdmissionForm();
+        while (true) {
+            int choice = JOptionPane.showConfirmDialog(this, form, "录入新生",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (choice != JOptionPane.OK_OPTION) return;
+            try {
+                saveAdmission(form.request());
+                return;
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "请检查录入信息",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private JPanel filter(String label, JTextField field) {
@@ -113,6 +132,31 @@ public final class StudentRegistrarPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<StudentProfileDto>() {
             @Override public StudentProfileDto run() throws Exception { return service.createProfile(request); }
         }, saveCallback("学生档案已创建。", false));
+    }
+
+    private void saveAdmission(final StudentProfileCreateRequest request) {
+        AsyncTask.run(new AsyncTask.Work<StudentProfileDto>() {
+            @Override public StudentProfileDto run() throws Exception { return service.createProfile(request); }
+        }, new AsyncTask.Callback<StudentProfileDto>() {
+            @Override public void onSuccess(StudentProfileDto value) {
+                page.showSuccess("新生已录入，账号可以登录。");
+                profiles.reload(); loadCandidates();
+                JOptionPane.showMessageDialog(StudentRegistrarPanel.this,
+                        admissionCredentialText(request), "录入成功",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+            @Override public void onFailure(Throwable error) {
+                String message = "录入失败，账号未创建：" + AsyncTask.message(error);
+                page.showError(message);
+                JOptionPane.showMessageDialog(StudentRegistrarPanel.this, message,
+                        "录入失败", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+
+    static String admissionCredentialText(StudentProfileCreateRequest request) {
+        return "校园账号：" + request.getAccount() + "\n初始密码："
+                + request.getInitialPassword();
     }
 
     private void saveUpdate(final StudentProfileWriteRequest request) {

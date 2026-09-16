@@ -5,6 +5,7 @@ import edu.seu.vcampus.client.network.NetworkClientService;
 import edu.seu.vcampus.client.session.ClientSession;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
 import edu.seu.vcampus.common.dto.store.ProductDto;
+import edu.seu.vcampus.common.dto.store.ProductImageRequest;
 import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest;
 import edu.seu.vcampus.common.dto.store.StoreSalesPage;
@@ -35,6 +36,22 @@ public final class NetworkStoreClientServiceTest {
 
         assertEquals(1L, service.searchProducts(null).getTotal());
         assertEquals(StoreCommands.PRODUCT_SEARCH, gateway.lastRequest.getCommand());
+        assertEquals("token-7", gateway.lastRequest.getSessionToken());
+    }
+
+    @Test public void productImageCarriesRequestedVariant() throws Exception {
+        RecordingGateway gateway = new RecordingGateway(); ClientSession session = new ClientSession();
+        session.open(new LoginResult(7L, "student", "学生", Role.STUDENT, "token-7"));
+        NetworkStoreClientService service = new NetworkStoreClientService(
+                new NetworkClientService(gateway), session);
+        gateway.payload = new byte[]{1, 2, 3};
+
+        service.getProductImage("store-image:12345678-1234-1234-1234-123456789abc",
+                "THUMBNAIL");
+
+        assertEquals(StoreCommands.PRODUCT_IMAGE, gateway.lastRequest.getCommand());
+        ProductImageRequest request = (ProductImageRequest) gateway.lastRequest.getPayload();
+        assertEquals("THUMBNAIL", request.getVariant());
         assertEquals("token-7", gateway.lastRequest.getSessionToken());
     }
 

@@ -3,11 +3,13 @@ package edu.seu.vcampus.client.view;
 import edu.seu.vcampus.client.auth.ClientServiceException;
 import edu.seu.vcampus.client.controller.LoginController;
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.FeedbackBanner;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.common.dto.auth.LoginResult;
+import edu.seu.vcampus.common.protocol.ResultCodes;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -46,6 +48,7 @@ public final class LoginFormPanel extends JPanel {
         this.controller = controller;
         this.listener = listener;
         this.registerAction = registerAction;
+        InputLimiter.account(accountField); InputLimiter.length(passwordField, 72);
         UiFactory.styleLoginField(accountField);
         UiFactory.styleLoginField(passwordField);
         setOpaque(false);
@@ -144,7 +147,13 @@ public final class LoginFormPanel extends JPanel {
             public void onFailure(ClientServiceException error) {
                 setLoading(false);
                 feedback.show(FeedbackBanner.Type.ERROR, error.getMessage());
-                passwordError.setText("请检查账号和密码");
+                if (ResultCodes.INVALID_CREDENTIALS.equals(error.getCode())) {
+                    passwordError.setText("请检查账号和密码");
+                } else if (ResultCodes.ACCOUNT_DISABLED.equals(error.getCode())) {
+                    passwordError.setText("当前账号不可用");
+                } else {
+                    passwordError.setText("");
+                }
             }
         });
     }

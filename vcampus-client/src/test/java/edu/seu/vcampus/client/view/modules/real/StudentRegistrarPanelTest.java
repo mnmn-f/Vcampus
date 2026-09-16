@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /** 学籍页保留档案查询，建档和账号选择不暴露内部编号。 */
@@ -53,7 +54,7 @@ public final class StudentRegistrarPanelTest {
                 textField(panel, "studentNo").setText(" S001 ");
                 combo(panel, "college").setSelectedItem("电气工程学院");
                 combo(panel, "major").setSelectedItem("电气工程及其自动化");
-                combo(panel, "className").setSelectedItem("电气2601");
+                combo(panel, "className").setSelectedItem("电气工程及其自动化2026级1班");
                 findSearchField(panel).setText("学生一");
                 findStatusBox(panel).setSelectedItem("在读");
             }
@@ -66,12 +67,13 @@ public final class StudentRegistrarPanelTest {
         assertEquals("学生一", combined.getDisplayName());
         assertEquals("电气工程学院", combined.getCollege());
         assertEquals("电气工程及其自动化", combined.getMajor());
-        assertEquals("电气2601", combined.getClassName());
+        assertEquals("电气工程及其自动化2026级1班", combined.getClassName());
         assertEquals(StudentStatus.ENROLLED, combined.getStatus());
         assertEquals(1, combined.getPage());
 
         assertNull(findButton(panel, "重置"));
         assertNull(findButton(panel, "新建档案"));
+        assertNotNull(findButton(panel, "录入新生"));
         assertNull(findButton(panel, "成绩档案核对"));
     }
 

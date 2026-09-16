@@ -1,9 +1,11 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.store.StoreClientService;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
+import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.OrderPage;
@@ -18,8 +20,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
-import javax.swing.JOptionPane;
-import java.awt.GridLayout;
 import java.awt.BorderLayout;
 
 /** 学生本人订单支付和商店管理员订单查询、详情及合法状态流转。 */
@@ -28,11 +28,19 @@ public final class StoreOrdersPanel extends JPanel {
     private final StoreClientService service;
     private final Role role;
     private final Runnable orderChanged;
-    private final JLabel detail = UiFactory.muted("选择订单查看详情。");
+    private final JLabel detail = UiFactory.muted("");
     private final AsyncPagedTable<OrderDto> orders;
     private JButton payButton;
     private JButton cancelButton;
+    private JButton managerCancelButton;
+    private JButton refundButton;
+    private final JComboBox<RealUi.CodeOption> shippingStatus = new JComboBox<RealUi.CodeOption>();
+    private final JTextField tracking = UiFactory.textField(18);
+    private final JTextField shippingRemark = UiFactory.textField(22);
+    private final JButton saveShippingButton = new PrimaryButton("保存物流进度");
     private boolean paymentRunning;
+    private boolean statusRunning;
+    private boolean shippingRunning;
     private long selectedOrderId;
 
     public StoreOrdersPanel(BasePage page, StoreClientService service, Role role) {
@@ -44,6 +52,8 @@ public final class StoreOrdersPanel extends JPanel {
         this.page = page; this.service = service; this.role = role; this.orderChanged = orderChanged;
         orders = table(); orders.setItemKey(OrderDto::getId); orders.setLiveSelectionUpdates(true); add(orders);
         JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
+        if (role == Role.STORE_MANAGER) add(shippingEditor());
+        updateManagerActions(null);
     }
 
     public void reload() { orders.reload(); }
@@ -75,24 +85,20 @@ public final class StoreOrdersPanel extends JPanel {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { update("CANCELLED", true); }
             }); table.addAction(cancelButton);
         } else if (role == Role.STORE_MANAGER) {
-            JButton complete = new PrimaryButton("标记已完成"); complete.addActionListener(new java.awt.event.ActionListener() {
-                @Override public void actionPerformed(java.awt.event.ActionEvent e) { update("COMPLETED", false); }
-            }); table.addAction(complete);
-            JButton cancel = new DangerButton("取消订单"); cancel.addActionListener(new java.awt.event.ActionListener() {
+            managerCancelButton = new DangerButton("取消订单"); managerCancelButton.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { update("CANCELLED", true); }
-            }); table.addAction(cancel);
-            JButton refund = new DangerButton("办理退款"); refund.addActionListener(new java.awt.event.ActionListener() {
+            }); table.addAction(managerCancelButton);
+            refundButton = new DangerButton("办理退款"); refundButton.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { update("REFUNDED", true); }
-            }); table.addAction(refund);
-            JButton shipping = new PrimaryButton("更新物流"); shipping.addActionListener(e -> updateShipping()); table.addAction(shipping);
+            }); table.addAction(refundButton);
         }
         return table;
     }
 
     private void select(final OrderDto value) {
         selectedOrderId = value == null ? 0L : value.getId();
-        updateStudentActions(value);
-        if (value == null) { detail.setText("选择订单查看详情。"); return; }
+        updateStudentActions(value); updateManagerActions(value); updateShippingEditor(value);
+        if (value == null) { detail.setText(""); return; }
         detail.setText("订单详情：" + RealUi.text(value.getOrderNo()) + "　金额 ¥" + RealUi.text(value.getTotalAmount())
                 + "　状态：" + RealUi.status(value.getStatus()) + "　物流：" + shippingDetail(value) + "　商品：" + summary(value));
         AsyncTask.run(new AsyncTask.Work<OrderDto>() {
@@ -125,13 +131,14 @@ public final class StoreOrdersPanel extends JPanel {
         final OrderDto value = orders.selectedItem(); if (value == null) { page.showWarning("请先选择订单。"); return; }
         if (role == Role.STUDENT && !"CREATED".equals(value.getStatus())) { page.showWarning("只有待支付订单可以取消。"); updateStudentActions(value); return; }
         if (confirm && !RealUi.confirm(this, "确认将订单“" + RealUi.text(value.getOrderNo()) + "”处理为“" + RealUi.status(target) + "”？")) return;
+        statusRunning = true; updateManagerActions(value);
         final OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(value.getId(), target);
         AsyncTask.run(new AsyncTask.Work<OrderDto>() {
                     @Override public OrderDto run() throws Exception { return service.updateOrderStatus(request); }
                 },
                 new AsyncTask.Callback<OrderDto>() {
-                    @Override public void onSuccess(OrderDto result) { updateStudentActions(result); select(result); page.showSuccess("订单状态已更新。"); orders.reload(); changed(); }
-                    @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+                    @Override public void onSuccess(OrderDto result) { statusRunning = false; updateStudentActions(result); select(result); page.showSuccess("订单状态已更新。"); orders.reload(); changed(); }
+                    @Override public void onFailure(Throwable error) { statusRunning = false; updateManagerActions(value); page.showError(AsyncTask.message(error)); }
                 });
     }
 
@@ -144,22 +151,63 @@ public final class StoreOrdersPanel extends JPanel {
 
     private void changed() { if (orderChanged != null) orderChanged.run(); }
 
+    private JPanel shippingEditor() {
+        InputLimiter.code(tracking, 80); InputLimiter.length(shippingRemark, 500);
+        saveShippingButton.addActionListener(e -> updateShipping());
+        JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(220, 4, 10));
+        fields.setOpaque(false);
+        fields.add(UiFactory.labelledField("物流状态", shippingStatus));
+        fields.add(UiFactory.labelledField("物流单号（可选）", tracking));
+        fields.add(UiFactory.labelledField("物流说明（可选）", shippingRemark));
+        fields.add(UiFactory.formActionCell(saveShippingButton));
+        SectionCard card = new SectionCard("物流进度", ""); card.setContent(fields); return card;
+    }
+
     private void updateShipping() {
         final OrderDto value = orders.selectedItem(); if (value == null) { page.showWarning("请先选择订单。"); return; }
-        JComboBox<RealUi.CodeOption> status = new JComboBox<RealUi.CodeOption>(RealUi.options(
-                "PREPARING", "SHIPPED", "IN_TRANSIT", "READY_FOR_PICKUP", "DELIVERED"));
-        status.setSelectedItem(RealUi.option(value.getShippingStatus() == null ? "PREPARING" : value.getShippingStatus()));
-        JTextField tracking = UiFactory.textField(18); tracking.setText(RealUi.input(value.getTrackingNo()));
-        JTextField remark = UiFactory.textField(22); remark.setText(RealUi.input(value.getShippingRemark()));
-        JPanel fields = new JPanel(new GridLayout(0, 1, 0, 8)); fields.add(UiFactory.labelledField("物流状态", status));
-        fields.add(UiFactory.labelledField("物流单号（可选）", tracking)); fields.add(UiFactory.labelledField("物流说明（可选）", remark));
-        if (JOptionPane.showConfirmDialog(this, fields, "更新订单物流", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) return;
-        final OrderShippingUpdateRequest request = new OrderShippingUpdateRequest(value.getId(), RealUi.code(status.getSelectedItem()),
-                RealUi.optional(tracking.getText()), RealUi.optional(remark.getText()));
+        if (!canUpdateShipping(value) || shippingRunning) { page.showWarning("当前订单无需更新物流。"); return; }
+        shippingRunning = true; updateManagerActions(value);
+        final OrderShippingUpdateRequest request = new OrderShippingUpdateRequest(value.getId(), RealUi.code(shippingStatus.getSelectedItem()),
+                RealUi.optional(tracking.getText()), RealUi.optional(shippingRemark.getText()));
         AsyncTask.run(() -> service.updateOrderShipping(request), new AsyncTask.Callback<OrderDto>() {
-            @Override public void onSuccess(OrderDto result) { page.showSuccess("物流状态已更新。"); select(result); orders.reload(); }
-            @Override public void onFailure(Throwable error) { page.showError(AsyncTask.message(error)); }
+            @Override public void onSuccess(OrderDto result) {
+                shippingRunning = false; page.showSuccess("物流状态已更新。送达后订单会自动完成。");
+                select(result); orders.reload(); changed();
+            }
+            @Override public void onFailure(Throwable error) {
+                shippingRunning = false; updateManagerActions(value); page.showError(AsyncTask.message(error));
+            }
         });
+    }
+
+    private void updateManagerActions(OrderDto value) {
+        if (role != Role.STORE_MANAGER) return;
+        String status = value == null ? "" : value.getStatus();
+        boolean idle = !statusRunning && !shippingRunning;
+        if (managerCancelButton != null) managerCancelButton.setEnabled(idle && "CREATED".equals(status));
+        if (refundButton != null) refundButton.setEnabled(idle && ("PAID".equals(status) || "COMPLETED".equals(status)));
+        boolean shipping = idle && canUpdateShipping(value);
+        saveShippingButton.setEnabled(shipping); shippingStatus.setEnabled(shipping);
+        tracking.setEnabled(shipping); shippingRemark.setEnabled(shipping);
+    }
+
+    private void updateShippingEditor(OrderDto value) {
+        if (role != Role.STORE_MANAGER) return;
+        String current = value == null || value.getShippingStatus() == null ? "PREPARING" : value.getShippingStatus();
+        String[] flow = {"PREPARING", "SHIPPED", "IN_TRANSIT", "READY_FOR_PICKUP", "DELIVERED"};
+        int start = 0;
+        for (int index = 0; index < flow.length; index++) if (flow[index].equals(current)) start = index;
+        shippingStatus.removeAllItems();
+        for (int index = start; index < flow.length; index++) shippingStatus.addItem(RealUi.option(flow[index]));
+        shippingStatus.setSelectedItem(RealUi.option(current));
+        tracking.setText(value == null ? "" : RealUi.input(value.getTrackingNo()));
+        shippingRemark.setText(value == null ? "" : RealUi.input(value.getShippingRemark()));
+        updateManagerActions(value);
+    }
+
+    private static boolean canUpdateShipping(OrderDto value) {
+        if (value == null || "DELIVERED".equals(value.getShippingStatus())) return false;
+        return "PAID".equals(value.getStatus()) || "COMPLETED".equals(value.getStatus());
     }
 
     private static PageSlice<OrderDto> slice(OrderPage value) { return new PageSlice<OrderDto>(value.getItems(), value.getTotal(), value.getPage(), value.getPageSize()); }

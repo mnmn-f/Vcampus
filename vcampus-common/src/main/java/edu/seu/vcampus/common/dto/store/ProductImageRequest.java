@@ -6,6 +6,12 @@ import java.io.Serializable;
 public final class ProductImageRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private final String reference;
-    public ProductImageRequest(String reference) { this.reference = reference; }
+    private final String variant;
+    public ProductImageRequest(String reference) { this(reference, "FULL"); }
+    public ProductImageRequest(String reference, String variant) {
+        this.reference = reference;
+        this.variant = variant == null ? "FULL" : variant;
+    }
     public String getReference() { return reference; }
+    public String getVariant() { return variant; }
 }

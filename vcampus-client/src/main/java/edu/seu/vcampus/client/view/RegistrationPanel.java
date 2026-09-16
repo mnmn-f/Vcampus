@@ -2,14 +2,15 @@ package edu.seu.vcampus.client.view;
 
 import edu.seu.vcampus.client.service.identity.IdentityClientService;
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.modules.real.AsyncTask;
-import edu.seu.vcampus.client.view.modules.real.RealUi;
 import edu.seu.vcampus.common.dto.identity.ProfileDto;
 import edu.seu.vcampus.common.dto.identity.RegistrationRequest;
+import edu.seu.vcampus.common.validation.InputRules;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -29,6 +30,8 @@ public final class RegistrationPanel extends SectionCard {
 
     public RegistrationPanel(IdentityClientService service, final Runnable back) {
         super("注册校园账号", "注册成功后默认获得学生角色，请返回登录页使用新账号登录。"); this.service = service; this.back = back;
+        InputLimiter.account(account); InputLimiter.personName(name); InputLimiter.email(email);
+        InputLimiter.length(password, 72); InputLimiter.length(confirm, 72);
         UiFactory.styleLoginField(account); UiFactory.styleLoginField(name); UiFactory.styleLoginField(email);
         JPanel fields = fields();
         JPanel actions = UiFactory.horizontal(8); JButton submit = new PrimaryButton("提交注册"); submit.addActionListener(new java.awt.event.ActionListener() {
@@ -58,8 +61,9 @@ public final class RegistrationPanel extends SectionCard {
     private void submit() {
         try {
             String pass = new String(password.getPassword()); if (!pass.equals(new String(confirm.getPassword()))) throw new IllegalArgumentException("两次密码不一致");
-            final RegistrationRequest request = new RegistrationRequest(RealUi.required(account.getText(), "校园账号"),
-                    RealUi.required(pass, "登录密码"), RealUi.required(name.getText(), "显示名"), RealUi.optional(email.getText()), null);
+            final RegistrationRequest request = new RegistrationRequest(InputRules.account(account.getText()),
+                    InputRules.password(pass, "登录密码"), InputRules.personName(name.getText(), "姓名"),
+                    InputRules.email(email.getText(), false), null);
             error.setText("正在提交…");
             AsyncTask.run(new AsyncTask.Work<ProfileDto>() {
                 @Override public ProfileDto run() throws Exception { return service.register(request); }

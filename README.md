@@ -8,7 +8,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 - [vcampus-client](vcampus-client)：Swing 视图、页面控制器、客户端服务和网络网关。
 - [vcampus-server](vcampus-server)：TCP 服务、命令路由、业务服务、事务、DAO 和 MySQL 访问。
 - [scripts/start-lan-server.ps1](scripts/start-lan-server.ps1)、[scripts/start-lan-client.ps1](scripts/start-lan-client.ps1)：Windows 局域网共享启动脚本；单机启动仍可使用 `start-server.ps1`、`start-client.ps1`。
-- 设计与验收文档：[ARCHITECTURE](docs/ARCHITECTURE.md)、[FEATURE_BASELINE](docs/FEATURE_BASELINE.md)、[PAGE_MAP](docs/PAGE_MAP.md)、[IMPLEMENTATION_ROADMAP](docs/IMPLEMENTATION_ROADMAP.md)、[DATABASE](docs/DATABASE.md)、[DEPLOYMENT](docs/DEPLOYMENT.md)、[ROLE_MATRIX](docs/ROLE_MATRIX.md)、[UI_SPEC](docs/UI_SPEC.md)、[UI_PREVIEW_GALLERY](docs/UI_PREVIEW_GALLERY.md)、[AI_MODULE](docs/AI_MODULE.md)。
+- 设计与验收文档：[ARCHITECTURE](docs/ARCHITECTURE.md)、[FEATURE_BASELINE](docs/FEATURE_BASELINE.md)、[PAGE_MAP](docs/PAGE_MAP.md)、[IMPLEMENTATION_ROADMAP](docs/IMPLEMENTATION_ROADMAP.md)、[DATABASE](docs/DATABASE.md)、[DEPLOYMENT](docs/DEPLOYMENT.md)、[ROLE_MATRIX](docs/ROLE_MATRIX.md)、[UI_SPEC](docs/UI_SPEC.md)、[UI_PREVIEW_GALLERY](docs/UI_PREVIEW_GALLERY.md)、[SEU_DATA_SOURCES](docs/SEU_DATA_SOURCES.md)、[AI_MODULE](docs/AI_MODULE.md)。
 
 界面入口可先看 [UI 视觉证据画廊](docs/UI_PREVIEW_GALLERY.md)：其中包含登录页、九类职责主页和代表性业务页。画廊图片是离屏预览，用于核对布局与人员分流，不代替真实数据库验收。
 
@@ -24,7 +24,7 @@ VCampus 是一个基于 Java Swing、TCP Socket、MVC/分层架构和 MySQL 8 �
 
 ## MySQL 迁移
 
-V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务结构；V17 增加头像上传字段；V18 写入扩展演示数据；V19 将成绩核对权限归入教务管理；V20 保存管理员上传的商品图片。执行顺序固定为：
+V1 建立基线结构；V2 写入基础演示数据；V3-V22 逐步扩展业务结构和自然业务数据；V23 增加每日订单流水；V24 将商品原图和缩略图独立存储；V25 扩展订单的叠加促销快照。执行顺序固定为：
 
     vcampus-server/src/main/resources/db/migration/V1__baseline.sql
     vcampus-server/src/main/resources/db/migration/V2__demo_data.sql
@@ -46,6 +46,11 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
     vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
     vcampus-server/src/main/resources/db/migration/V20__store_product_images.sql
+    vcampus-server/src/main/resources/db/migration/V21__natural_campus_demo_data.sql
+    vcampus-server/src/main/resources/db/migration/V22__readable_product_codes.sql
+    vcampus-server/src/main/resources/db/migration/V23__store_order_daily_sequence.sql
+    vcampus-server/src/main/resources/db/migration/V24__store_product_image_variants.sql
+    vcampus-server/src/main/resources/db/migration/V25__store_promotion_snapshot_capacity.sql
 
 以下重定向命令用于 CMD/bash，`<db-user>` 要替换成实际数据库账号。PowerShell 不支持这样的 `<` 输入重定向：可先在项目根目录运行 `mysql --default-character-set=utf8mb4 -u root -p`，进入 `mysql>` 后依次 `source` 上面的 SQL 路径；V1 完成后先执行 `USE vcampus;`，再继续后续迁移。已有数据库不要为了更新重复导入基线和演示数据，应仅补齐尚未执行的迁移。
 
@@ -69,10 +74,15 @@ V1 建立基线结构；V2 写入基础演示数据；V3-V16 逐步扩展业务�
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V18__expanded_demo_data.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V19__academic_grade_permissions.sql
     mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V20__store_product_images.sql
+mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V21__natural_campus_demo_data.sql
+mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V22__readable_product_codes.sql
+mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V23__store_order_daily_sequence.sql
+mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V24__store_product_image_variants.sql
+mysql --default-character-set=utf8mb4 -u <db-user> -p < vcampus-server/src/main/resources/db/migration/V25__store_promotion_snapshot_capacity.sql
 
-商品详情、评价和图片上传入口见 [图片与评价说明](docs/IMAGES_AND_PRODUCT_REVIEWS.md)。已有 V19 数据库只需补 V20，并同步更新服务端和 Swing 客户端；不要重新导入演示数据。
+商品详情、评价和图片上传入口见 [图片与评价说明](docs/IMAGES_AND_PRODUCT_REVIEWS.md)。已有数据库只补尚未执行的迁移；不要重新导入基线或覆盖业务数据。
 
-脚本包含幂等键和重复保护；V18 提供 20 个测试学生、6 个测试教师及多状态业务记录，正式环境不要执行 V2/V18。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券和库存由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
+脚本包含幂等键和重复保护；V18 提供多人员、多状态业务记录，V21 将页面会显示的占位命名改为自然姓名、课程、商品、公告和校园场景，正式环境不要执行 V2/V18。学生平均学分绩点按东南大学 4.8 制在服务端统一计算，统计和导出不接受客户端指定他人 userId。结算价格、促销、优惠券和库存由服务端事务重算。迁移、约束和真实 MySQL 证据见 [DB_COMPATIBILITY_REPORT.md](docs/DB_COMPATIBILITY_REPORT.md)。
 
 服务端从 JVM 属性或环境变量读取数据库连接：
 

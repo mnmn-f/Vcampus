@@ -7,6 +7,8 @@ import org.threeten.bp.LocalDate;
 public final class StudentProfileCreateRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private final String account;
+    private final String displayName;
+    private final String initialPassword;
     private final String studentNo;
     private final String college;
     private final String major;
@@ -27,7 +29,21 @@ public final class StudentProfileCreateRequest implements Serializable {
                                        String gender, LocalDate birthDate, String address,
                                        String emergencyContact, String emergencyPhone,
                                        StudentStatus status) {
+        this(account, null, null, studentNo, college, major, className, enrollmentYear,
+                expectedGraduationYear, degreeLevel, gender, birthDate, address,
+                emergencyContact, emergencyPhone, status);
+    }
+
+    /** 学籍管理员直接录入新生时，同时携带新账号所需的姓名和初始密码。 */
+    public StudentProfileCreateRequest(String account, String displayName,
+                                       String initialPassword, String studentNo,
+                                       String college, String major, String className,
+                                       Integer enrollmentYear, Integer expectedGraduationYear,
+                                       String degreeLevel, String gender, LocalDate birthDate,
+                                       String address, String emergencyContact,
+                                       String emergencyPhone, StudentStatus status) {
         this.account = clean(account); this.studentNo = clean(studentNo);
+        this.displayName = clean(displayName); this.initialPassword = initialPassword;
         this.college = clean(college); this.major = clean(major);
         this.className = clean(className); this.enrollmentYear = enrollmentYear;
         this.expectedGraduationYear = expectedGraduationYear;
@@ -38,6 +54,9 @@ public final class StudentProfileCreateRequest implements Serializable {
     }
 
     public String getAccount() { return account; }
+    public String getDisplayName() { return displayName; }
+    public String getInitialPassword() { return initialPassword; }
+    public boolean isCreateAccount() { return displayName != null || initialPassword != null; }
     public String getStudentNo() { return studentNo; }
     public String getCollege() { return college; }
     public String getMajor() { return major; }

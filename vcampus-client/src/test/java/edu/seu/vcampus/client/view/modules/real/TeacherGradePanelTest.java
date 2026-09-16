@@ -30,7 +30,6 @@ import org.threeten.bp.LocalDateTime;
 
 import javax.swing.JButton;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import java.awt.Component;
@@ -69,10 +68,10 @@ public final class TeacherGradePanelTest {
             @Override public void run() {
                 table(panel).setRowSelectionInterval(0, 0);
                 assertEquals("92.00", text(panel, "score").getText());
-                assertEquals("已有成绩", area(panel, "remark").getText());
+                assertEquals("已有成绩", text(panel, "remark").getText());
                 text(panel, "score").setText("91.5");
-                area(panel, "remark").setText("平时成绩良好");
-                findButton(panel, "登记 / 修改成绩").doClick();
+                text(panel, "remark").setText("平时成绩良好");
+                findButton(panel, "保存成绩").doClick();
             }
         });
 
@@ -83,6 +82,8 @@ public final class TeacherGradePanelTest {
         assertFalse(hasLabel(panel, "选课记录编号"));
         assertEquals(1, table(panel).getRowCount());
         assertEquals("S007", table(panel).getValueAt(0, 0));
+        assertEquals("成绩", table(panel).getColumnName(6));
+        assertEquals("92.00", table(panel).getValueAt(0, 6));
     }
 
     private static void waitForRoster(final TeacherGradePanel panel) throws Exception {
@@ -106,7 +107,6 @@ public final class TeacherGradePanelTest {
     }
     private static JTable table(TeacherGradePanel panel) { return value(panel, "roster"); }
     private static JTextField text(TeacherGradePanel panel, String name) { return value(panel, name); }
-    private static JTextArea area(TeacherGradePanel panel, String name) { return value(panel, name); }
 
     private static JButton findButton(Component root, String text) {
         if (root instanceof JButton && text.equals(((JButton) root).getText())) return (JButton) root;

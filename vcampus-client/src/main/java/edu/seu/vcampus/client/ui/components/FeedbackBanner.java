@@ -14,6 +14,7 @@ public class FeedbackBanner extends JPanel {
 
     private final JLabel icon = new JLabel();
     private final JLabel message = new JLabel();
+    private Type currentType;
 
     public FeedbackBanner() {
         super(new BorderLayout(8, 0));
@@ -34,6 +35,7 @@ public class FeedbackBanner extends JPanel {
         if (type == null) {
             type = Type.INFO;
         }
+        currentType = type;
         icon.setText(iconText(type));
         message.setText(text == null ? "" : text);
         switch (type) {
@@ -77,6 +79,11 @@ public class FeedbackBanner extends JPanel {
 
     public void hideBanner() {
         setVisible(false);
+    }
+
+    public void hideError(String text) {
+        if (currentType == Type.ERROR && (text == null
+                ? message.getText() == null : text.equals(message.getText()))) hideBanner();
     }
 
     public String getMessageText() {

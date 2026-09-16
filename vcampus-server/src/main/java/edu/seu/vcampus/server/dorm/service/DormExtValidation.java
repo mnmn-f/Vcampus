@@ -3,6 +3,7 @@ package edu.seu.vcampus.server.dorm.service;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import edu.seu.vcampus.common.dto.dorm.ext.*;
 import edu.seu.vcampus.common.protocol.command.DormExtCommands;
+import edu.seu.vcampus.common.validation.InputRules;
 import java.math.BigDecimal;
 
 /** Shared extension-specific validation; all branches use one stable result-code namespace. */
@@ -25,7 +26,11 @@ final class DormExtValidation {
         if (r.getPeriodEnd().isBefore(r.getPeriodStart())) throw invalid("账期结束日期不能早于开始日期");
     }
     static void visitor(VisitorRegistrationRequest r) {
-        if (r == null) throw invalid("登记参数不能为空"); text(r.getVisitorName(), "来访人姓名"); text(r.getVisitorIdCard(), "来访人证件号"); text(r.getVisitReason(), "来访事由");
+        if (r == null) throw invalid("登记参数不能为空");
+        try { InputRules.personName(r.getVisitorName(), "来访人姓名"); InputRules.identityDocument(r.getVisitorIdCard()); InputRules.mobile(r.getVisitorPhone(), false); }
+        catch (IllegalArgumentException ex) { throw invalid(ex.getMessage()); }
+        try { InputRules.limited(r.getVisitReason(), 500, "来访事由", true); }
+        catch (IllegalArgumentException ex) { throw invalid(ex.getMessage()); }
         if (r.getStartAt() == null || r.getEndAt() == null) throw invalid("来访起止时间不能为空");
         if (!r.getEndAt().isAfter(r.getStartAt())) throw invalid("离开时间必须晚于来访时间");
     }

@@ -30,9 +30,11 @@ final class MemoryReviewCandidates {
         int start = Math.min(rows.size(), q.getOffset());
         return new ReviewCandidatePage(rows.subList(start, Math.min(rows.size(), start + q.getPageSize())), rows.size());
     }
-    static ProductReviewPage page(Collection<ProductReviewDto> source, ProductReviewQuery query) {
+    static ProductReviewPage page(Collection<ProductReviewDto> source, java.util.Map<Long, Long> users,
+            ProductReviewQuery query, Long reviewerUserId) {
         ProductReviewQuery q = query == null ? new ProductReviewQuery(0) : query; List<ProductReviewDto> rows = new ArrayList<>();
         for (ProductReviewDto row : source) if ((q.getProductId() <= 0 || q.getProductId() == row.getProductId())
+                && (reviewerUserId == null || reviewerUserId.equals(users.get(row.getId())))
                 && (q.getKeyword() == null || String.valueOf(row.getContent()).toLowerCase(Locale.ROOT).contains(q.getKeyword().toLowerCase(Locale.ROOT)))) rows.add(row);
         rows.sort(Comparator.comparingLong(ProductReviewDto::getId).reversed());
         int start = Math.min(rows.size(), q.getOffset());

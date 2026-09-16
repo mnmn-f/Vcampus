@@ -54,7 +54,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
     private final JPanel side = new JPanel();
     /** 右栏：选中房间的床位平面。 */
     private final JPanel planSide = new JPanel();
-    private final javax.swing.JLabel planHint = DormUi.sub("先在中间的房间目录里选一间房。");
+    private final javax.swing.JLabel planHint = DormUi.sub("");
     private final JTextField bedId = UiFactory.textField(8);
     private final JTextField remark = UiFactory.textField(16);
     private AccommodationRequestDto selected;
@@ -174,7 +174,6 @@ public final class DormManagerHousingRequestPanel extends JPanel {
         planSide.removeAll();
         if (selected == null) {
             side.add(DormUi.header("受理申请", "在左侧选中一条住宿申请。", null, false));
-            side.add(DormUi.sub("选中后这里显示房间目录和受理动作，右边显示床位平面。"));
             finishRender();
             return;
         }
@@ -208,7 +207,6 @@ public final class DormManagerHousingRequestPanel extends JPanel {
             planSide.add(Box.createVerticalStrut(6));
             planSide.add(planHint);
         } else {
-            side.add(DormUi.sub("退宿不涉及床位，通过后学生的床位会自动释放。"));
             side.add(Box.createVerticalStrut(14));
         }
 
@@ -240,7 +238,6 @@ public final class DormManagerHousingRequestPanel extends JPanel {
         rows.add(buttons);
         if (!pending) {
             rows.add(Box.createVerticalStrut(10));
-            rows.add(DormUi.sub("这条申请已经处理过，按钮不可用。"));
         }
         JPanel box = DormUi.panel();
         box.add(rows, BorderLayout.CENTER);
@@ -271,7 +268,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
     private void loadPlan(final DormRoomDto room) {
         if (room == null) {
             plan.showRoom("未选中房间", null);
-            planHint.setText("先在中间的房间目录里选一间房。");
+            planHint.setText("");
             return;
         }
         final String caption = RealUi.text(room.getBuildingName()) + " " + RealUi.text(room.getRoomNo());

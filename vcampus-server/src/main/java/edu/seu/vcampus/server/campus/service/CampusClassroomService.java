@@ -54,6 +54,7 @@ final class CampusClassroomService extends CampusServiceSupport {
                 if (!"AVAILABLE".equals(room.getStatus())) throw new CampusException(CampusCommands.CLASSROOM_INVALID_STATE, "教室当前不可申请");
                 if (repository.hasConflict(c, request.getClassroomId(), request.getStartAt(), request.getEndAt(), 0L)) throw new CampusException(CampusCommands.CLASSROOM_CONFLICT, "该时段已有教室申请占用");
                 if (repository.hasApplicantConflict(c, session.getUserId(), request.getStartAt(), request.getEndAt())) throw new CampusException(CampusCommands.CLASSROOM_CONFLICT, "本人已有重叠教室申请");
+                requireFutureStart(request.getStartAt());
                 return repository.createReservation(c, request, session.getUserId());
             }
         });
@@ -89,6 +90,7 @@ final class CampusClassroomService extends CampusServiceSupport {
                 throw new CampusException(CampusCommands.CLASSROOM_INVALID_STATE, "预约已处理，不能重复审批");
             }
             if ("APPROVED".equals(request.getStatus())) {
+                requireFutureStart(old.getStartAt());
                 if (!"AVAILABLE".equals(room.getStatus())) throw new CampusException(CampusCommands.CLASSROOM_INVALID_STATE, "教室当前不可审批");
                 if (repository.hasConflict(c, old.getClassroomId(), old.getStartAt(),
                         old.getEndAt(), old.getId())) {
@@ -121,5 +123,12 @@ final class CampusClassroomService extends CampusServiceSupport {
         text(request.getPurpose(), "申请用途");
         if (request.getStartAt() == null || request.getEndAt() == null
                 || !request.getEndAt().isAfter(request.getStartAt())) throw new CampusException(CampusCommands.INVALID_INPUT, "预约时间范围不正确");
+        requireFutureStart(request.getStartAt());
+    }
+
+    private static void requireFutureStart(LocalDateTime start) {
+        if (start.isBefore(LocalDateTime.now())) {
+            throw new CampusException(CampusCommands.INVALID_INPUT, "预约开始时间不能早于当前时间");
+        }
     }
 }

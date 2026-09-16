@@ -21,6 +21,12 @@ final class MySqlStudentGradeReadRepository {
 
     static List<StudentGradeDto> findAll(Connection connection, long studentUserId,
                                          String semesterCode, Long courseId, int limit) {
+        return findAll(connection, studentUserId, semesterCode, courseId, null, limit);
+    }
+
+    static List<StudentGradeDto> findAll(Connection connection, long studentUserId,
+                                         String semesterCode, Long courseId,
+                                         String courseKeyword, int limit) {
         String sql = "SELECT " + MySqlStudentGradeRepository.GRADE_COLUMNS
                 + MySqlStudentGradeRepository.GRADE_FROM
                 + " WHERE e.student_user_id = ? AND e.status <> 'DROPPED'";
@@ -28,6 +34,10 @@ final class MySqlStudentGradeReadRepository {
             sql += " AND c.semester_code = ?";
         }
         if (courseId != null) sql += " AND e.course_id = ?";
+        if (hasText(courseKeyword)) {
+            sql += " AND (c.course_code LIKE CONCAT('%', ?, '%') "
+                    + "OR c.course_name LIKE CONCAT('%', ?, '%'))";
+        }
         sql += " ORDER BY c.course_code";
         if (limit > 0) sql += " LIMIT ?";
         List<StudentGradeDto> result = new ArrayList<StudentGradeDto>();
@@ -38,11 +48,19 @@ final class MySqlStudentGradeReadRepository {
                 statement.setString(index++, semesterCode.trim());
             }
             if (courseId != null) statement.setLong(index++, courseId.longValue());
+            if (hasText(courseKeyword)) {
+                statement.setString(index++, courseKeyword.trim());
+                statement.setString(index++, courseKeyword.trim());
+            }
             if (limit > 0) statement.setInt(index, limit);
             MySqlStudentGradeRepository.readRows(statement, result);
             return result;
         } catch (SQLException ex) {
             throw new StudentRepositoryException("failed to query all student grades", ex);
         }
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

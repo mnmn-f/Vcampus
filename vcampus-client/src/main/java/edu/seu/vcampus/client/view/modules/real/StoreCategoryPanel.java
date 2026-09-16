@@ -8,7 +8,6 @@ import edu.seu.vcampus.client.view.BasePage;
 import edu.seu.vcampus.common.dto.store.StoreCategoryDto;
 import edu.seu.vcampus.common.dto.store.StoreCategoryPage;
 import edu.seu.vcampus.common.dto.store.StoreCategoryWriteRequest;
-import java.awt.GridLayout;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -36,7 +35,17 @@ public final class StoreCategoryPanel extends SectionCard {
         JButton create = new PrimaryButton("新建分类");
         create.addActionListener(e -> { table.getTable().clearSelection(); selectedId = 0; code.setEditable(true); code.setText(""); name.setText(""); active.setSelectedIndex(0); });
         table.addAction(create);
-        JPanel fields=new JPanel(new GridLayout(1,4,10,8));fields.setOpaque(false);fields.add(UiFactory.labelledField("编码",code));fields.add(UiFactory.labelledField("名称",name));fields.add(UiFactory.labelledField("状态",active));JButton save=new PrimaryButton("保存分类");save.addActionListener(new java.awt.event.ActionListener(){@Override public void actionPerformed(java.awt.event.ActionEvent e){save();}});fields.add(save);JPanel content=UiFactory.vertical(10);content.add(table);content.add(fields);content.add(state);setContent(content);
+        JPanel fields = new JPanel(); fields.setOpaque(false);
+        fields.add(UiFactory.labelledField("编码", code));
+        fields.add(UiFactory.labelledField("名称", name));
+        fields.add(UiFactory.labelledField("状态", active));
+        JButton save = new PrimaryButton("保存分类");
+        save.addActionListener(new java.awt.event.ActionListener() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { save(); }
+        });
+        fields.add(UiFactory.formActionCell(save));
+        JPanel content = UiFactory.vertical(10);
+        content.add(table); content.add(fields); content.add(state); setContent(content);
         fields.setLayout(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(180, 4, 10));
     }
     public void reload(){table.reload();}

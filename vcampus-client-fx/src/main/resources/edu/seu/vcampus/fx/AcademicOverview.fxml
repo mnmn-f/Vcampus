@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="edu.seu.vcampus.fx.AcademicController" styleClass="page">
+    <top>
+        <VBox spacing="6.0">
+            <Label text="学籍概览" styleClass="page-title"/>
+            <Label text="查看学期成绩与学业表现" styleClass="page-subtitle"/>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="18.0">
+            <padding><Insets top="24.0" right="34.0" bottom="34.0" left="34.0"/></padding>
+            <GridPane hgap="14.0" vgap="14.0">
+                <VBox GridPane.columnIndex="0" styleClass="metric-card" prefWidth="190.0">
+                    <Label text="加权绩点" styleClass="metric-label"/><Label fx:id="weightedGpa" text="3.86" styleClass="metric-value"/>
+                    <Label text="本学期" styleClass="metric-note"/>
+                </VBox>
+                <VBox GridPane.columnIndex="1" styleClass="metric-card" prefWidth="190.0">
+                    <Label text="平均绩点" styleClass="metric-label"/><Label fx:id="averageGpa" text="3.78" styleClass="metric-value"/>
+                    <Label text="本学期" styleClass="metric-note"/>
+                </VBox>
+                <VBox GridPane.columnIndex="2" styleClass="metric-card" prefWidth="190.0">
+                    <Label text="加权均分" styleClass="metric-label"/><Label fx:id="weightedScore" text="88.1" styleClass="metric-value"/>
+                    <Label text="百分制" styleClass="metric-note"/>
+                </VBox>
+                <VBox GridPane.columnIndex="3" styleClass="metric-card" prefWidth="190.0">
+                    <Label text="平均均分" styleClass="metric-label"/><Label fx:id="averageScore" text="87.3" styleClass="metric-value"/>
+                    <Label text="百分制" styleClass="metric-note"/>
+                </VBox>
+            </GridPane>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Label text="成绩概览" styleClass="section-title-small"/>
+                <ComboBox fx:id="termSelector" onAction="#refreshTerm" prefWidth="200.0"/>
+            </HBox>
+            <HBox spacing="18.0" VBox.vgrow="ALWAYS">
+                <VBox styleClass="panel" HBox.hgrow="ALWAYS" prefWidth="450.0">
+                    <Label text="加权均分趋势" styleClass="panel-title"/>
+                    <LineChart fx:id="trendChart" animated="false" legendVisible="false" createSymbols="true"
+                               VBox.vgrow="ALWAYS" minHeight="230.0">
+                        <xAxis><CategoryAxis label="学期"/></xAxis>
+                        <yAxis><NumberAxis label="分数" lowerBound="75.0" upperBound="95.0" tickUnit="5.0"/></yAxis>
+                    </LineChart>
+                </VBox>
+                <VBox styleClass="panel" HBox.hgrow="ALWAYS" prefWidth="530.0">
+                    <Label text="本学期成绩" styleClass="panel-title"/>
+                    <TableView fx:id="gradeTable" VBox.vgrow="ALWAYS" prefHeight="260.0">
+                        <columns>
+                            <TableColumn fx:id="courseColumn" text="课程" prefWidth="190.0"/>
+                            <TableColumn fx:id="creditColumn" text="学分" prefWidth="70.0"/>
+                            <TableColumn fx:id="scoreColumn" text="成绩" prefWidth="70.0"/>
+                            <TableColumn fx:id="pointColumn" text="绩点" prefWidth="70.0"/>
+                            <TableColumn fx:id="statusColumn" text="状态" prefWidth="90.0"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>

@@ -26,7 +26,7 @@ public final class LibraryResourcesPanel extends JPanel {
     private final Role role;
     private final AsyncPagedTable<OnlineResourceView> resources;
     private final ResourceEditorPanel editor;
-    private final JLabel detail = UiFactory.muted("选择资源查看详情。");
+    private final JLabel detail = UiFactory.muted("");
     private final JTextField copyUrl = UiFactory.textField(42);
     private final JButton accessButton = new PrimaryButton("访问选中资源");
 
@@ -89,7 +89,7 @@ public final class LibraryResourcesPanel extends JPanel {
     private void select(OnlineResourceView value) {
         copyUrl.setVisible(false); copyUrl.setText("");
         if (value == null) {
-            detail.setText("选择资源查看详情。"); if (editor != null) editor.startNew(); return;
+            detail.setText(""); if (editor != null) editor.startNew(); return;
         }
         detail.setText("资源详情：" + RealUi.text(value.getTitle()) + "　类型："
                 + RealUi.text(value.getResourceType()) + "　地址：" + RealUi.text(value.getUrl())

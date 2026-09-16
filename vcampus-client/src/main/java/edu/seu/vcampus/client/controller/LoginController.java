@@ -46,7 +46,8 @@ public final class LoginController {
                     callback.onSuccess(get());
                 } catch (Exception e) {
                     callback.onFailure(new ClientServiceException("COMMON.INTERNAL_ERROR",
-                            "登录过程发生异常，请稍后重试。", e));
+                            e.getMessage() == null || e.getMessage().trim().isEmpty()
+                                    ? "登录过程发生异常，请稍后重试。" : e.getMessage(), e));
                 }
             }
         }.execute();

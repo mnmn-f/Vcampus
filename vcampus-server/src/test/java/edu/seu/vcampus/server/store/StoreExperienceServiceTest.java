@@ -7,6 +7,7 @@ import edu.seu.vcampus.common.dto.store.CheckoutPreviewDto;
 import edu.seu.vcampus.common.dto.store.CouponDto;
 import edu.seu.vcampus.common.dto.store.ProductDto;
 import edu.seu.vcampus.common.dto.store.PromotionDto;
+import edu.seu.vcampus.common.dto.store.PromotionWriteRequest;
 import edu.seu.vcampus.common.dto.store.StoreCategoryDto;
 import edu.seu.vcampus.common.security.Role;
 import edu.seu.vcampus.server.security.SessionContext;
@@ -56,5 +57,26 @@ public final class StoreExperienceServiceTest {
         service.claimCoupon(student,new edu.seu.vcampus.common.dto.store.CouponClaimRequest("C-2"));
         try { service.claimCoupon(student,new edu.seu.vcampus.common.dto.store.CouponClaimRequest("C-2")); assertTrue(false); }
         catch (StoreServiceException expected) { assertEquals(ResultCodes.CONFLICT, expected.getResultCode()); }
+    }
+
+    @Test public void fullReductionRequiresARealThresholdAndSmallerReduction() throws Exception {
+        SessionContext manager = new SessionContext("m", 20L, "manager", "商店管理员",
+                EnumSet.of(Role.STORE_MANAGER), Role.STORE_MANAGER);
+        org.threeten.bp.LocalDateTime start = org.threeten.bp.LocalDateTime.now();
+        try {
+            service.savePromotion(manager, new PromotionWriteRequest(0L, "BAD-1", "无门槛满减", "THRESHOLD",
+                    null, new BigDecimal("5"), "ALL", null, null, start, start.plusDays(1), false, true));
+            assertTrue(false);
+        } catch (StoreServiceException expected) {
+            assertEquals(ResultCodes.INVALID_INPUT, expected.getResultCode());
+        }
+        try {
+            service.savePromotion(manager, new PromotionWriteRequest(0L, "BAD-2", "减免过高", "THRESHOLD",
+                    new BigDecimal("10"), new BigDecimal("10"), "ALL", null, null,
+                    start, start.plusDays(1), false, true));
+            assertTrue(false);
+        } catch (StoreServiceException expected) {
+            assertEquals(ResultCodes.INVALID_INPUT, expected.getResultCode());
+        }
     }
 }

@@ -29,9 +29,11 @@ public final class RealStorePage extends BasePage {
         final StoreCartPanel cart = new StoreCartPanel(this, services.store(), new Runnable() {
             @Override public void run() { orders.reload(); }
         });
-        tabs.addTask("选购商品", new StoreProductsPanel(this, services.store(), Role.STUDENT, new Runnable() {
+        final StoreProductsPanel products = new StoreProductsPanel(this, services.store(), Role.STUDENT, new Runnable() {
             @Override public void run() { cart.reload(); }
-        }));
+        });
+        reviews.setReviewChanged(products::reload);
+        tabs.addTask("选购商品", products);
         tabs.addTask("购物车", cart);
         tabs.addTask("我的订单", orders);
         tabs.addTask("商品评价", reviews);

@@ -93,6 +93,23 @@ public final class StudentGradeInsightServiceTest {
         assertEquals(new BigDecimal("4.50"), export.getMetrics().getWeightedGpa());
     }
 
+    @Test
+    public void searchesCourseCodeAndExportsTheSameVisibleRange() throws Exception {
+        repository.addGrade(grade(1L, 1001L, 1L, 101L, "2026-FALL", "3", "95", true));
+        repository.addGrade(grade(2L, 1002L, 1L, 102L, "2026-FALL", "2", "80", true));
+
+        StudentGradeReportDto report = service.getOwnGradeReport(student,
+                StudentGradeQuery.search("2026-FALL", "C102", 1, 20));
+        assertEquals(1L, report.getGrades().getTotal());
+        assertEquals("C102", report.getGrades().getItems().get(0).getCourseCode());
+
+        StudentGradeExportDto export = service.exportOwnGrades(student,
+                edu.seu.vcampus.common.dto.student.StudentGradeExportQuery.search(
+                        "2026-FALL", "C102"));
+        assertEquals(1, export.getItems().size());
+        assertEquals("C102", export.getItems().get(0).getCourseCode());
+    }
+
     private static StudentGradeDto grade(long id, long enrollmentId, long studentId,
                                          long courseId, String term, String credits,
                                          String score, boolean included) {

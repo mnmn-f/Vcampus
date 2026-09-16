@@ -44,7 +44,8 @@ public final class AiMonitorPanel extends SectionCard {
         refresh.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) { refresh(); }
         });
-        root.add(grid, BorderLayout.CENTER); root.add(refresh, BorderLayout.SOUTH); return root;
+        JPanel actions = UiFactory.horizontal(8); actions.add(refresh);
+        root.add(grid, BorderLayout.CENTER); root.add(actions, BorderLayout.SOUTH); return root;
     }
 
     private JComponent item(String name, JLabel value) {

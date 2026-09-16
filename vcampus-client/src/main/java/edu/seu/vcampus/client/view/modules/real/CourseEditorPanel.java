@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
@@ -43,6 +44,9 @@ public final class CourseEditorPanel extends SectionCard {
     public CourseEditorPanel(Listener listener) {
         super("课程详情与维护", "维护课程信息和授课教师。");
         this.listener = listener;
+        InputLimiter.code(code, 64); InputLimiter.length(name, 160); InputLimiter.code(semester, 32);
+        InputLimiter.decimal(credits, 3, 2); InputLimiter.unsignedInteger(hours, 4);
+        InputLimiter.unsignedInteger(capacity, 5); InputLimiter.numericList(teachers, 500);
         type.setFont(DesignTokens.regular(13)); status.setFont(DesignTokens.regular(13)); RealUi.codeRenderer(type); RealUi.codeRenderer(status);
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         addField(fields, "课程编号", code); addField(fields, "课程名称", name);

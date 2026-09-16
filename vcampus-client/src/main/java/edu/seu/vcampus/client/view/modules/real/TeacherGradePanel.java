@@ -3,6 +3,7 @@ package edu.seu.vcampus.client.view.modules.real;
 import edu.seu.vcampus.client.service.academic.AcademicClientService;
 import edu.seu.vcampus.client.service.student.StudentRecordClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
@@ -19,13 +20,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GridLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -37,12 +39,12 @@ public final class TeacherGradePanel extends SectionCard {
     private final StudentRecordClientService grades;
     private final JComboBox<CourseOption> courses = new JComboBox<CourseOption>();
     private final DefaultTableModel rosterModel = new DefaultTableModel(
-            new String[]{"学号", "姓名", "学院", "专业", "班级", "选课状态"}, 0) {
+            new String[]{"学号", "姓名", "学院", "专业", "班级", "选课状态", "成绩"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
     private final JTable roster = new JTable(rosterModel);
     private final JTextField score = UiFactory.textField(12);
-    private final JTextArea remark = UiFactory.textArea(3, 24);
+    private final JTextField remark = UiFactory.textField(24);
     private final JLabel state = UiFactory.muted("正在加载本人授课课程…");
     private List<CourseRosterEntryDto> rosterEntries =
             Collections.<CourseRosterEntryDto>emptyList();
@@ -51,23 +53,22 @@ public final class TeacherGradePanel extends SectionCard {
 
     public TeacherGradePanel(BasePage page, AcademicClientService academic,
                              StudentRecordClientService grades) {
-        super("成绩登记", "选择本人授课课程及未退课学生，成绩保存复用现有登记链路。");
+        super("成绩登记", "");
         if (page == null || academic == null || grades == null) {
             throw new IllegalArgumentException("grade panel dependencies are required");
         }
         this.page = page; this.academic = academic; this.grades = grades;
+        InputLimiter.decimal(score, 3, 2); InputLimiter.length(remark, 500);
         configureRoster();
         courses.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { loadRoster(); }
         });
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 12, 8)); form.setOpaque(false);
-        form.add(UiFactory.labelledField("成绩（0-100）", score));
-        form.add(UiFactory.labelledField("备注", remark));
+        JPanel form = gradeForm();
 
         JPanel footer = new JPanel(new BorderLayout(0, 10)); footer.setOpaque(false);
         footer.add(form, BorderLayout.CENTER);
-        JPanel actions = UiFactory.horizontal(8); JButton save = new PrimaryButton("登记 / 修改成绩");
+        JPanel actions = UiFactory.horizontal(8); JButton save = new PrimaryButton("保存成绩");
         save.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { submit(); }
         });
@@ -81,6 +82,18 @@ public final class TeacherGradePanel extends SectionCard {
         content.add(footer, BorderLayout.SOUTH);
         setContent(content);
         loadCourses();
+    }
+
+    private JPanel gradeForm() {
+        JPanel form = new JPanel(new GridBagLayout()); form.setOpaque(false);
+        GridBagConstraints left = new GridBagConstraints(); left.gridx = 0; left.gridy = 0;
+        left.weightx = 1; left.fill = GridBagConstraints.HORIZONTAL;
+        left.anchor = GridBagConstraints.NORTH; left.insets = new Insets(0, 0, 0, 8);
+        GridBagConstraints right = (GridBagConstraints) left.clone();
+        right.gridx = 1; right.insets = new Insets(0, 8, 0, 0);
+        form.add(UiFactory.labelledField("成绩（0-100）", score), left);
+        form.add(UiFactory.labelledField("备注", remark), right);
+        return form;
     }
 
     private void configureRoster() {
@@ -131,6 +144,10 @@ public final class TeacherGradePanel extends SectionCard {
     }
 
     private void loadRoster() {
+        loadRoster(0L);
+    }
+
+    private void loadRoster(final long selectEnrollmentId) {
         final CourseOption selected = (CourseOption) courses.getSelectedItem();
         if (selected == null) return;
         final long courseId = selected.course.getId();
@@ -147,10 +164,12 @@ public final class TeacherGradePanel extends SectionCard {
                 for (CourseRosterEntryDto entry : rosterEntries) {
                     rosterModel.addRow(new Object[]{entry.getStudentNo(), entry.getDisplayName(),
                             entry.getCollege(), entry.getMajor(), entry.getClassName(),
-                            RealUi.status(entry.getEnrollmentStatus())});
+                            RealUi.status(entry.getEnrollmentStatus()), entry.getScore() == null
+                            ? "未登记" : entry.getScore().toPlainString()});
                 }
                 state.setText(rosterEntries.isEmpty()
                         ? "该课程暂无未退课学生" : "请选择一名学生登记成绩");
+                if (selectEnrollmentId > 0L) selectEnrollment(selectEnrollmentId);
             }
             @Override public void onFailure(Throwable error) {
                 if (serial != rosterSerial) return;
@@ -158,6 +177,14 @@ public final class TeacherGradePanel extends SectionCard {
                 page.showError(AsyncTask.message(error));
             }
         });
+    }
+
+    private void selectEnrollment(long enrollmentId) {
+        for (int i = 0; i < rosterEntries.size(); i++) {
+            if (rosterEntries.get(i).getEnrollmentId() == enrollmentId) {
+                roster.setRowSelectionInterval(i, i); return;
+            }
+        }
     }
 
     private void clearRoster() {
@@ -184,7 +211,8 @@ public final class TeacherGradePanel extends SectionCard {
                 @Override public Object run() throws Exception { return grades.recordGrade(request); }
             }, new AsyncTask.Callback<Object>() {
                 @Override public void onSuccess(Object value) {
-                    state.setText("已登记"); page.showSuccess("成绩已提交并保存。");
+                    page.showSuccess("成绩已保存。");
+                    loadRoster(request.getEnrollmentId());
                 }
                 @Override public void onFailure(Throwable error) {
                     state.setText("提交失败"); page.showError(AsyncTask.message(error));

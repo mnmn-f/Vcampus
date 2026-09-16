@@ -1,6 +1,7 @@
 package edu.seu.vcampus.server.store;
 
 import edu.seu.vcampus.common.dto.store.AccountDto;
+import edu.seu.vcampus.common.dto.store.AccountLedgerQuery;
 import edu.seu.vcampus.common.dto.store.CartItemRequest;
 import edu.seu.vcampus.common.dto.store.OrderDto;
 import edu.seu.vcampus.common.dto.store.PaymentRequest;
@@ -83,6 +84,10 @@ public final class StoreServiceTest {
         assertEquals(1, repository.getStock(1L));
         assertEquals(new BigDecimal("7.50"), repository.getAccount(10L).getBalance());
         assertEquals(1L, service.getAccountLedger(student, null).getTotal());
+        assertEquals(1L, service.getAccountLedger(student, new AccountLedgerQuery(null, "消费", 1, 20)).getTotal());
+        assertEquals(1L, service.getAccountLedger(student, new AccountLedgerQuery(null, "12.50", 1, 20)).getTotal());
+        assertEquals(1L, service.getAccountLedger(student, new AccountLedgerQuery(null, "商店订单", 1, 20)).getTotal());
+        assertEquals(0L, service.getAccountLedger(student, new AccountLedgerQuery(null, "充值", 1, 20)).getTotal());
     }
 
     @Test
@@ -160,16 +165,30 @@ public final class StoreServiceTest {
     }
 
     @Test
-    public void managerStatusFlowCompletesAndRefundsAtomically() throws Exception {
+    public void deliveredOrderCompletesAutomaticallyAndRefundsAtomically() throws Exception {
         service.addCartItem(student, new CartItemRequest(1L, 1));
         OrderDto order = service.createOrder(student);
         service.payOrder(student, new PaymentRequest(order.getId(), "PAY-5"));
-        assertEquals("COMPLETED", service.updateOrderStatus(manager,
-                new OrderStatusUpdateRequest(order.getId(), "COMPLETED")).getStatus());
+        assertEquals("COMPLETED", service.updateOrderShipping(manager,
+                new edu.seu.vcampus.common.dto.store.OrderShippingUpdateRequest(
+                        order.getId(), "DELIVERED", "SEU-EXPRESS-1", "已送达")).getStatus());
         assertEquals("REFUNDED", service.updateOrderStatus(manager,
                 new OrderStatusUpdateRequest(order.getId(), "REFUNDED")).getStatus());
         assertEquals(2, repository.getStock(1L));
         assertEquals(new BigDecimal("20.00"), repository.getAccount(10L).getBalance());
+    }
+
+    @Test
+    public void managerCannotBypassShippingToCompleteOrder() throws Exception {
+        service.addCartItem(student, new CartItemRequest(1L, 1));
+        OrderDto order = service.createOrder(student);
+        service.payOrder(student, new PaymentRequest(order.getId(), "PAY-AUTO-COMPLETE"));
+        try {
+            service.updateOrderStatus(manager, new OrderStatusUpdateRequest(order.getId(), "COMPLETED"));
+            fail("completion must be driven by delivered shipping state");
+        } catch (StoreServiceException expected) {
+            assertEquals(ResultCodes.CONFLICT, expected.getResultCode());
+        }
     }
 
     private static final class PaymentCall implements Callable<Boolean> {

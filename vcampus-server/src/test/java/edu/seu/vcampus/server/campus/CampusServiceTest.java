@@ -69,6 +69,31 @@ public class CampusServiceTest {
         });
     }
 
+    @Test public void pastClassroomTimesAreRejectedForStudentsAndTeachers() {
+        final LocalDateTime start = LocalDateTime.now().minusMinutes(1);
+        for (final SessionContext actor : new SessionContext[]{student, otherStudent, session(3L, Role.TEACHER)}) {
+            assertCode(CampusCommands.INVALID_INPUT, () -> service.applyClassroom(actor,
+                    new ClassroomReservationRequest(1L, "讨论", start, start.plusHours(1))));
+        }
+    }
+
+    @Test public void expiredPendingReservationCannotBeApprovedButCanBeRejected() {
+        LocalDateTime start = LocalDateTime.now().minusMinutes(1);
+        repository.addReservation(new edu.seu.vcampus.common.dto.campus.ClassroomReservationDto(
+                80L, 1L, "教学楼", "A101", 1L, "讨论", start, start.plusHours(1),
+                "PENDING", null, null, null));
+        assertCode(CampusCommands.INVALID_INPUT, () -> service.reviewClassroom(academic,
+                new ClassroomReviewRequest(80L, true, "通过")));
+        assertEquals("REJECTED", service.reviewClassroom(academic,
+                new ClassroomReviewRequest(80L, false, "时段已过期")).getStatus());
+    }
+
+    @Test public void futureClassroomTimeStillWorksForTeacher() {
+        LocalDateTime start = LocalDateTime.now().plusHours(1);
+        assertEquals("PENDING", service.applyClassroom(session(3L, Role.TEACHER),
+                new ClassroomReservationRequest(1L, "讨论", start, start.plusHours(1))).getStatus());
+    }
+
     @Test public void studentSrtpIdentityComesFromSession() {
         SrtpSaveRequest request = new SrtpSaveRequest(null, "P-1", Long.valueOf(999L), "项目", "说明", BigDecimal.ONE, "SUBMITTED");
         assertEquals(1L, service.saveSrtp(student, request).getStudentUserId());

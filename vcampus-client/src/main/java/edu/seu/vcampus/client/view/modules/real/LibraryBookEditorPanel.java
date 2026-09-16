@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
@@ -37,6 +38,10 @@ public final class LibraryBookEditorPanel extends SectionCard {
     public LibraryBookEditorPanel(Listener listener) {
         super("图书详情与维护", "维护书目、库存和启用状态；库存调整受借阅情况限制。");
         this.listener = listener; status.setFont(DesignTokens.regular(13)); RealUi.codeRenderer(status);
+        InputLimiter.isbn(isbn); InputLimiter.length(title, 200); InputLimiter.length(author, 120);
+        InputLimiter.length(publisher, 120); InputLimiter.length(category, 80);
+        InputLimiter.unsignedInteger(total, 6); InputLimiter.unsignedInteger(available, 6);
+        InputLimiter.length(location, 120); InputLimiter.unsignedInteger(year, 4);
         JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(220, 2, 12)); fields.setOpaque(false);
         add(fields, "ISBN", isbn); add(fields, "书名", title); add(fields, "作者", author); add(fields, "出版社", publisher);
         add(fields, "分类", category); add(fields, "总库存", total); add(fields, "可借库存", available); add(fields, "馆藏位置", location); add(fields, "状态", status);

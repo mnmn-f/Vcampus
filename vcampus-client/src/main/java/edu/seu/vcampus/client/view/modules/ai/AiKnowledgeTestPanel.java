@@ -18,7 +18,7 @@ public final class AiKnowledgeTestPanel extends SectionCard {
     private final JTextField expectedHit = UiFactory.textField(20);
     private final JTextArea answer = UiFactory.textArea(10, 70);
     private final DefaultListModel<String> hits = new DefaultListModel<String>();
-    private final JLabel status = UiFactory.muted("输入学生可能提出的问题，检查命中知识和回答。");
+    private final JLabel status = UiFactory.muted("");
 
     public AiKnowledgeTestPanel(AiAssistantClientService service) {
         super("知识问答测试", "测试不会写入学生会话，也不会执行校园业务操作。");

@@ -21,6 +21,7 @@ public final class StoreReviewPanel extends SectionCard {
     private final BasePage page;
     private final StoreClientService service;
     private final AsyncPagedTable<ReviewCandidateDto> candidates;
+    private final AsyncPagedTable<ProductReviewDto> history;
     private final JSpinner score = new JSpinner(new SpinnerNumberModel(5, 1, 5, 1));
     private final JTextArea content = UiFactory.textArea(3, 30);
     private final JLabel selected = UiFactory.body("请选择待评价商品");
@@ -28,6 +29,7 @@ public final class StoreReviewPanel extends SectionCard {
     private final PrimaryButton submit = new PrimaryButton("提交评价");
     private ReviewCandidateDto current;
     private boolean submitting;
+    private Runnable reviewChanged;
 
     public StoreReviewPanel(BasePage page, StoreClientService service) {
         super("商品评价", ""); this.page = page; this.service = service;
@@ -41,12 +43,20 @@ public final class StoreReviewPanel extends SectionCard {
         candidates.getTable().setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         int[] widths = {240, 260, 70};
         for (int i = 0; i < widths.length; i++) candidates.getTable().getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+        history = new AsyncPagedTable<>("我的评价", "", "", new String[0],
+                new String[]{"商品", "评分", "评价内容", "时间"},
+                (p, keyword, filter) -> {
+                    edu.seu.vcampus.common.dto.store.ProductReviewPage result = service.listReviews(new ProductReviewQuery(0, p, 20, null, true));
+                    return new PageSlice<>(result.getItems(), result.getTotal(), p, 20);
+                }, value -> new Object[]{value.getProductName(), value.getScore() + " / 5", RealUi.text(value.getContent()), RealUi.dateTime(value.getCreatedAt())}, null);
+        history.setItemKey(ProductReviewDto::getId);
         submit.setEnabled(false); submit.addActionListener(e -> save());
         JPanel actions = UiFactory.horizontal(8); actions.add(UiFactory.labelledField("评分（1–5）", score)); actions.add(submit); actions.add(state);
         JPanel editor = UiFactory.vertical(8); editor.add(selected); editor.add(UiFactory.labelledField("评价内容", content)); editor.add(actions);
-        JPanel body = UiFactory.vertical(12); body.add(candidates); body.add(editor); setContent(body);
+        JPanel body = UiFactory.vertical(12); body.add(candidates); body.add(editor); body.add(history); setContent(body);
     }
     public void reloadCandidates() { candidates.refreshCurrentPage(); }
+    public void setReviewChanged(Runnable value) { reviewChanged = value; }
     private void select(ReviewCandidateDto value) {
         boolean changed = current == null || value == null || current.getOrderId() != value.getOrderId() || current.getProductId() != value.getProductId();
         current = value; selected.setText(value == null ? "请选择待评价商品" : value.getOrderNo() + " · " + value.getProductName());
@@ -62,7 +72,7 @@ public final class StoreReviewPanel extends SectionCard {
         submitting = true; submit.setEnabled(false); content.setEnabled(false); score.setEnabled(false);
         AsyncTask.run(() -> service.addReview(request), new AsyncTask.Callback<ProductReviewDto>() {
             @Override public void onSuccess(ProductReviewDto value) {
-                finish(); content.setText(""); state.setText("评价已提交"); page.showSuccess("评价已提交"); candidates.refreshCurrentPage();
+                finish(); content.setText(""); state.setText("评价已提交"); page.showSuccess("评价已提交"); candidates.refreshCurrentPage(); history.refreshCurrentPage(); if (reviewChanged != null) reviewChanged.run();
             }
             @Override public void onFailure(Throwable error) { finish(); state.setText(AsyncTask.message(error)); candidates.refreshCurrentPage(); }
         });

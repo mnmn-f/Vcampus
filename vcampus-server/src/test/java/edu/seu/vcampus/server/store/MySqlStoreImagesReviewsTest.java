@@ -38,6 +38,10 @@ public class MySqlStoreImagesReviewsTest {
     @Test public void imagesAreStoredSeparatelyPreservedOnEditAndRemoved()throws Exception{
         String reference=product.getImageUrl(); byte[] bytes=StoreImagesAndCandidatesTest.image();
         assertArrayEquals(bytes,service.getProductImage(student,reference));
+        byte[] thumbnail=service.getProductImage(student,reference,"THUMBNAIL");
+        java.awt.image.BufferedImage thumbnailImage=javax.imageio.ImageIO.read(
+                new java.io.ByteArrayInputStream(thumbnail));
+        assertEquals(320,thumbnailImage.getWidth());assertEquals(240,thumbnailImage.getHeight());
         service.saveProduct(manager,write(product.getId(),reference,null));
         assertArrayEquals(bytes,service.getProductImage(student,reference));
         assertEquals(reference,service.searchProducts(student,new ProductQuery(sku,null,null,1,20)).getItems().get(0).getImageUrl());
@@ -56,6 +60,46 @@ public class MySqlStoreImagesReviewsTest {
         assertEquals(1,service.listReviews(student,new ProductReviewQuery(product.getId(),1,20,"图片商品")).getTotal());
         assertEquals(0,service.listReviews(student,new ProductReviewQuery(product.getId(),1,20,"不存在文字")).getTotal());
         assertEquals(1,service.getProductDetail(student,product.getId()).getRatingCount());
+    }
+    @Test public void checkoutPreviewLoadsCartAndActivePromotions()throws Exception{
+        service.addCartItem(student,new CartItemRequest(product.getId(),2));
+        CheckoutPreviewDto preview=service.checkoutPreview(student,null);
+        assertFalse(preview.getLines().isEmpty());
+        assertTrue(preview.getPayable().signum()>=0);
+        for(CouponDto coupon:service.listCoupons(student).getItems()){
+            if(coupon.isClaimed()&&!coupon.isUsed()){
+                assertNotNull(service.checkoutPreview(student,coupon.getCode()));return;
+            }
+        }
+    }
+    @Test public void checkoutStoresEveryStackedPromotionCode()throws Exception{
+        String sql="INSERT INTO store_promotions(code,name,promotion_type,discount_value,product_scope,product_id,starts_at,ends_at,stackable,active) VALUES(?,?,'FIXED',0.01,'PRODUCT',?,DATE_SUB(NOW(3),INTERVAL 1 DAY),DATE_ADD(NOW(3),INTERVAL 1 DAY),1,1)";
+        try(PreparedStatement s=connection.prepareStatement(sql)){
+            for(int i=1;i<=6;i++){String code="CHECKOUT-INTEGRATION-PROMOTION-"+i;s.setString(1,code);s.setString(2,code);s.setLong(3,product.getId());s.addBatch();}s.executeBatch();
+        }
+        service.addCartItem(student,new CartItemRequest(product.getId(),1));
+        OrderDto order=service.confirmCheckout(student,new CheckoutConfirmRequest(null,"SELF",null));
+        assertNotNull(order);assertTrue(order.getPromotionCode().length()>64);
+        try(PreparedStatement s=connection.prepareStatement("SELECT promotion_code FROM store_orders WHERE id=?")){s.setLong(1,order.getId());try(ResultSet r=s.executeQuery()){assertTrue(r.next());assertEquals(order.getPromotionCode(),r.getString(1));}}
+    }
+    @Test public void allStudentStoreInitialQueriesWorkTogether()throws Exception{
+        assertNotNull(service.searchProducts(student,new ProductQuery()));
+        assertNotNull(service.listCategories(student));
+        assertNotNull(service.getCart(student));
+        assertNotNull(service.getOwnOrders(student,new OrderQuery()));
+        assertNotNull(service.reviewCandidates(student,new ProductReviewQuery(0L)));
+        assertNotNull(service.listCoupons(student));
+        assertNotNull(service.getAccount(student));
+        assertNotNull(service.getAccountLedger(student,new AccountLedgerQuery()));
+    }
+    @Test public void ledgerSearchesChineseTypeAmountBusinessRemarkAndDate()throws Exception{
+        String marker="流水搜索-"+java.util.UUID.randomUUID();
+        service.recharge(student,new AccountRechargeRequest(new BigDecimal("3.21"),marker,marker));
+        assertTrue(service.getAccountLedger(student,new AccountLedgerQuery(null,"充值",1,20)).getTotal()>0);
+        assertEquals(1,service.getAccountLedger(student,new AccountLedgerQuery(null,"3.21",1,20)).getTotal());
+        assertTrue(service.getAccountLedger(student,new AccountLedgerQuery(null,"校园账户",1,20)).getTotal()>0);
+        assertEquals(1,service.getAccountLedger(student,new AccountLedgerQuery(null,marker,1,20)).getTotal());
+        assertTrue(service.getAccountLedger(student,new AccountLedgerQuery(null,java.time.LocalDate.now().toString(),1,20)).getTotal()>0);
     }
     private void order()throws Exception{
         long id;

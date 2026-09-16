@@ -32,7 +32,7 @@ final class StudentGradeInsightService {
             throws StudentRecordException {
         StudentServiceSupport.requirePermission(session, Permission.SCORE_SELF_READ);
         final StudentGradeQuery safe = query == null ? StudentGradeQuery.firstPage() : query;
-        validate(safe.getCourseId(), safe.getSemesterCode());
+        validate(safe.getCourseId(), safe.getCourseKeyword(), safe.getSemesterCode());
         return StudentServiceSupport.inTransaction(transactions,
                 new TransactionWork<StudentGradeReportDto>() {
                     @Override public StudentGradeReportDto execute(Connection connection)
@@ -42,7 +42,7 @@ final class StudentGradeInsightService {
                                 session.getUserId(), safe);
                         List<StudentGradeDto> all = repository.findAllGrades(connection,
                                 session.getUserId(), safe.getSemesterCode(),
-                                safe.getCourseId(), 0);
+                                safe.getCourseId(), safe.getCourseKeyword(), 0);
                         StudentGradeMetricsDto metrics = StudentGradeMetricsCalculator
                                 .calculate(safe.getSemesterCode(), all);
                         return new StudentGradeReportDto(page, metrics);
@@ -56,7 +56,7 @@ final class StudentGradeInsightService {
         StudentServiceSupport.requirePermission(session, Permission.SCORE_SELF_READ);
         final StudentGradeExportQuery safe = query == null
                 ? new StudentGradeExportQuery(null, null) : query;
-        validate(safe.getCourseId(), safe.getSemesterCode());
+        validate(safe.getCourseId(), safe.getCourseKeyword(), safe.getSemesterCode());
         return StudentServiceSupport.inTransaction(transactions,
                 new TransactionWork<StudentGradeExportDto>() {
                     @Override public StudentGradeExportDto execute(Connection connection)
@@ -64,7 +64,8 @@ final class StudentGradeInsightService {
                         requireProfile(connection, session.getUserId());
                         List<StudentGradeDto> rows = repository.findAllGrades(connection,
                                 session.getUserId(), safe.getSemesterCode(),
-                                safe.getCourseId(), StudentGradeExportQuery.MAX_ROWS + 1);
+                                safe.getCourseId(), safe.getCourseKeyword(),
+                                StudentGradeExportQuery.MAX_ROWS + 1);
                         if (rows.size() > StudentGradeExportQuery.MAX_ROWS) {
                             throw new StudentRecordException(StudentCommands.GRADE_EXPORT_TOO_LARGE,
                                     "成绩记录超过单次导出上限5000条");
@@ -82,9 +83,12 @@ final class StudentGradeInsightService {
         }
     }
 
-    private static void validate(Long courseId, String semesterCode)
+    private static void validate(Long courseId, String courseKeyword, String semesterCode)
             throws StudentRecordException {
         if (courseId != null && courseId <= 0) throw invalid("课程编号必须为正数");
+        if (courseKeyword != null && courseKeyword.length() > 120) {
+            throw invalid("课程关键词长度不能超过120个字符");
+        }
         if (semesterCode != null && semesterCode.length() > 32) {
             throw invalid("学期编号长度不能超过32个字符");
         }

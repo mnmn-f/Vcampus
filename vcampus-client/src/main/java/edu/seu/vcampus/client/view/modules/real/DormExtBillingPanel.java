@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.dorm.ext.DormExtClientService;
 import edu.seu.vcampus.client.ui.UiFactory;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.view.BasePage;
@@ -44,6 +45,9 @@ public final class DormExtBillingPanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.page = page;
         this.service = service;
+        InputLimiter.unsignedInteger(room, 12);
+        InputLimiter.decimal(electricityUnits, 10, 3); InputLimiter.decimal(waterUnits, 10, 3);
+        InputLimiter.decimal(electricityPrice, 8, 4); InputLimiter.decimal(waterPrice, 8, 4);
         this.readings = readingTable();
         this.operations = new DormExtBillingOperations(page, service, readings::reload);
         readings.getTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);

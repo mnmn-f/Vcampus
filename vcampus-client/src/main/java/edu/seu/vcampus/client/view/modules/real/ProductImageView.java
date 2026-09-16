@@ -13,7 +13,6 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
-
 /** 商品图片异步加载器：服务器图片引用或历史 HTTP(S) 地址，限制大小并复用缓存。 */
 public final class ProductImageView extends JLabel {
     private static final int MAX_BYTES = 2 * 1024 * 1024;
@@ -28,13 +27,11 @@ public final class ProductImageView extends JLabel {
     private String currentUrl;
     private final int imageWidth;
     private final int imageHeight;
-    private boolean initialized;
+    private boolean initialized, fullPreviewEnabled;
     private final edu.seu.vcampus.client.service.store.StoreClientService service;
-
     public ProductImageView() {
         this(180, 140);
     }
-
     ProductImageView(int width, int height) {
         this(width, height, null);
     }
@@ -60,7 +57,10 @@ public final class ProductImageView extends JLabel {
         try {
             DOWNLOADS.execute(() -> {
                 ImageIcon loaded = null;
-                try { loaded = read(target); synchronized (CACHE) { CACHE.put(target, loaded); } }
+                try {
+                    loaded = cacheSized(read(target, "THUMBNAIL"));
+                    synchronized (CACHE) { CACHE.put(target, loaded); }
+                }
                 catch (Exception ignored) { }
                 final ImageIcon result = loaded;
                 javax.swing.SwingUtilities.invokeLater(() -> {
@@ -75,22 +75,26 @@ public final class ProductImageView extends JLabel {
         }
     }
     public static boolean isIdle() { return PENDING.get() == 0; }
-
     private void apply(String target, ImageIcon icon) {
         if (!target.equals(currentUrl)) return;
-        setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(), imageWidth, imageHeight));
+        setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(),
+                imageWidth, imageHeight));
     }
 
     void showBytes(byte[] bytes) {
         currentUrl = null; initialized = false;
-        try { ImageIcon icon = decode(bytes); setText(""); setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(), imageWidth, imageHeight)); }
+        try {
+            ImageIcon icon = decode(bytes); setText("");
+            setIcon(fit(icon.getImage(), icon.getIconWidth(), icon.getIconHeight(),
+                    imageWidth, imageHeight));
+        }
         catch (Exception error) { setIcon(PLACEHOLDER); setText("图片无法预览"); }
     }
 
-    private ImageIcon read(String value) throws Exception {
+    private ImageIcon read(String value, String variant) throws Exception {
         if (value.startsWith("store-image:")) {
             if (service == null) throw new java.io.IOException("图片服务未连接");
-            return decode(service.getProductImage(value));
+            return decode(service.getProductImage(value, variant));
         }
         HttpURLConnection connection = open(value);
         try {
@@ -111,7 +115,7 @@ public final class ProductImageView extends JLabel {
                 reader.setInput(input);
                 int width = reader.getWidth(0), height = reader.getHeight(0);
                 if ((long) width * height > 12000000L) throw new IllegalArgumentException("图片尺寸过大");
-                return fit(reader.read(0), width, height, 180, 140);
+                return new ImageIcon(reader.read(0));
             } finally { reader.dispose(); }
         }
     }
@@ -139,12 +143,58 @@ public final class ProductImageView extends JLabel {
         return new ImageIcon(image.getScaledInstance(Math.max(1, (int) (width * scale)),
                 Math.max(1, (int) (height * scale)), Image.SCALE_SMOOTH));
     }
+    private static ImageIcon cacheSized(ImageIcon source) {
+        if (source.getIconWidth() <= 640 && source.getIconHeight() <= 480) return source;
+        return fit(source.getImage(), source.getIconWidth(), source.getIconHeight(), 640, 480);
+    }
 
     private static String normalize(String value) {
         if (value == null || value.trim().isEmpty()) return null;
         if (value.matches("store-image:[0-9a-fA-F-]{36}")) return value;
         try { URI uri = new URI(value.trim()); String scheme = uri.getScheme(); if (uri.getHost() == null || uri.getUserInfo() != null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) return null; return uri.toString(); }
         catch (Exception ex) { return null; }
+    }
+    public void enableFullPreview() {
+        if (fullPreviewEnabled) return;
+        fullPreviewEnabled = true;
+        setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        setToolTipText("点击查看高清图片");
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent event) {
+                if (event.getButton() == java.awt.event.MouseEvent.BUTTON1) showFullImage();
+            }
+        });
+    }
+
+    private void showFullImage() {
+        final String target = currentUrl;
+        if (target == null) return;
+        try {
+            DOWNLOADS.execute(() -> {
+                try {
+                    final ImageIcon original = read(target, "FULL");
+                    javax.swing.SwingUtilities.invokeLater(() -> openDialog(original));
+                } catch (Exception error) {
+                    javax.swing.SwingUtilities.invokeLater(() -> javax.swing.JOptionPane.showMessageDialog(
+                            this, "高清图片暂时无法加载", "商品图片",
+                            javax.swing.JOptionPane.ERROR_MESSAGE));
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException full) {
+            javax.swing.JOptionPane.showMessageDialog(this, "图片正在加载，请稍后再试", "商品图片",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void openDialog(ImageIcon original) {
+        ImageIcon shown = fit(original.getImage(), original.getIconWidth(), original.getIconHeight(),
+                1000, 700);
+        JLabel content = new JLabel(shown); content.setHorizontalAlignment(CENTER);
+        javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(content);
+        scroll.setPreferredSize(new Dimension(Math.min(1020, shown.getIconWidth() + 24),
+                Math.min(720, shown.getIconHeight() + 24)));
+        javax.swing.JOptionPane.showMessageDialog(this, scroll, "商品高清图片",
+                javax.swing.JOptionPane.PLAIN_MESSAGE);
     }
     private static ImageIcon placeholder() { return new ImageIcon(new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB)); }
 }

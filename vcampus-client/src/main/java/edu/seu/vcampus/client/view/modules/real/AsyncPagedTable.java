@@ -266,7 +266,7 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private void setBusy(boolean busy, String text) {
         this.busy = busy;
         state.setText(text); previous.setEnabled(!busy && page > 1); next.setEnabled(!busy && hasNext); retry.setEnabled(!busy);
-        toolbar.getSearchField().setEnabled(!busy); if (toolbar.getFilterBox() != null) toolbar.getFilterBox().setEnabled(!busy);
+        if (toolbar.getFilterBox() != null) toolbar.getFilterBox().setEnabled(!busy);
     }
     private DefaultTableModel model(String[] columns) {
         final String[] safe = columns == null ? new String[0] : columns.clone();

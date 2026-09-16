@@ -24,7 +24,7 @@ public final class CampusClassroomsPanel extends JPanel {
     private final BasePage page; private final CampusClientService service; private final Role role;
     private final AsyncPagedTable<CampusClassroomDto> rooms; private final AsyncPagedTable<ClassroomReservationDto> requests;
     private final CampusClassroomApplyPanel apply; private final JComboBox<RealUi.CodeOption> reviewStatus;
-    private final JTextField reviewRemark; private final JLabel detail = UiFactory.muted("选择教室查看详情。");
+    private final JTextField reviewRemark; private final JLabel detail = UiFactory.muted("");
 
     public CampusClassroomsPanel(BasePage page, CampusClientService service, Role role) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
@@ -93,7 +93,7 @@ public final class CampusClassroomsPanel extends JPanel {
     }
 
     private void selectRoom(CampusClassroomDto value) {
-        if (value == null) { detail.setText("选择教室查看详情。"); return; }
+        if (value == null) { detail.setText(""); return; }
         detail.setText("教室详情：" + RealUi.text(value.getBuildingName()) + " " + RealUi.text(value.getRoomNo())
                 + "　容量 " + value.getCapacity() + "　设备：" + RealUi.text(value.getEquipmentDescription()));
         if (apply != null) apply.selectRoom(value.getId(),

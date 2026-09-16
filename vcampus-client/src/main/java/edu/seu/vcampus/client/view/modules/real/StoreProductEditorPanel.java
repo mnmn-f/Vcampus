@@ -1,6 +1,7 @@
 package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.ui.DesignTokens;
+import edu.seu.vcampus.client.ui.InputLimiter;
 import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
@@ -50,11 +51,14 @@ public final class StoreProductEditorPanel extends SectionCard {
     public StoreProductEditorPanel(Listener listener, edu.seu.vcampus.client.service.store.StoreClientService service) {
         super("商品详情与库存维护", "");
         this.listener = listener;
+        InputLimiter.code(sku, 64); InputLimiter.length(name, 200);
+        InputLimiter.decimal(price, 10, 2); InputLimiter.unsignedInteger(stock, 6);
+        InputLimiter.signedInteger(delta, 6); InputLimiter.length(remark, 500);
         productImage = new ProductImageEditor(service);
         status.setFont(DesignTokens.regular(13));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8));
         fields.setOpaque(false);
-        add(fields, "商品编码", sku); add(fields, "商品名称", name);
+        add(fields, "商品编码（自动生成）", sku); add(fields, "商品名称", name);
         add(fields, "商品分类", category); add(fields, "单价", price);
         add(fields, "库存", stock); add(fields, "状态", status);
         add(fields, "库存增量", delta); add(fields, "调整备注", remark);
@@ -97,7 +101,8 @@ public final class StoreProductEditorPanel extends SectionCard {
     public void startNew() {
         productId = 0L;
         pendingCategoryCode = null;
-        sku.setEditable(true);
+        sku.setEditable(false);
+        sku.setToolTipText("保存商品后由系统自动生成");
         sku.setText(""); name.setText(""); selectCategory(null); productImage.showImage(null); price.setText("");
         stock.setText("0"); delta.setText(""); remark.setText(""); description.setText("");
         status.setSelectedItem(RealUi.option("DRAFT")); error.setText(" ");
@@ -106,6 +111,7 @@ public final class StoreProductEditorPanel extends SectionCard {
     public void showProduct(ProductDto value) {
         if (value == null) { startNew(); return; }
         productId = value.getId(); sku.setEditable(false);
+        sku.setToolTipText(value.getSku());
         sku.setText(RealUi.input(value.getSku())); name.setText(RealUi.input(value.getName()));
         pendingCategoryCode = RealUi.optional(value.getCategory()); selectCategory(pendingCategoryCode);
         productImage.showImage(value.getImageUrl()); price.setText(RealUi.input(value.getPrice()));

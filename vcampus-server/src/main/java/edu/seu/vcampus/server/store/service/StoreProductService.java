@@ -20,6 +20,7 @@ import java.util.Locale;
 final class StoreProductService {
     private final StoreRecordRepository repository;
     private final StoreTransactionRunner transactions;
+    private final StoreSkuGenerator skuGenerator = new StoreSkuGenerator();
 
     StoreProductService(StoreRecordRepository repository, StoreTransactionRunner transactions) {
         if (repository == null || transactions == null) {
@@ -60,16 +61,17 @@ final class StoreProductService {
     ProductDto create(final SessionContext session, final ProductWriteRequest request)
             throws StoreServiceException {
         maintainPermission(session);
-        validate(request, false);
-        StoreImagePolicy.requireExisting(request, null);
+        if (request == null) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "商品参数不正确");
+        }
         return StoreServiceSupport.inTransaction(transactions,
                 new TransactionWork<ProductDto>() {
                     @Override public ProductDto execute(Connection c) throws StoreServiceException {
-                        if (repository.skuExists(c, request.getSku(), 0L)) {
-                            throw new StoreServiceException(ResultCodes.CONFLICT, "商品编码已存在");
-                        }
-                        repository.insertProduct(c, request, session.getUserId());
-                        return findBySku(c, request.getSku());
+                        ProductWriteRequest created = skuGenerator.generate(repository, c, request);
+                        validate(created, false);
+                        StoreImagePolicy.requireExisting(created, null);
+                        repository.insertProduct(c, created, session.getUserId());
+                        return findBySku(c, created.getSku());
                     }
                 });
     }
@@ -101,10 +103,17 @@ final class StoreProductService {
     }
 
     byte[] image(SessionContext session, String reference) throws StoreServiceException {
+        return image(session, reference, "FULL");
+    }
+
+    byte[] image(SessionContext session, String reference, String variant)
+            throws StoreServiceException {
         StoreServiceSupport.requirePermission(session, Permission.STORE_READ);
         if (!StoreImagePolicy.reference(reference)) throw new StoreServiceException(ResultCodes.INVALID_INPUT, "图片引用不正确");
+        final String requestedVariant = StoreImagePolicy.variant(variant);
         return StoreServiceSupport.inTransaction(transactions, c -> {
-            byte[] data = repository.findProductImage(c, reference, session.getActiveRole() == Role.STORE_MANAGER);
+            byte[] data = repository.findProductImage(c, reference,
+                    session.getActiveRole() == Role.STORE_MANAGER, requestedVariant);
             if (data == null) throw new StoreServiceException(ResultCodes.NOT_FOUND, "图片不存在或商品已下架");
             return data;
         });

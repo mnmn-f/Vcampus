@@ -31,7 +31,7 @@ public final class CampusAnnouncementsPanel extends JPanel {
     private final Role manageRole;
     private final AsyncPagedTable<CampusAnnouncementDto> table;
     private final CampusAnnouncementEditorPanel editor;
-    private final JLabel detail = UiFactory.muted("选择公告查看详情。");
+    private final JLabel detail = UiFactory.muted("");
 
     public CampusAnnouncementsPanel(BasePage page, CampusClientService service, Role role) {
         this(page, service, role, "ACADEMIC", "教务公告", Role.ACADEMIC_ADMIN);
@@ -86,7 +86,7 @@ public final class CampusAnnouncementsPanel extends JPanel {
     }
 
     private void select(CampusAnnouncementDto value) {
-        if (value == null) { detail.setText("选择公告查看详情。"); if (editor != null) editor.startNew(); return; }
+        if (value == null) { detail.setText(""); if (editor != null) editor.startNew(); return; }
         detail.setText("已选择：" + RealUi.text(value.getTitle()) + "　" + summary(value.getContent()));
         if (editor != null) editor.showAnnouncement(value);
     }

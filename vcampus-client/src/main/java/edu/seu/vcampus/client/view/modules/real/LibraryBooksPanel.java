@@ -20,7 +20,7 @@ import java.awt.BorderLayout;
 /** 图书实时检索、详情、学生借阅和管理员维护。 */
 public final class LibraryBooksPanel extends JPanel {
     private final BasePage page; private final LibraryClientService service; private final Role role;
-    private final JLabel detail = UiFactory.muted("选择图书查看详情。"); private final AsyncPagedTable<BookDetail> books;
+    private final JLabel detail = UiFactory.muted(""); private final AsyncPagedTable<BookDetail> books;
     private final LibraryBookEditorPanel editor;
     private long detailSerial;
 
@@ -74,7 +74,7 @@ public final class LibraryBooksPanel extends JPanel {
     }
 
     private void selectBook(final BookDetail value) {
-        if (value == null) { detailSerial++; detail.setText("选择图书查看详情。"); if (editor != null) editor.startNew(); return; }
+        if (value == null) { detailSerial++; detail.setText(""); if (editor != null) editor.startNew(); return; }
         detail.setText("图书详情：" + RealUi.text(value.getTitle()) + "　ISBN " + RealUi.text(value.getIsbn()) + "　简介：" + RealUi.text(value.getDescription()));
         if (editor != null) editor.showBook(value);
         final long serial = ++detailSerial;

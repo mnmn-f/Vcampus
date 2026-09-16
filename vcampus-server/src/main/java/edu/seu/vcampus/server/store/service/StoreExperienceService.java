@@ -54,7 +54,7 @@ final class StoreExperienceService {
     PromotionDto savePromotion(final SessionContext s, final PromotionWriteRequest r) throws StoreServiceException { manage(s); validatePromotion(r); return tx(new TransactionWork<PromotionDto>() { public PromotionDto execute(Connection c){return repo.savePromotion(c,r);}}); }
     CouponPage coupons(final SessionContext s) throws StoreServiceException { purchase(s); return tx(new TransactionWork<CouponPage>() { public CouponPage execute(Connection c){return repo.listCoupons(c,s.getUserId());}}); }
     CouponDto claim(final SessionContext s, final CouponClaimRequest r) throws StoreServiceException { purchase(s); StoreServiceSupport.required(r==null?null:r.getCode(),"优惠券编码"); return tx(new TransactionWork<CouponDto>() { public CouponDto execute(Connection c)throws StoreServiceException { try{return repo.claimCoupon(c,s.getUserId(),r);}catch(StoreRepositoryException ex){throw new StoreServiceException(ResultCodes.CONFLICT,"优惠券不可领取",ex);}}}); }
-    ProductReviewPage reviews(final SessionContext s, final ProductReviewQuery q) throws StoreServiceException { read(s); return tx(new TransactionWork<ProductReviewPage>() { public ProductReviewPage execute(Connection c){return repo.listReviews(c,q);}}); }
+    ProductReviewPage reviews(final SessionContext s, final ProductReviewQuery q) throws StoreServiceException { read(s); return tx(new TransactionWork<ProductReviewPage>() { public ProductReviewPage execute(Connection c){return repo.listReviews(c,q,q!=null&&q.isMineOnly()?Long.valueOf(s.getUserId()):null);}}); }
     ProductReviewDto addReview(final SessionContext s, final ProductReviewWriteRequest r) throws StoreServiceException { purchase(s); validateReview(r); return tx(new TransactionWork<ProductReviewDto>() { public ProductReviewDto execute(Connection c) throws StoreServiceException { OrderDto o=core.findOrder(c,r.getOrderId(),false); if(o==null||o.getBuyerId()!=s.getUserId()||!"COMPLETED".equalsIgnoreCase(o.getStatus())) throw new StoreServiceException(ResultCodes.CONFLICT,"仅可评价本人已完成订单"); boolean line=false; for(edu.seu.vcampus.common.dto.store.OrderItemDto i:o.getItems())if(i.getProductId()==r.getProductId())line=true; if(!line)throw new StoreServiceException(ResultCodes.NOT_FOUND,"订单中没有该商品"); try{return repo.addReview(c,s.getUserId(),r,"匿名用户");}catch(StoreRepositoryException ex){throw new StoreServiceException(ResultCodes.CONFLICT,"该商品已评价或暂时不能评价",ex);}}}); }
     FriendPaymentDto createFriend(final SessionContext s, final FriendPaymentRequest r) throws StoreServiceException { purchase(s); if(r==null||r.getOrderId()<=0)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"代付参数不正确"); StoreServiceSupport.required(r.getFriendAccount(),"好友账号"); StoreServiceSupport.maxLength(r.getFriendAccount(),128,"好友账号"); StoreServiceSupport.maxLength(r.getMessage(),500,"留言"); return tx(new TransactionWork<FriendPaymentDto>() { public FriendPaymentDto execute(Connection c) throws StoreServiceException { OrderDto o=core.findOrder(c,r.getOrderId(),false); if(o==null||o.getBuyerId()!=s.getUserId())throw new StoreServiceException(ResultCodes.NOT_FOUND,"订单不存在"); if(!"CREATED".equalsIgnoreCase(o.getStatus()))throw new StoreServiceException(ResultCodes.CONFLICT,"仅可为待支付订单请求代付"); try {FriendPaymentDto v=repo.createFriendPayment(c,s.getUserId(),r); if(v.getPayerId()==s.getUserId())throw new StoreServiceException(ResultCodes.CONFLICT,"不能请求自己代付"); return v;}catch(StoreRepositoryException ex){throw new StoreServiceException(ResultCodes.CONFLICT,"该订单已有待处理代付或好友账号不可用",ex);}}}); }
     FriendPaymentPage friendList(final SessionContext s, final FriendPaymentQuery q) throws StoreServiceException { purchase(s); return tx(new TransactionWork<FriendPaymentPage>() { public FriendPaymentPage execute(Connection c){return repo.listFriendPayments(c,s.getUserId(),q);}}); }
@@ -67,7 +67,52 @@ final class StoreExperienceService {
     private static void manage(SessionContext s)throws StoreServiceException{StoreServiceSupport.requirePermission(s,Permission.STORE_MANAGE);}
     private static void manageRead(SessionContext s)throws StoreServiceException{StoreServiceSupport.requirePermission(s,Permission.STORE_SALES_READ);}
     private static void validateCategory(StoreCategoryWriteRequest r)throws StoreServiceException{if(r==null)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"分类参数不正确");StoreServiceSupport.required(r.getCode(),"分类编码");StoreServiceSupport.required(r.getName(),"分类名称");StoreServiceSupport.maxLength(r.getCode(),40,"分类编码");StoreServiceSupport.maxLength(r.getName(),80,"分类名称");}
-    private static void validatePromotion(PromotionWriteRequest r)throws StoreServiceException{if(r==null)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"促销参数不正确");StoreServiceSupport.required(r.getCode(),"促销编码");StoreServiceSupport.required(r.getName(),"促销名称");String type=StoreServiceSupport.required(r.getType(),"促销类型");String scope=StoreServiceSupport.required(r.getProductScope(),"适用范围");if(!"THRESHOLD".equalsIgnoreCase(type)&&!"PERCENT".equalsIgnoreCase(type)&&!"FIXED".equalsIgnoreCase(type))throw new StoreServiceException(ResultCodes.INVALID_INPUT,"促销类型不正确");if(!"ALL".equalsIgnoreCase(scope)&&!"PRODUCT".equalsIgnoreCase(scope)&&!"CATEGORY".equalsIgnoreCase(scope))throw new StoreServiceException(ResultCodes.INVALID_INPUT,"适用范围不正确");if(("ALL".equalsIgnoreCase(scope)&& (r.getProductId()!=null||r.getCategoryCode()!=null))||("PRODUCT".equalsIgnoreCase(scope)&&(r.getProductId()==null||r.getCategoryCode()!=null))||("CATEGORY".equalsIgnoreCase(scope)&&(r.getProductId()!=null||r.getCategoryCode()==null)))throw new StoreServiceException(ResultCodes.INVALID_INPUT,"促销适用范围参数不一致");if(r.getProductId()!=null&&r.getProductId().longValue()<=0L)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"商品编号不正确");if(r.getThreshold()!=null)StoreServiceSupport.money(r.getThreshold(),"促销门槛",false);StoreServiceSupport.money(r.getValue(),"优惠值",true);if("PERCENT".equalsIgnoreCase(type)&&r.getValue().compareTo(BigDecimal.valueOf(100L))>0)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"百分比优惠不能超过100");if(r.getStartsAt()==null||(r.getEndsAt()!=null&&!r.getEndsAt().isAfter(r.getStartsAt())))throw new StoreServiceException(ResultCodes.INVALID_INPUT,"促销时间范围不正确");StoreServiceSupport.maxLength(r.getCode(),64,"促销编码");StoreServiceSupport.maxLength(r.getName(),120,"促销名称");StoreServiceSupport.maxLength(r.getCategoryCode(),40,"分类编码");}
+    private static void validatePromotion(PromotionWriteRequest request) throws StoreServiceException {
+        if (request == null) throw new StoreServiceException(ResultCodes.INVALID_INPUT, "促销参数不正确");
+        StoreServiceSupport.required(request.getCode(), "促销编码");
+        StoreServiceSupport.required(request.getName(), "促销名称");
+        String type = StoreServiceSupport.required(request.getType(), "促销类型");
+        String scope = StoreServiceSupport.required(request.getProductScope(), "适用范围");
+        if (!"THRESHOLD".equalsIgnoreCase(type) && !"PERCENT".equalsIgnoreCase(type)
+                && !"FIXED".equalsIgnoreCase(type)) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "促销类型不正确");
+        }
+        if (!"ALL".equalsIgnoreCase(scope) && !"PRODUCT".equalsIgnoreCase(scope)
+                && !"CATEGORY".equalsIgnoreCase(scope)) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "适用范围不正确");
+        }
+        boolean invalidScope = "ALL".equalsIgnoreCase(scope)
+                && (request.getProductId() != null || request.getCategoryCode() != null)
+                || "PRODUCT".equalsIgnoreCase(scope)
+                && (request.getProductId() == null || request.getCategoryCode() != null)
+                || "CATEGORY".equalsIgnoreCase(scope)
+                && (request.getProductId() != null || request.getCategoryCode() == null);
+        if (invalidScope) throw new StoreServiceException(ResultCodes.INVALID_INPUT, "促销适用范围参数不一致");
+        if (request.getProductId() != null && request.getProductId().longValue() <= 0L) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "商品编号不正确");
+        }
+        if (request.getThreshold() != null) StoreServiceSupport.money(request.getThreshold(), "消费门槛", false);
+        StoreServiceSupport.money(request.getValue(), "促销数值", true);
+        if ("THRESHOLD".equalsIgnoreCase(type)) {
+            if (request.getThreshold() == null) {
+                throw new StoreServiceException(ResultCodes.INVALID_INPUT, "满减活动必须填写门槛");
+            }
+            if (request.getValue().compareTo(request.getThreshold()) >= 0) {
+                throw new StoreServiceException(ResultCodes.INVALID_INPUT, "减免金额必须小于满减门槛");
+            }
+        }
+        if ("PERCENT".equalsIgnoreCase(type)
+                && request.getValue().compareTo(BigDecimal.valueOf(100L)) > 0) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "折扣比例不能超过100%");
+        }
+        if (request.getStartsAt() == null || request.getEndsAt() != null
+                && !request.getEndsAt().isAfter(request.getStartsAt())) {
+            throw new StoreServiceException(ResultCodes.INVALID_INPUT, "促销时间范围不正确");
+        }
+        StoreServiceSupport.maxLength(request.getCode(), 64, "促销编码");
+        StoreServiceSupport.maxLength(request.getName(), 120, "促销名称");
+        StoreServiceSupport.maxLength(request.getCategoryCode(), 40, "分类编码");
+    }
     private static void validateReview(ProductReviewWriteRequest r)throws StoreServiceException{if(r==null||r.getOrderId()<=0||r.getProductId()<=0||r.getScore()<1||r.getScore()>5)throw new StoreServiceException(ResultCodes.INVALID_INPUT,"评价参数不正确");StoreServiceSupport.maxLength(r.getContent(),1000,"评价内容");}
     edu.seu.vcampus.common.dto.store.ReviewCandidatePage reviewCandidates(SessionContext session, ProductReviewQuery query) throws StoreServiceException {
         purchase(session); return tx(c -> repo.reviewCandidates(c, session.getUserId(), query));

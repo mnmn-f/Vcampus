@@ -14,6 +14,7 @@ import edu.seu.vcampus.server.store.repository.StoreRecordRepository;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.List;
+import org.threeten.bp.LocalDate;
 
 /** 订单创建、本人/管理员查询及状态机。支付扣款由 StorePaymentService 负责。 */
 final class StoreOrderService {
@@ -37,7 +38,10 @@ final class StoreOrderService {
                             validateLine(line);
                             total = total.add(line.lineAmount());
                         }
-                        long id = repository.insertOrder(c, session.getUserId(), orderNo(), total);
+                        LocalDate date = LocalDate.now();
+                        String orderNo = StoreOrderNumber.create(date,
+                                repository.nextOrderSequence(c, date));
+                        long id = repository.insertOrder(c, session.getUserId(), orderNo, total);
                         repository.insertOrderItems(c, id, lines);
                         repository.updateOrderPricing(c, id, total, BigDecimal.ZERO,
                                 null, null, "SELF");
@@ -106,11 +110,6 @@ final class StoreOrderService {
         if (!"ON_SALE".equalsIgnoreCase(line.getProductStatus())) {
             throw new StoreServiceException(ResultCodes.CONFLICT, "商品当前不可购买");
         }
-    }
-
-    private static String orderNo() {
-        String token = java.util.UUID.randomUUID().toString().replace("-", "");
-        return "VC-" + System.currentTimeMillis() + "-" + token.substring(0, 12);
     }
 
     static void detailPermission(SessionContext session) throws StoreServiceException {

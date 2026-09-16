@@ -20,7 +20,8 @@ final class InMemoryStoreProductRepository implements StoreProductRepository {
 
     InMemoryStoreProductRepository(InMemoryStoreState state) { this.state = state; }
 
-    @Override public byte[] findProductImage(Connection c, String reference, boolean manager) {
+    @Override public byte[] findProductImage(Connection c, String reference, boolean manager,
+                                              String variant) {
         synchronized (state) {
             for (ProductDto product : state.products.values()) if (reference.equals(product.getImageUrl())
                     && (manager || "ON_SALE".equals(product.getStatus()))) {

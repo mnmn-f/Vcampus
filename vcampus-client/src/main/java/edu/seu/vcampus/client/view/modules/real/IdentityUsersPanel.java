@@ -28,7 +28,7 @@ import java.util.List;
 /** 系统管理员用户搜索、启停、密码重置和角色分配页面。 */
 public final class IdentityUsersPanel extends JPanel {
     private final BasePage page; private final IdentityClientService service;
-    private final AsyncPagedTable<ProfileDto> table; private final JLabel detail = UiFactory.muted("选择用户查看详情。");
+    private final AsyncPagedTable<ProfileDto> table; private final JLabel detail = UiFactory.muted("");
     private final JComboBox<RealUi.CodeOption> status = new JComboBox<RealUi.CodeOption>(RealUi.options("ACTIVE", "DISABLED"));
     private final JComboBox<RealUi.CodeOption> role = new JComboBox<RealUi.CodeOption>();
     private final JPasswordField resetPassword = password(); private long selectedId;
@@ -72,7 +72,7 @@ public final class IdentityUsersPanel extends JPanel {
     }
 
     private void select(ProfileDto value) {
-        if (value == null) { selectedId = 0L; detail.setText("选择用户查看详情。"); return; }
+        if (value == null) { selectedId = 0L; detail.setText(""); return; }
         selectedId = value.getUserId(); status.setSelectedItem(RealUi.option(value.getStatus()));
         detail.setText("已选择：" + RealUi.text(value.getAccount()) + "　" + RealUi.text(value.getDisplayName()) + "　角色：" + roles(value));
     }

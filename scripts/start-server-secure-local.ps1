@@ -53,8 +53,15 @@ try {
 
     Write-Host 'Starting VCampus Server'
     Write-Host "Java command: $java -Dvcampus.server.port=$Port -jar $jar"
+    $logDirectory = Join-Path (Split-Path $jar -Parent) 'runtime-logs'
+    if (-not (Test-Path -LiteralPath $logDirectory)) {
+        New-Item -ItemType Directory -Path $logDirectory | Out-Null
+    }
+    $standardOutput = Join-Path $logDirectory 'server.out.log'
+    $standardError = Join-Path $logDirectory 'server.err.log'
     $serverProcess = Start-Process -FilePath $java -ArgumentList $arguments `
-        -WorkingDirectory (Split-Path $PSScriptRoot -Parent) -NoNewWindow -PassThru
+        -WorkingDirectory (Split-Path $PSScriptRoot -Parent) -WindowStyle Hidden -PassThru `
+        -RedirectStandardOutput $standardOutput -RedirectStandardError $standardError
     Write-Host "Server process started (PID $($serverProcess.Id))"
 
     $env:VCAMPUS_DB_URL = $originalUrl

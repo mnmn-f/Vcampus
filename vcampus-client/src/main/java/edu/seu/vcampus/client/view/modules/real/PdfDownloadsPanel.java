@@ -2,6 +2,7 @@ package edu.seu.vcampus.client.view.modules.real;
 
 import edu.seu.vcampus.client.service.library.PdfClientService;
 import edu.seu.vcampus.client.service.library.PdfFileTransfers;
+import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.SecondaryButton;
 import edu.seu.vcampus.client.ui.components.SectionCard;
 import edu.seu.vcampus.client.view.BasePage;
@@ -46,7 +47,8 @@ public final class PdfDownloadsPanel extends JPanel {
         SectionCard active = new SectionCard("下载任务", "");
         JPanel content = new JPanel(new BorderLayout(8, 8)); content.setOpaque(false);
         JScrollPane scroll = new JScrollPane(table); scroll.setColumnHeaderView(table.getTableHeader()); scroll.setPreferredSize(new java.awt.Dimension(0, 180)); content.add(scroll, BorderLayout.CENTER);
-        JButton retry = new SecondaryButton("重试选中失败任务"); retry.addActionListener(event -> retry()); content.add(retry, BorderLayout.SOUTH);
+        JButton retry = new SecondaryButton("重试选中失败任务"); retry.addActionListener(event -> retry());
+        JPanel retryActions = UiFactory.horizontal(8); retryActions.add(retry); content.add(retryActions, BorderLayout.SOUTH);
         active.setContent(content); add(active);
         history = new AsyncPagedTable<PdfDownloadRecord>("历史下载记录", "", "搜索下载记录", null,
                 new String[]{"资源名称", "文件名", "下载时间", "结果", "已传输", "失败原因"},

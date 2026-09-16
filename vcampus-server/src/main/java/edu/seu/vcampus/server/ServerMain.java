@@ -26,6 +26,8 @@ import edu.seu.vcampus.server.library.service.PdfLibraryService;
 import edu.seu.vcampus.common.library.PdfFileStore;
 import edu.seu.vcampus.server.identity.registry.IdentityCommandRegistry;
 import edu.seu.vcampus.server.identity.repository.mysql.MySqlLoginAuditSink;
+import edu.seu.vcampus.server.identity.repository.IdentityRecordRepository;
+import edu.seu.vcampus.server.identity.service.IdentityStudentAccountProvisioner;
 import edu.seu.vcampus.server.identity.service.IdentityService;
 import edu.seu.vcampus.server.network.TcpServer;
 import edu.seu.vcampus.server.repository.MySqlUserRepository;
@@ -108,8 +110,11 @@ public final class ServerMain {
                 new MySqlLoginAuditSink(connections));
         TransactionManager transactions = new TransactionManager(connections);
 
+        IdentityRecordRepository identityRepository =
+                IdentityCommandRegistry.createMySqlRepository();
         StudentRecordService studentService = new StudentRecordService(
-                new MySqlStudentRecordRepository(), transactions);
+                new MySqlStudentRecordRepository(), transactions,
+                new IdentityStudentAccountProvisioner(identityRepository, passwordHasher));
         AcademicService academicService =
                 AcademicCommandRegistry.createMySqlService(transactions);
         LibraryService libraryService =
@@ -121,8 +126,8 @@ public final class ServerMain {
         DormExtService dormExtService = DormExtCommandRegistry.createMySqlService(transactions);
         StoreService storeService = StoreCommandRegistry.createMySqlService(transactions);
         CampusService campusService = CampusCommandRegistry.createMySqlService(transactions);
-        IdentityService identityService = IdentityCommandRegistry.createMySqlService(
-                transactions, passwordHasher, sessions);
+        IdentityService identityService = new IdentityService(identityRepository,
+                passwordHasher, sessions, transactions);
 
         StudentCommandRegistry.registerAll(router, studentService);
         AcademicCommandRegistry.registerAll(router, academicService);

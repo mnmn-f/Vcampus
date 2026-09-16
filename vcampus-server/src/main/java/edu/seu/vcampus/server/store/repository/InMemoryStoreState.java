@@ -17,6 +17,7 @@ final class InMemoryStoreState {
     final Map<Long, byte[]> productImages = new LinkedHashMap<>();
     final Map<Long, MemoryCart> carts = new LinkedHashMap<Long, MemoryCart>();
     final Map<Long, MemoryOrder> orders = new LinkedHashMap<Long, MemoryOrder>();
+    final Map<String, Integer> orderDailySequences = new LinkedHashMap<String, Integer>();
     final Map<Long, MemoryAccount> accounts = new LinkedHashMap<Long, MemoryAccount>();
     final Map<Long, List<AccountTransactionDto>> ledgers =
             new LinkedHashMap<Long, List<AccountTransactionDto>>();
@@ -140,6 +141,7 @@ final class InMemoryStoreState {
             result.state.ledgers.put(entry.getKey(), new ArrayList<AccountTransactionDto>(entry.getValue()));
         }
         result.state.keys.putAll(keys);
+        result.state.orderDailySequences.putAll(orderDailySequences);
         result.state.productSequence = productSequence;
         result.state.cartSequence = cartSequence;
         result.state.orderSequence = orderSequence;
@@ -162,6 +164,8 @@ final class InMemoryStoreState {
         ledgers.putAll(snapshot.state.ledgers);
         keys.clear();
         keys.putAll(snapshot.state.keys);
+        orderDailySequences.clear();
+        orderDailySequences.putAll(snapshot.state.orderDailySequences);
         productSequence = snapshot.state.productSequence;
         cartSequence = snapshot.state.cartSequence;
         orderSequence = snapshot.state.orderSequence;

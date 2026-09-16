@@ -95,14 +95,13 @@ public final class StudentOwnPanel extends JPanel {
 
     private AsyncPagedTable<StudentGradeDto> grades() {
         AsyncPagedTable<StudentGradeDto> table = new AsyncPagedTable<StudentGradeDto>(
-                "我的成绩", "成绩按学期筛选，留空查看累计指标。", "输入课程编号筛选", null,
+                "我的成绩", "", "输入课程编号或名称", null,
                 new String[]{"学期", "课程编号", "课程名称", "学分", "成绩", "绩点", "状态"},
                 new AsyncPagedTable.Loader<StudentGradeDto>() {
                     @Override public PageSlice<StudentGradeDto> load(int pageNumber,
                             String keyword, String filter) throws Exception {
-                        Long courseId = RealUi.number(keyword);
-                        StudentGradeQuery query = new StudentGradeQuery(semester.getText(),
-                                courseId, pageNumber, StudentGradeQuery.firstPage().getPageSize());
+                        StudentGradeQuery query = StudentGradeQuery.search(semester.getText(),
+                                keyword, pageNumber, StudentGradeQuery.firstPage().getPageSize());
                         final StudentGradeReportDto report = service.getOwnGradeReport(query);
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override public void run() { showMetrics(report.getMetrics()); }
@@ -138,7 +137,7 @@ public final class StudentOwnPanel extends JPanel {
         AsyncTask.run(new AsyncTask.Work<StudentGradeExportDto>() {
             @Override public StudentGradeExportDto run() throws Exception {
                 StudentGradeExportDto data = service.exportOwnGrades(
-                        new StudentGradeExportQuery(semester.getText(), null));
+                        StudentGradeExportQuery.search(semester.getText(), grades.getSearchKeyword()));
                 StudentGradeCsvExporter.write(file, data); return data;
             }
         }, new AsyncTask.Callback<StudentGradeExportDto>() {

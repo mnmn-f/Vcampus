@@ -22,7 +22,7 @@ public final class CampusSrtpPanel extends JPanel {
     private final BasePage page; private final CampusClientService service; private final Role role;
     private final AsyncPagedTable<SrtpRecordDto> table; private final CampusSrtpEditorPanel editor;
     private final JComboBox<RealUi.CodeOption> reviewStatus = new JComboBox<RealUi.CodeOption>(RealUi.options("APPROVED", "REJECTED", "CANCELLED"));
-    private final JTextField remark = UiFactory.textField(18); private final JLabel detail = UiFactory.muted("选择 SRTP 记录查看详情。");
+    private final JTextField remark = UiFactory.textField(18); private final JLabel detail = UiFactory.muted("");
 
     public CampusSrtpPanel(BasePage page, CampusClientService service, Role role) {
         super(); setOpaque(false); setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
@@ -69,7 +69,7 @@ public final class CampusSrtpPanel extends JPanel {
     }
 
     private void select(SrtpRecordDto value) {
-        if (value == null) { detail.setText("选择 SRTP 记录查看详情。"); editor.startNew(); return; }
+        if (value == null) { detail.setText(""); editor.startNew(); return; }
         editor.showRecord(value); detail.setText("详情：" + RealUi.text(value.getTitle()) + "　" + RealUi.text(value.getDescription()));
     }
 
