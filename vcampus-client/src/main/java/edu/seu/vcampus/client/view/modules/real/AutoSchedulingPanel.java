@@ -29,6 +29,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.table.DefaultTableModel;
@@ -47,8 +48,11 @@ public final class AutoSchedulingPanel extends JPanel {
     private final DefaultTableModel previewModel = model(new String[]{"课程","教师","班级/教学班","星期","节次","教室"});
     private final JTable previewTable = table(previewModel);
     private final JLabel state = UiFactory.muted(" ");
+    private final JComboBox<String> semester = new JComboBox<String>();
+    private final JTextArea diagnostics = UiFactory.textArea(3, 60);
     private List<TeacherTimePreferenceDto> preferences = Collections.emptyList();
     private List<AutoScheduleEntryDto> preview = Collections.emptyList();
+    private String previewSemester;
     private final JButton generate = new PrimaryButton("开始自动排课");
     private final JButton regenerate = new SecondaryButton("重新排课");
     private final JButton confirm = new PrimaryButton("确认保存");
@@ -73,14 +77,15 @@ public final class AutoSchedulingPanel extends JPanel {
 
     private SectionCard previewCard() {
         SectionCard card=new SectionCard("一键自动排课","");
-        JPanel actions=UiFactory.horizontal(8);actions.add(generate);actions.add(regenerate);actions.add(confirm);actions.add(state);
+        JPanel actions=UiFactory.horizontal(8);actions.add(UiFactory.muted("目标学期"));actions.add(semester);actions.add(generate);actions.add(regenerate);actions.add(confirm);actions.add(state);
         JScrollPane scroll=new JScrollPane(previewTable);scroll.setPreferredSize(new Dimension(900,260));
-        JPanel content=new JPanel(new BorderLayout(0,8));content.setOpaque(false);content.add(actions,BorderLayout.NORTH);content.add(scroll,BorderLayout.CENTER);card.setContent(content);return card;
+        diagnostics.setEditable(false);diagnostics.setLineWrap(true);diagnostics.setWrapStyleWord(true);
+        JPanel content=new JPanel(new BorderLayout(0,8));content.setOpaque(false);content.add(actions,BorderLayout.NORTH);content.add(scroll,BorderLayout.CENTER);content.add(new JScrollPane(diagnostics),BorderLayout.SOUTH);card.setContent(content);return card;
     }
 
     private void wire(){generate.addActionListener(e->generate());regenerate.addActionListener(e->generate());confirm.addActionListener(e->confirm());setBusy(false);}
     private void loadOverview(){setBusy(true);AsyncTask.run(()->service.schedulingOverview(),new AsyncTask.Callback<SchedulingOverviewDto>(){
-        @Override public void onSuccess(SchedulingOverviewDto value){teacher.removeAllItems();for(SchedulingTeacherDto t:value.getTeachers())teacher.addItem(t);preferences=new ArrayList<TeacherTimePreferenceDto>(value.getPreferences());refreshPreferences();setBusy(false);}
+        @Override public void onSuccess(SchedulingOverviewDto value){teacher.removeAllItems();for(SchedulingTeacherDto t:value.getTeachers())teacher.addItem(t);semester.removeAllItems();for(String code:value.getSemesterCodes())semester.addItem(code);preferences=new ArrayList<TeacherTimePreferenceDto>(value.getPreferences());refreshPreferences();setBusy(false);}
         @Override public void onFailure(Throwable cause){state.setText(AsyncTask.message(cause));setBusy(false);}});}
     private void savePreference(){SchedulingTeacherDto selected=(SchedulingTeacherDto)teacher.getSelectedItem();if(selected==null){state.setText("没有可选教师。");return;}int s=((Number)start.getValue()).intValue(),e=((Number)end.getValue()).intValue();if(e<s){state.setText("结束节次不能早于开始节次。");return;}setBusy(true);TeacherTimePreferenceDto request=new TeacherTimePreferenceDto(0,selected.getUserId(),weekday.getSelectedIndex()+1,s,e,String.valueOf(type.getSelectedItem()));AsyncTask.run(()->service.saveTimePreference(request),new AsyncTask.Callback<TeacherTimePreferenceDto>(){
         @Override public void onSuccess(TeacherTimePreferenceDto value){page.showSuccess("教师时间偏好已保存。");loadOverview();}
@@ -88,10 +93,10 @@ public final class AutoSchedulingPanel extends JPanel {
     private void deletePreference(){int row=preferenceTable.getSelectedRow();if(row<0||row>=preferences.size()){state.setText("请先选择一条偏好记录。");return;}TeacherTimePreferenceDto value=preferences.get(row);if(!RealUi.confirm(this,"确认删除选中的教师时间偏好？"))return;setBusy(true);AsyncTask.run(()->{service.deleteTimePreference(value.getId());return Boolean.TRUE;},new AsyncTask.Callback<Boolean>(){
         @Override public void onSuccess(Boolean value){page.showSuccess("教师时间偏好已删除。");loadOverview();}
         @Override public void onFailure(Throwable cause){state.setText(AsyncTask.message(cause));setBusy(false);}});}
-    private void generate(){setBusy(true);state.setText("正在搜索合法方案…");AsyncTask.run(()->service.previewAutoSchedule(8000),new AsyncTask.Callback<AutoSchedulePreviewDto>(){
-        @Override public void onSuccess(AutoSchedulePreviewDto value){preview=new ArrayList<AutoScheduleEntryDto>(value.getEntries());refreshPreview();state.setText(join(value.getExplanations())+(value.isSuccess()?"  总惩罚："+value.getTotalPenalty():""));setBusy(false);}
+    private void generate(){final String target=(String)semester.getSelectedItem();if(target==null||target.trim().isEmpty()){state.setText("没有可选目标学期。");return;}setBusy(true);state.setText("正在搜索合法方案…");diagnostics.setText("");AsyncTask.run(()->service.previewAutoSchedule(8000,target),new AsyncTask.Callback<AutoSchedulePreviewDto>(){
+        @Override public void onSuccess(AutoSchedulePreviewDto value){previewSemester=target;preview=new ArrayList<AutoScheduleEntryDto>(value.getEntries());refreshPreview();state.setText("输入："+value.getInputCourseCount()+" 门课程 / "+value.getInputTeacherCount()+" 名教师 / "+value.getInputClassroomCount()+" 间教室"+(value.isSuccess()?"；总惩罚："+value.getTotalPenalty():""));diagnostics.setText(join(value.getExplanations()));diagnostics.setCaretPosition(0);setBusy(false);}
         @Override public void onFailure(Throwable cause){state.setText(AsyncTask.message(cause));setBusy(false);}});}
-    private void confirm(){if(preview.isEmpty()){state.setText("请先生成可保存的排课预览。");return;}if(!RealUi.confirm(this,"确认保存预览中的 "+preview.size()+" 条课次？保存前将再次检查全部冲突。"))return;setBusy(true);final AutoScheduleConfirmRequest request=new AutoScheduleConfirmRequest(preview);AsyncTask.run(()->service.confirmAutoSchedule(request),new AsyncTask.Callback<AutoScheduleSaveResult>(){
+    private void confirm(){if(preview.isEmpty()){state.setText("请先生成可保存的排课预览。");return;}if(!RealUi.confirm(this,"确认保存预览中的 "+preview.size()+" 条课次？保存前将再次检查全部冲突。"))return;setBusy(true);final AutoScheduleConfirmRequest request=new AutoScheduleConfirmRequest(preview,previewSemester);AsyncTask.run(()->service.confirmAutoSchedule(request),new AsyncTask.Callback<AutoScheduleSaveResult>(){
         @Override public void onSuccess(AutoScheduleSaveResult value){preview=Collections.emptyList();refreshPreview();page.showSuccess("已原子保存 "+value.getSavedCount()+" 条自动课表。");state.setText("保存成功，可刷新课程与排课查看结果。");setBusy(false);}
         @Override public void onFailure(Throwable cause){state.setText(AsyncTask.message(cause));setBusy(false);}});}
     private void refreshPreferences(){preferenceModel.setRowCount(0);for(TeacherTimePreferenceDto p:preferences)preferenceModel.addRow(new Object[]{teacherName(p.getTeacherUserId()),day(p.getWeekday()),p.getStartPeriod()+"-"+p.getEndPeriod(),RealUi.status(p.getPreferenceType())});}

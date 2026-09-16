@@ -9,6 +9,10 @@ import java.util.List;
 /** Persistence boundary dedicated to automatic scheduling. */
 public interface SchedulingRepository {
     AutoSchedulingSolver.Problem loadProblem(Connection connection) throws Exception;
+    default AutoSchedulingSolver.Problem loadProblem(Connection connection, String semesterCode)
+            throws Exception {
+        return loadProblem(connection);
+    }
     SchedulingOverviewDto overview(Connection connection) throws Exception;
     TeacherTimePreferenceDto savePreference(Connection connection,
                                              TeacherTimePreferenceDto value) throws Exception;

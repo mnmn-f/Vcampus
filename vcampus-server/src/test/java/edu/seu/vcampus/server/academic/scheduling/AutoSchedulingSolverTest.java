@@ -49,6 +49,21 @@ public final class AutoSchedulingSolverTest {
         AutoSchedulePreviewDto result=solve(list(session(1,"A",1,"G1"),session(2,"B",2,"G2")),list(room(1,60)),noneFixed(),nonePreferences(),list(slot(1,1),slot(1,3)));
         assertTrue(result.isSuccess());assertEquals(2,result.getEntries().size());
     }
+    @Test public void multiTeacherMultiCourseInputProducesCompletePreview() {
+        List<AutoSchedulingSolver.Session> sessions=list(session(1,"A",1,"G1"),session(2,"B",1,"G2"),
+                session(3,"C",2,"G3"),session(4,"D",2,"G4"),session(5,"E",3,"G5"));
+        AutoSchedulePreviewDto result=solve(sessions,list(room(1,60),room(2,60),room(3,60),room(4,60),room(5,60)),
+                noneFixed(),nonePreferences(),list(slot(1,1),slot(1,3),slot(2,1),slot(2,3),slot(3,1)));
+        assertTrue(result.isSuccess());assertEquals(5,result.getEntries().size());
+        assertEquals(5,result.getInputCourseCount());assertEquals(3,result.getInputTeacherCount());assertEquals(5,result.getInputClassroomCount());
+    }
+    @Test public void excludedCourseReasonIsKeptInPreviewDiagnostics() {
+        AutoSchedulingSolver.Problem problem=new AutoSchedulingSolver.Problem(Collections.<AutoSchedulingSolver.Session>emptyList(),
+                list(room(1,60)),noneFixed(),nonePreferences(),list(slot(1,1)),
+                Collections.singletonList("课程 X 未进入排课，原因：缺少授课教师。"));
+        AutoSchedulePreviewDto result=solver.solve(problem,100);
+        assertTrue(result.getExplanations().get(0).contains("缺少授课教师"));
+    }
     @Test public void repeatedCourseSessionsPreferDifferentDays() {
         AutoSchedulingSolver.Session first=session(1,"A",1,"G1"), second=session(1,"A",1,"G1");
         AutoSchedulePreviewDto result=solve(list(first,second),list(room(1,60)),noneFixed(),nonePreferences(),list(slot(1,1),slot(1,3),slot(2,1)));
@@ -75,6 +90,11 @@ public final class AutoSchedulingSolverTest {
         AutoSchedulingService service=new AutoSchedulingService(repository);
         assertTrue(service.preview(admin(),new AutoScheduleRequest(100)).isSuccess());assertEquals(0,repository.saved);
     }
+    @Test public void previewLoadsAllCandidatesForRequestedSemester() throws Exception {
+        FakeRepository repository=new FakeRepository(problem(list(session(1,"A",1,"G1")),list(room(1,60)),noneFixed(),nonePreferences(),list(slot(1,1))));
+        AutoSchedulePreviewDto result=new AutoSchedulingService(repository).preview(admin(),new AutoScheduleRequest(100,"2026-FALL"));
+        assertTrue(result.isSuccess());assertEquals("2026-FALL",repository.semester);
+    }
     @Test public void confirmRevalidatesAndRejectsStalePreview() throws Exception {
         FakeRepository repository=new FakeRepository(problem(list(session(1,"A",1,"G1")),list(room(1,60)),
                 list(new AutoSchedulingSolver.Fixed(list(Long.valueOf(1)),list("OTHER"),2,slot(1,1))),nonePreferences(),list(slot(1,1))));
@@ -96,9 +116,10 @@ public final class AutoSchedulingSolverTest {
     @SafeVarargs private static <T> List<T> list(T...values){List<T>r=new ArrayList<T>();Collections.addAll(r,values);return r;}
 
     private static final class FakeRepository implements SchedulingRepository {
-        private final AutoSchedulingSolver.Problem problem;int saved;boolean locked;
+        private final AutoSchedulingSolver.Problem problem;int saved;boolean locked;String semester;
         FakeRepository(AutoSchedulingSolver.Problem problem){this.problem=problem;}
         @Override public AutoSchedulingSolver.Problem loadProblem(Connection c){return problem;}
+        @Override public AutoSchedulingSolver.Problem loadProblem(Connection c,String value){semester=value;return problem;}
         @Override public SchedulingOverviewDto overview(Connection c){return new SchedulingOverviewDto(null,null);}
         @Override public TeacherTimePreferenceDto savePreference(Connection c,TeacherTimePreferenceDto v){return v;}
         @Override public boolean deletePreference(Connection c,long id){return true;}

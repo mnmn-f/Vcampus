@@ -12,19 +12,34 @@ public final class AutoSchedulePreviewDto implements Serializable {
     private final int totalPenalty;
     private final List<AutoScheduleEntryDto> entries;
     private final List<String> explanations;
+    private final int inputCourseCount;
+    private final int inputTeacherCount;
+    private final int inputClassroomCount;
 
     public AutoSchedulePreviewDto(boolean success, int totalPenalty,
             List<AutoScheduleEntryDto> entries, List<String> explanations) {
+        this(success, totalPenalty, entries, explanations, 0, 0, 0);
+    }
+
+    public AutoSchedulePreviewDto(boolean success, int totalPenalty,
+            List<AutoScheduleEntryDto> entries, List<String> explanations,
+            int inputCourseCount, int inputTeacherCount, int inputClassroomCount) {
         this.success = success;
         this.totalPenalty = totalPenalty;
         this.entries = immutable(entries);
         this.explanations = immutable(explanations);
+        this.inputCourseCount = inputCourseCount;
+        this.inputTeacherCount = inputTeacherCount;
+        this.inputClassroomCount = inputClassroomCount;
     }
 
     public boolean isSuccess() { return success; }
     public int getTotalPenalty() { return totalPenalty; }
     public List<AutoScheduleEntryDto> getEntries() { return entries; }
     public List<String> getExplanations() { return explanations; }
+    public int getInputCourseCount() { return inputCourseCount; }
+    public int getInputTeacherCount() { return inputTeacherCount; }
+    public int getInputClassroomCount() { return inputClassroomCount; }
 
     private static <T> List<T> immutable(List<T> values) {
         return values == null || values.isEmpty() ? Collections.<T>emptyList()

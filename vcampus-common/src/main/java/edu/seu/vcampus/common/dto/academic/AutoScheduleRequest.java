@@ -6,11 +6,18 @@ import java.io.Serializable;
 public final class AutoScheduleRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private final int timeLimitMillis;
+    private final String semesterCode;
 
     public AutoScheduleRequest(int timeLimitMillis) {
+        this(timeLimitMillis, null);
+    }
+
+    public AutoScheduleRequest(int timeLimitMillis, String semesterCode) {
         this.timeLimitMillis = timeLimitMillis;
+        this.semesterCode = semesterCode;
     }
 
     public int getTimeLimitMillis() { return timeLimitMillis; }
+    public String getSemesterCode() { return semesterCode; }
     public static AutoScheduleRequest defaults() { return new AutoScheduleRequest(8000); }
 }

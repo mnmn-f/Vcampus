@@ -127,7 +127,11 @@ public final class AcademicClientService {
         request(AcademicCommands.SCHEDULING_PREFERENCE_DELETE, new ScheduleIdRequest(id));
     }
     public AutoSchedulePreviewDto previewAutoSchedule(int timeLimitMillis) throws NetworkClientException {
-        return payload(AcademicCommands.AUTO_SCHEDULE_PREVIEW, new AutoScheduleRequest(timeLimitMillis), AutoSchedulePreviewDto.class);
+        return previewAutoSchedule(timeLimitMillis, null);
+    }
+    public AutoSchedulePreviewDto previewAutoSchedule(int timeLimitMillis, String semesterCode) throws NetworkClientException {
+        return payload(AcademicCommands.AUTO_SCHEDULE_PREVIEW,
+                new AutoScheduleRequest(timeLimitMillis, semesterCode), AutoSchedulePreviewDto.class);
     }
     public AutoScheduleSaveResult confirmAutoSchedule(AutoScheduleConfirmRequest request) throws NetworkClientException {
         return payload(AcademicCommands.AUTO_SCHEDULE_CONFIRM, request, AutoScheduleSaveResult.class);

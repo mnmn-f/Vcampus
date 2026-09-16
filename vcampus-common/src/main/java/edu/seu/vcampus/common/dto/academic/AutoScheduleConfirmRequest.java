@@ -9,11 +9,18 @@ import java.util.List;
 public final class AutoScheduleConfirmRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private final List<AutoScheduleEntryDto> entries;
+    private final String semesterCode;
 
     public AutoScheduleConfirmRequest(List<AutoScheduleEntryDto> entries) {
+        this(entries, null);
+    }
+
+    public AutoScheduleConfirmRequest(List<AutoScheduleEntryDto> entries, String semesterCode) {
         this.entries = entries == null ? Collections.<AutoScheduleEntryDto>emptyList()
                 : Collections.unmodifiableList(new ArrayList<AutoScheduleEntryDto>(entries));
+        this.semesterCode = semesterCode;
     }
 
     public List<AutoScheduleEntryDto> getEntries() { return entries; }
+    public String getSemesterCode() { return semesterCode; }
 }
