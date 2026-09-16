@@ -42,7 +42,10 @@ public final class LibraryBookEditorPanel extends SectionCard {
         JPanel fields = new JPanel(new edu.seu.vcampus.client.ui.ResponsiveGridLayout(220, 2, 12)); fields.setOpaque(false);
         add(fields, "ISBN", isbn); add(fields, "书名", title); add(fields, "作者", author); add(fields, "出版社", publisher);
         add(fields, "分类", category); add(fields, "总库存", total); add(fields, "可借库存", available); add(fields, "馆藏位置", location); add(fields, "状态", status);
-        add(fields, "出版年份", year); add(fields, "图书封面", coverButton);
+        add(fields, "出版年份", year);
+        JPanel coverActions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        coverActions.setOpaque(false); coverActions.add(coverButton);
+        add(fields, "图书封面", coverActions);
         coverButton.addActionListener(event -> chooseCover());
         JPanel content = new JPanel(new BorderLayout(0, 10)); content.setOpaque(false); content.add(fields, BorderLayout.NORTH);
         content.add(UiFactory.labelledField("简介", description), BorderLayout.CENTER);

@@ -9,3 +9,4 @@ application-local.properties
 ~$*.docx
 .codex_tmp*/
 runtime-logs/
+vcampus-backup.sql

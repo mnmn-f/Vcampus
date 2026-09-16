@@ -30,6 +30,12 @@ public final class NetworkDormExtClientService implements DormExtClientService {
     @Override public DormPage<AbsenceWarningDto> warnings(DormPageQuery q) throws NetworkClientException { return page(call(DormExtCommands.WARNING_LIST, q)); }
     @Override public AbsenceWarningDto notifyWarning(WarningHandleRequest r) throws NetworkClientException { return value(DormExtCommands.WARNING_NOTIFY, r, AbsenceWarningDto.class); }
     @Override public AbsenceWarningDto verifyWarning(WarningHandleRequest r) throws NetworkClientException { return value(DormExtCommands.WARNING_VERIFY, r, AbsenceWarningDto.class); }
+    @Override @SuppressWarnings("unchecked")
+    public java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers() throws NetworkClientException {
+        Object result = call(DormExtCommands.WARNING_TEACHERS, null).getPayload();
+        if (!(result instanceof java.util.List)) throw new NetworkClientException(ResultCodes.INTERNAL_ERROR, "服务器返回数据类型不正确");
+        return (java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>) result;
+    }
     @Override public WarningConfigDto warningConfig() throws NetworkClientException { return value(DormExtCommands.WARNING_CONFIG_GET, null, WarningConfigDto.class); }
     @Override public WarningConfigDto saveWarningConfig(WarningConfigRequest r) throws NetworkClientException { return value(DormExtCommands.WARNING_CONFIG_SET, r, WarningConfigDto.class); }
     @Override public VisitorRegistrationDto submitVisitor(VisitorRegistrationRequest r) throws NetworkClientException { return value(DormExtCommands.VISITOR_SUBMIT, r, VisitorRegistrationDto.class); }

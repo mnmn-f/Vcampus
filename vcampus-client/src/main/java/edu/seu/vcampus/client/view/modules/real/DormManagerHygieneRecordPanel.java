@@ -36,15 +36,18 @@ public final class DormManagerHygieneRecordPanel extends JPanel {
 
     public void reload() { records.reload(); }
 
+    /** 检查记录每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<HygieneInspectionDto> table() {
-        return new AsyncPagedTable<HygieneInspectionDto>("检查记录",
+        AsyncPagedTable<HygieneInspectionDto> table = new AsyncPagedTable<HygieneInspectionDto>("检查记录",
                 "所有房间的历史检查与整改状态，只读；要改状态请排一次复查。",
                 "搜索房间或检查结果",
                 new String[]{"全部状态", "正常", "待整改", "已整改"},
                 new String[]{"编号", "房间", "评分", "结果", "问题", "状态", "检查时间"},
                 new AsyncPagedTable.Loader<HygieneInspectionDto>() {
                     @Override public PageSlice<HygieneInspectionDto> load(int p, String k, String f) throws Exception {
-                        return RealUi.page(service.hygiene(new DormPageQuery(p, 20, k, statusCode(f), null, null)));
+                        return RealUi.page(service.hygiene(new DormPageQuery(p, PAGE_ROWS, k, statusCode(f), null, null)));
                     }
                 }, new AsyncPagedTable.RowMapper<HygieneInspectionDto>() {
                     @Override public Object[] values(HygieneInspectionDto row) {
@@ -54,6 +57,8 @@ public final class DormManagerHygieneRecordPanel extends JPanel {
                                 RealUi.dateTime(row.getInspectedAt())};
                     }
                 }, null);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     private static String statusCode(String filter) {

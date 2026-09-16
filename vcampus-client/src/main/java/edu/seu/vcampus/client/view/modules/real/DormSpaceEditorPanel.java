@@ -28,11 +28,31 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.util.List;
 
-/** 宿管员维护楼栋、房间和床位；关联对象从已存在的空间中选择。 */
+/**
+ * 宿管员维护楼栋、房间和床位；关联对象从已存在的空间中选择。
+ *
+ * <p>三个子页各是一张表单，同一张表单既做新建也做修改，靠表单顶上的模式提示区分：
+ * 没有选中任何行时是「新建」，在上面的台账里点了一行就切成「编辑那一行」。
+ * 主按钮的字随模式变（「新建楼栋」/「保存修改」），免得像原来那样两个按钮都叫
+ * 「新建」「保存」，分不清哪个才是真的往数据库里写。</p>
+ */
 public final class DormSpaceEditorPanel extends SectionCard {
+    /** 保存成功后通知外面的页面：哪一类记录、保存后的样子、是不是新建的。 */
+    public interface Listener {
+        void buildingSaved(DormBuildingDto value, boolean created);
+        void roomSaved(DormRoomDto value, boolean created);
+        void bedSaved(DormBedDto value, boolean created);
+    }
+
     private final BasePage page;
     private final DormClientService service;
-    private final Runnable refresh;
+    private final Listener listener;
+    private final JLabel buildingMode = UiFactory.muted(" ");
+    private final JLabel roomMode = UiFactory.muted(" ");
+    private final JLabel bedMode = UiFactory.muted(" ");
+    private JButton buildingSubmit;
+    private JButton roomSubmit;
+    private JButton bedSubmit;
     private long buildingId;
     private long roomId;
     private long bedId;
@@ -57,12 +77,15 @@ public final class DormSpaceEditorPanel extends SectionCard {
     private final JComboBox<RealUi.CodeOption> bedStatus = choices("AVAILABLE", "OCCUPIED", "MAINTENANCE");
     private final JLabel bedError = UiFactory.muted(" ");
 
-    public DormSpaceEditorPanel(BasePage page, DormClientService service, Runnable refresh) {
-        super("空间维护", "维护楼栋、房间与床位");
-        if (page == null || service == null || refresh == null) throw new IllegalArgumentException("空间维护依赖不能为空");
-        this.page = page; this.service = service; this.refresh = refresh;
+    public DormSpaceEditorPanel(BasePage page, DormClientService service, Listener listener) {
+        super("空间维护", "新建：直接填表单点「新建」；修改：先在上面的台账里选中一行，改完点「保存修改」。");
+        if (page == null || service == null || listener == null) throw new IllegalArgumentException("空间维护依赖不能为空");
+        this.page = page; this.service = service; this.listener = listener;
         setContent(tabs()); startBuilding(); startRoom(); startBed(); loadReferences();
     }
+
+    /** 上面的台账重新加载后可能没有选中行了，让表单回到新建模式。 */
+    public void clearSelection() { startBuilding(); startRoom(); startBed(); }
 
     public void showBuilding(DormBuildingDto value) {
         if (value == null) { startBuilding(); return; }
@@ -70,6 +93,7 @@ public final class DormSpaceEditorPanel extends SectionCard {
         buildingName.setText(RealUi.input(value.getBuildingName())); buildingAddress.setText(RealUi.input(value.getAddress()));
         buildingGender.setSelectedItem(RealUi.option(value.getGenderPolicy())); buildingStatus.setSelectedItem(RealUi.option(value.getStatus()));
         buildingError.setText(" ");
+        mode(buildingMode, buildingSubmit, "正在编辑楼栋：" + RealUi.text(value.getBuildingCode()) + " " + RealUi.text(value.getBuildingName()), "保存修改");
     }
 
     public void showRoom(DormRoomDto value) {
@@ -78,12 +102,19 @@ public final class DormSpaceEditorPanel extends SectionCard {
         roomNo.setText(RealUi.input(value.getRoomNo())); roomFloor.setText(String.valueOf(value.getFloorNo()));
         roomCapacity.setText(String.valueOf(value.getCapacity())); roomType.setSelectedItem(RealUi.option(value.getRoomType()));
         roomStatus.setSelectedItem(RealUi.option(value.getStatus())); roomDescription.setText(RealUi.input(value.getDescription())); roomError.setText(" ");
+        mode(roomMode, roomSubmit, "正在编辑房间：" + RealUi.text(value.getBuildingName()) + " " + RealUi.text(value.getRoomNo()), "保存修改");
     }
 
     public void showBed(DormBedDto value) {
         if (value == null) { startBed(); return; }
         bedId = value.getId(); bedRoomSelection = value.getRoomId(); select(bedRoom, bedRoomSelection, "当前房间");
         bedNo.setText(RealUi.input(value.getBedNo())); bedStatus.setSelectedItem(RealUi.option(value.getStatus())); bedError.setText(" ");
+        mode(bedMode, bedSubmit, "正在编辑床位：" + RealUi.text(value.getRoomNo()) + " 房 " + RealUi.text(value.getBedNo()) + " 号床", "保存修改");
+    }
+
+    private static void mode(JLabel label, JButton submit, String text, String submitText) {
+        label.setText(text);
+        if (submit != null) submit.setText(submitText);
     }
 
     private JTabbedPane tabs() {
@@ -96,11 +127,13 @@ public final class DormSpaceEditorPanel extends SectionCard {
         fields.add(UiFactory.labelledField("楼栋编码", buildingCode)); fields.add(UiFactory.labelledField("楼栋名称", buildingName));
         fields.add(UiFactory.labelledField("地址", buildingAddress)); fields.add(UiFactory.labelledField("性别政策", buildingGender));
         fields.add(UiFactory.labelledField("状态", buildingStatus));
-        return tab(fields, actions("新建楼栋", "保存楼栋", new java.awt.event.ActionListener() {
+        JPanel actions = actions("清空，改为新建", "新建楼栋", new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { startBuilding(); }
         }, new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { saveBuilding(); }
-        }, buildingError));
+        }, buildingError);
+        buildingSubmit = submitOf(actions);
+        return tab(buildingMode, fields, actions);
     }
 
     private JPanel roomTab() {
@@ -109,22 +142,26 @@ public final class DormSpaceEditorPanel extends SectionCard {
         fields.add(UiFactory.labelledField("楼层", roomFloor)); fields.add(UiFactory.labelledField("容量", roomCapacity));
         fields.add(UiFactory.labelledField("房间类型", roomType)); fields.add(UiFactory.labelledField("状态", roomStatus));
         fields.add(UiFactory.labelledField("说明", roomDescription));
-        return tab(fields, actions("新建房间", "保存房间", new java.awt.event.ActionListener() {
+        JPanel actions = actions("清空，改为新建", "新建房间", new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { startRoom(); }
         }, new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { saveRoom(); }
-        }, roomError));
+        }, roomError);
+        roomSubmit = submitOf(actions);
+        return tab(roomMode, fields, actions);
     }
 
     private JPanel bedTab() {
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         fields.add(UiFactory.labelledField("所属房间", bedRoom)); fields.add(UiFactory.labelledField("床位号", bedNo));
         fields.add(UiFactory.labelledField("状态", bedStatus));
-        return tab(fields, actions("新建床位", "保存床位", new java.awt.event.ActionListener() {
+        JPanel actions = actions("清空，改为新建", "新建床位", new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { startBed(); }
         }, new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { saveBed(); }
-        }, bedError));
+        }, bedError);
+        bedSubmit = submitOf(actions);
+        return tab(bedMode, fields, actions);
     }
 
     private void loadReferences() {
@@ -161,25 +198,25 @@ public final class DormSpaceEditorPanel extends SectionCard {
         }
     }
 
-    private void startBuilding() { buildingId = 0L; buildingCode.setText(""); buildingName.setText(""); buildingAddress.setText(""); buildingGender.setSelectedItem(RealUi.option("MALE")); buildingStatus.setSelectedItem(RealUi.option("OPEN")); buildingError.setText(" "); }
-    private void startRoom() { roomId = 0L; roomBuildingSelection = 0L; select(roomBuilding, 0L, ""); roomNo.setText(""); roomFloor.setText("1"); roomCapacity.setText("4"); roomType.setSelectedItem(RealUi.option("STANDARD")); roomStatus.setSelectedItem(RealUi.option("AVAILABLE")); roomDescription.setText(""); roomError.setText(" "); }
-    private void startBed() { bedId = 0L; bedRoomSelection = 0L; select(bedRoom, 0L, ""); bedNo.setText(""); bedStatus.setSelectedItem(RealUi.option("AVAILABLE")); bedError.setText(" "); }
+    private void startBuilding() { buildingId = 0L; buildingCode.setText(""); buildingName.setText(""); buildingAddress.setText(""); buildingGender.setSelectedItem(RealUi.option("MALE")); buildingStatus.setSelectedItem(RealUi.option("OPEN")); buildingError.setText(" "); mode(buildingMode, buildingSubmit, "新建楼栋：填好编码和名称后点「新建楼栋」，会立刻出现在上面的楼栋表里。", "新建楼栋"); }
+    private void startRoom() { roomId = 0L; roomBuildingSelection = 0L; select(roomBuilding, 0L, ""); roomNo.setText(""); roomFloor.setText("1"); roomCapacity.setText("4"); roomType.setSelectedItem(RealUi.option("STANDARD")); roomStatus.setSelectedItem(RealUi.option("AVAILABLE")); roomDescription.setText(""); roomError.setText(" "); mode(roomMode, roomSubmit, "新建房间：先选所属楼栋，填房间号、楼层、容量后点「新建房间」。", "新建房间"); }
+    private void startBed() { bedId = 0L; bedRoomSelection = 0L; select(bedRoom, 0L, ""); bedNo.setText(""); bedStatus.setSelectedItem(RealUi.option("AVAILABLE")); bedError.setText(" "); mode(bedMode, bedSubmit, "新建床位：先选所属房间，填床位号（如 1、2、3、4）后点「新建床位」。", "新建床位"); }
 
     private void saveBuilding() {
         try { final long id = buildingId; final DormBuildingWriteRequest request = new DormBuildingWriteRequest(id, RealUi.required(buildingCode.getText(), "楼栋编码"), RealUi.required(buildingName.getText(), "楼栋名称"), RealUi.optional(buildingAddress.getText()), RealUi.code(buildingGender.getSelectedItem()), RealUi.code(buildingStatus.getSelectedItem()));
-            AsyncTask.run(new AsyncTask.Work<DormBuildingDto>() { @Override public DormBuildingDto run() throws Exception { return id == 0L ? service.createBuilding(request) : service.updateBuilding(request); } }, new AsyncTask.Callback<DormBuildingDto>() { @Override public void onSuccess(DormBuildingDto value) { page.showSuccess("楼栋已保存。"); showBuilding(value); refresh.run(); loadReferences(); } @Override public void onFailure(Throwable cause) { buildingError.setText(AsyncTask.message(cause)); } });
+            AsyncTask.run(new AsyncTask.Work<DormBuildingDto>() { @Override public DormBuildingDto run() throws Exception { return id == 0L ? service.createBuilding(request) : service.updateBuilding(request); } }, new AsyncTask.Callback<DormBuildingDto>() { @Override public void onSuccess(DormBuildingDto value) { page.showSuccess(id == 0L ? "楼栋已新建，楼栋表已定位到它。" : "楼栋修改已保存。"); showBuilding(value); listener.buildingSaved(value, id == 0L); loadReferences(); } @Override public void onFailure(Throwable cause) { buildingError.setText(AsyncTask.message(cause)); } });
         } catch (IllegalArgumentException ex) { buildingError.setText(ex.getMessage()); }
     }
 
     private void saveRoom() {
         try { final long id = roomId; final SpaceOption parent = selected(roomBuilding, "所属楼栋", roomError); if (parent == null) return; final DormRoomWriteRequest request = new DormRoomWriteRequest(id, parent.id, RealUi.required(roomNo.getText(), "房间号"), requiredInt(roomFloor.getText(), "楼层"), requiredPositiveInt(roomCapacity.getText(), "容量"), RealUi.code(roomType.getSelectedItem()), RealUi.code(roomStatus.getSelectedItem()), RealUi.optional(roomDescription.getText()));
-            AsyncTask.run(new AsyncTask.Work<DormRoomDto>() { @Override public DormRoomDto run() throws Exception { return id == 0L ? service.createRoom(request) : service.updateRoom(request); } }, new AsyncTask.Callback<DormRoomDto>() { @Override public void onSuccess(DormRoomDto value) { page.showSuccess("房间已保存。"); showRoom(value); refresh.run(); loadReferences(); } @Override public void onFailure(Throwable cause) { roomError.setText(AsyncTask.message(cause)); } });
+            AsyncTask.run(new AsyncTask.Work<DormRoomDto>() { @Override public DormRoomDto run() throws Exception { return id == 0L ? service.createRoom(request) : service.updateRoom(request); } }, new AsyncTask.Callback<DormRoomDto>() { @Override public void onSuccess(DormRoomDto value) { page.showSuccess(id == 0L ? "房间已新建，房间表已定位到它。" : "房间修改已保存。"); showRoom(value); listener.roomSaved(value, id == 0L); loadReferences(); } @Override public void onFailure(Throwable cause) { roomError.setText(AsyncTask.message(cause)); } });
         } catch (IllegalArgumentException ex) { roomError.setText(ex.getMessage()); }
     }
 
     private void saveBed() {
         try { final long id = bedId; final SpaceOption parent = selected(bedRoom, "所属房间", bedError); if (parent == null) return; final String status = RealUi.code(bedStatus.getSelectedItem()); if (id == 0L && "OCCUPIED".equals(status)) throw new IllegalArgumentException("新增床位不能直接设为占用"); final DormBedWriteRequest request = new DormBedWriteRequest(id, parent.id, RealUi.required(bedNo.getText(), "床位号"), status);
-            AsyncTask.run(new AsyncTask.Work<DormBedDto>() { @Override public DormBedDto run() throws Exception { return id == 0L ? service.createBed(request) : service.updateBed(request); } }, new AsyncTask.Callback<DormBedDto>() { @Override public void onSuccess(DormBedDto value) { page.showSuccess("床位已保存。"); showBed(value); refresh.run(); loadReferences(); } @Override public void onFailure(Throwable cause) { bedError.setText(AsyncTask.message(cause)); } });
+            AsyncTask.run(new AsyncTask.Work<DormBedDto>() { @Override public DormBedDto run() throws Exception { return id == 0L ? service.createBed(request) : service.updateBed(request); } }, new AsyncTask.Callback<DormBedDto>() { @Override public void onSuccess(DormBedDto value) { page.showSuccess(id == 0L ? "床位已新建，床位表已定位到它。" : "床位修改已保存。"); showBed(value); listener.bedSaved(value, id == 0L); loadReferences(); } @Override public void onFailure(Throwable cause) { bedError.setText(AsyncTask.message(cause)); } });
         } catch (IllegalArgumentException ex) { bedError.setText(ex.getMessage()); }
     }
 
@@ -187,8 +224,10 @@ public final class DormSpaceEditorPanel extends SectionCard {
     private static void select(JComboBox<SpaceOption> box, long id, String fallback) { if (id <= 0L) { if (box.getItemCount() > 0) box.setSelectedIndex(0); return; } for (int i = 0; i < box.getItemCount(); i++) if (((SpaceOption) box.getItemAt(i)).id == id) { box.setSelectedIndex(i); return; } box.addItem(new SpaceOption(id, fallback)); box.setSelectedIndex(box.getItemCount() - 1); }
     private static int requiredPositiveInt(String value, String label) { int n = requiredInt(value, label); if (n <= 0) throw new IllegalArgumentException(label + "必须大于 0"); return n; }
     private static int requiredInt(String value, String label) { try { int n = Integer.parseInt(RealUi.required(value, label)); if (n < 0) throw new IllegalArgumentException(label + "不能为负数"); return n; } catch (NumberFormatException ex) { throw new IllegalArgumentException(label + "必须是整数"); } }
-    private static JPanel tab(JPanel fields, JPanel actions) { JPanel stack = new JPanel(); stack.setOpaque(false); stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS)); stack.add(fields); stack.add(Box.createVerticalStrut(14)); stack.add(actions); JPanel content = new JPanel(new BorderLayout()); content.setOpaque(false); content.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 2, 4, 2)); content.add(stack, BorderLayout.NORTH); return content; }
+    private static JPanel tab(JLabel mode, JPanel fields, JPanel actions) { JPanel stack = new JPanel(); stack.setOpaque(false); stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS)); mode.setAlignmentX(LEFT_ALIGNMENT); fields.setAlignmentX(LEFT_ALIGNMENT); actions.setAlignmentX(LEFT_ALIGNMENT); stack.add(mode); stack.add(Box.createVerticalStrut(10)); stack.add(fields); stack.add(Box.createVerticalStrut(14)); stack.add(actions); JPanel content = new JPanel(new BorderLayout()); content.setOpaque(false); content.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 2, 4, 2)); content.add(stack, BorderLayout.NORTH); return content; }
     private JPanel actions(String fresh, String save, java.awt.event.ActionListener newAction, java.awt.event.ActionListener saveAction, JLabel error) { JPanel actions = UiFactory.horizontal(8); JButton clear = new SecondaryButton(fresh); clear.addActionListener(newAction); JButton submit = new PrimaryButton(save); submit.addActionListener(saveAction); actions.add(clear); actions.add(submit); actions.add(error); return actions; }
+    /** {@link #actions} 里第二个组件就是主按钮；拿出来是为了按模式改它的文字。 */
+    private static JButton submitOf(JPanel actions) { return (JButton) actions.getComponent(1); }
     private static JComboBox<RealUi.CodeOption> choices(String... codes) { JComboBox<RealUi.CodeOption> box = new JComboBox<RealUi.CodeOption>(RealUi.options(codes)); box.setFont(DesignTokens.regular(13)); return box; }
     private static JTextField field() { return UiFactory.textField(10); }
 

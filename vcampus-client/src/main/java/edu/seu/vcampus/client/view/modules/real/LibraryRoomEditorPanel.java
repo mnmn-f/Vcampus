@@ -25,7 +25,6 @@ public final class LibraryRoomEditorPanel extends SectionCard implements RealUi.
     public LibraryRoomEditorPanel(Listener listener) {
         super("自习室详情与维护", "维护开放状态和每日开放时段；预约检查时段冲突。"); this.listener = listener; status.setFont(DesignTokens.regular(13)); RealUi.codeRenderer(status);
         InputLimiter.length(building, 120); InputLimiter.code(room, 32); InputLimiter.unsignedInteger(capacity, 5);
-        InputLimiter.time(open); InputLimiter.time(close);
         JPanel fields = RealUi.editorFields(); add(fields, "楼栋", building); add(fields, "房间号", room); add(fields, "容量", capacity); add(fields, "开放时间（HH:mm）", open); add(fields, "关闭时间（HH:mm）", close); add(fields, "状态", status);
         JPanel actions = RealUi.editorActions("保存自习室", this, error); JPanel content = RealUi.editorContent(fields, description, actions); setContent(content); startNew();
     }

@@ -31,7 +31,7 @@ public final class RealStoreDormFeatureTest {
         assertFalse(hasText(studentStore, "销售统计"));
         assertTrue(hasButton(studentStore, "取消订单"));
         assertFalse(hasText(studentDorm, "空间维护"));
-        assertFalse(hasText(studentDorm, "待我处理的申请"));
+        assertFalse(hasText(studentDorm, "请假与来访审批"));
         assertTrue(hasText(studentDorm, "离校请假"));
         assertTrue(hasText(studentDorm, "我的报修工单"));
         assertTrue(hasButton(studentDorm, "缴纳选中账单"));
@@ -44,7 +44,7 @@ public final class RealStoreDormFeatureTest {
         assertFalse(hasButton(managerStore, "更新物流"));
         assertTrue(hasButton(managerStore, "保存物流进度"));
         assertTrue(hasText(managerDorm, "空间维护"));
-        assertTrue(hasText(managerDorm, "待我处理的申请"));
+        assertTrue(hasText(managerDorm, "请假与来访审批"));
         assertFalse(hasText(managerDorm, "离校请假"));
         assertFalse(hasText(managerDorm, "我的报修工单"));
         assertFalse(hasButton(managerDorm, "缴纳选中账单"));

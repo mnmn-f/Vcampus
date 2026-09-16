@@ -169,8 +169,11 @@ public final class DormExtStayPanel extends JPanel {
         statsRow.repaint();
     }
 
+    /** 进出记录每页几条：五条一页，表格高度固定。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<AccessRecordExtDto> recordTable() {
-        return new AsyncPagedTable<AccessRecordExtDto>("我的进出记录",
+        AsyncPagedTable<AccessRecordExtDto> table = new AsyncPagedTable<AccessRecordExtDto>("我的进出记录",
                 "晚归按宿管设定的门禁时段判定，调整门禁时间后历史记录会按新时段重算。",
                 "搜索门禁点",
                 new String[]{"全部记录", "仅入宿", "仅离宿"},
@@ -180,7 +183,7 @@ public final class DormExtStayPanel extends JPanel {
                     public PageSlice<AccessRecordExtDto> load(int p, String keyword, String filter)
                             throws Exception {
                         DormPage<AccessRecordExtDto> value = service.myAccessRecords(
-                                new DormPageQuery(p, 20, keyword, typeCode(filter), null, null));
+                                new DormPageQuery(p, PAGE_ROWS, keyword, typeCode(filter), null, null));
                         return RealUi.page(value);
                     }
                 },
@@ -192,6 +195,8 @@ public final class DormExtStayPanel extends JPanel {
                                 row.isLateReturn() ? "晚归" : ""};
                     }
                 }, null);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     private void loadStatus() {

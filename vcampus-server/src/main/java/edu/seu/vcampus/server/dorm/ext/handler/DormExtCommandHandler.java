@@ -33,6 +33,7 @@ public final class DormExtCommandHandler implements CommandHandler {
         if (DormExtCommands.WARNING_LIST.equals(command)) return Message.success(request, service.warnings(s, DormExtPayloads.query(p)));
         if (DormExtCommands.WARNING_NOTIFY.equals(command)) return Message.success(request, service.notifyWarning(s, DormExtPayloads.handle(p)));
         if (DormExtCommands.WARNING_VERIFY.equals(command)) return Message.success(request, service.verifyWarning(s, DormExtPayloads.handle(p)));
+        if (DormExtCommands.WARNING_TEACHERS.equals(command)) return Message.success(request, new java.util.ArrayList<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>(service.warningTeachers(s)));
         if (DormExtCommands.WARNING_CONFIG_GET.equals(command)) return Message.success(request, service.warningConfig(s));
         if (DormExtCommands.WARNING_CONFIG_SET.equals(command)) return Message.success(request, service.saveWarningConfig(s, DormExtPayloads.config(p)));
         if (DormExtCommands.VISITOR_SUBMIT.equals(command)) return Message.success(request, service.submitVisitor(s, DormExtPayloads.visitor(p)));

@@ -41,6 +41,7 @@ public final class DormExtService extends DormServiceSupport {
     public DormPage<AbsenceWarningDto> warnings(SessionContext s, DormPageQuery q) { return warning.list(s, q); }
     public AbsenceWarningDto notifyWarning(SessionContext s, WarningHandleRequest r) { return warning.notify(s, r); }
     public AbsenceWarningDto verifyWarning(SessionContext s, WarningHandleRequest r) { return warning.verify(s, r); }
+    public List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers(SessionContext s) { return warning.teachers(s); }
     public WarningConfigDto warningConfig(SessionContext s) { return warning.config(s); }
     public WarningConfigDto saveWarningConfig(SessionContext s, WarningConfigRequest r) { return warning.saveConfig(s, r); }
     public VisitorRegistrationDto submitVisitor(SessionContext s, VisitorRegistrationRequest r) { return visitor.submit(s, r); }

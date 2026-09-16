@@ -14,10 +14,14 @@ import java.math.BigDecimal;
 
 /** 统一水电账单表格；学生可缴费，宿管只读台账。 */
 final class DormUtilityBillsTable extends JPanel {
+    /** 学生端账单每页几条：五条一页，表格高度固定；宿管端台账仍按 20 条翻页。 */
+    private static final int STUDENT_PAGE_ROWS = 5;
     private final BasePage page;
     private final DormClientService service;
     private final AsyncPagedTable<UtilityBillDto> bills;
     private final boolean canPay;
+    /** 缴费成功后额外要做的事（比如刷新上方「本月应缴」）；表格自己只管重载自己那份数据。 */
+    private Runnable onPaid;
 
     DormUtilityBillsTable(BasePage page, DormClientService service, boolean canPay) {
         super();
@@ -31,6 +35,8 @@ final class DormUtilityBillsTable extends JPanel {
     }
 
     void reload() { bills.reload(); }
+
+    void setOnPaid(Runnable onPaid) { this.onPaid = onPaid; }
 
     private AsyncPagedTable<UtilityBillDto> createTable() {
         String title = canPay ? "我的水电账单" : "水电账单台账";
@@ -49,6 +55,7 @@ final class DormUtilityBillsTable extends JPanel {
                     @Override public Object[] values(UtilityBillDto value) { return row(value, canPay); }
                 }, null);
         if (canPay) {
+            table.setPageRows(STUDENT_PAGE_ROWS);
             JButton pay = new PrimaryButton("缴纳选中账单");
             pay.addActionListener(new java.awt.event.ActionListener() {
                 @Override public void actionPerformed(java.awt.event.ActionEvent e) { pay(); }
@@ -60,7 +67,7 @@ final class DormUtilityBillsTable extends JPanel {
 
     private PageSlice<UtilityBillDto> loadPage(int pageNumber, String keyword, String filter) throws Exception {
         if (canPay) {
-            DormPageQuery query = new DormPageQuery(pageNumber, 20, keyword, status(filter), null, null);
+            DormPageQuery query = new DormPageQuery(pageNumber, STUDENT_PAGE_ROWS, keyword, status(filter), null, null);
             return RealUi.page(service.bills(query));
         }
         UtilityBillQuery query = new UtilityBillQuery(pageNumber, 20, keyword, status(filter),
@@ -83,6 +90,7 @@ final class DormUtilityBillsTable extends JPanel {
             @Override public void onSuccess(UtilityBillDto result) {
                 page.showSuccess("水电费缴纳成功。");
                 bills.reload();
+                if (onPaid != null) onPaid.run();
             }
 
             @Override public void onFailure(Throwable error) {

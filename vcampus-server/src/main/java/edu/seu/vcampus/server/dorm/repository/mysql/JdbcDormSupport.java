@@ -125,7 +125,7 @@ final class JdbcDormSupport {
         return new LateReturnAlertDto(r.getLong("id"), r.getLong("student_user_id"),
                 localDate(r, "alert_date"), localTimestamp(r, "detected_at"),
                 r.getString("status"), r.wasNull() ? null : Long.valueOf(handled),
-                localTimestamp(r, "handled_at"), r.getString("note"));
+                localTimestamp(r, "handled_at"), r.getString("note"), r.getString("student_label"));
     }
 
     static HygieneInspectionDto hygiene(ResultSet r) throws SQLException {

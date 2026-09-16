@@ -6,8 +6,6 @@ import edu.seu.vcampus.client.ui.UiFactory;
 import edu.seu.vcampus.client.ui.components.DangerButton;
 import edu.seu.vcampus.client.ui.components.PrimaryButton;
 import edu.seu.vcampus.client.view.BasePage;
-import edu.seu.vcampus.common.dto.dorm.AccommodationRequestDto;
-import edu.seu.vcampus.common.dto.dorm.DormApprovalRequest;
 import edu.seu.vcampus.common.dto.dorm.DormPage;
 import edu.seu.vcampus.common.dto.dorm.DormPageQuery;
 import edu.seu.vcampus.common.dto.dorm.LeaveQuery;
@@ -30,21 +28,24 @@ import java.util.List;
 import org.threeten.bp.LocalDateTime;
 
 /**
- * 宿管的申请与审批：住宿、请假、来访三类合并成一张待办表。
+ * 宿管的申请与审批：请假、来访两类合并成一张待办表。
  *
- * <p>对宿管来说这三类是同一件事——「有人提了申请，等我点头」。分成三张表意味着一天
- * 要在三处之间来回扫，而且没有任何一处能回答「今天一共有多少待办」。</p>
+ * <p>对宿管来说这两类是同一件事——「有人提了申请，等我点头」。分成两张表意味着一天
+ * 要在两处之间来回扫，而且没有任何一处能回答「今天一共有多少待办」。</p>
  *
- * <p>合并在客户端做：三类各自有独立的分页接口，服务端合并要么新造一张联合视图，
- * 要么在网关层拼三次查询——都比这里做贵。代价是每类只取最近若干条，页面上写明了
+ * <p>住宿申请不在这里：它点头之后还得把人放到某张床上，这张表没有房间目录和床位
+ * 平面，从这里"通过"一条入住/调宿申请会因为没指定床位而失败或留下一条没落实的
+ * 记录。所以住宿申请只在上面的 {@code DormManagerHousingRequestPanel} 里受理。</p>
+ *
+ * <p>合并在客户端做：两类各自有独立的分页接口，服务端合并要么新造一张联合视图，
+ * 要么在网关层拼两次查询——都比这里做贵。代价是每类只取最近若干条，页面上写明了
  * 这一点；待办本来就该是个短列表，长到要翻页就说明积压了。</p>
  */
 public final class DormManagerApprovalPage extends JPanel {
     private static final long serialVersionUID = 1L;
-    /** 每类最多合并这么多条：三类加起来仍是一屏能扫完的量。 */
+    /** 每类最多合并这么多条：两类加起来仍是一屏能扫完的量。 */
     private static final int PER_KIND = 50;
 
-    private static final String KIND_ACCOMMODATION = "住宿";
     private static final String KIND_LEAVE = "请假";
     private static final String KIND_VISITOR = "来访";
 
@@ -62,9 +63,9 @@ public final class DormManagerApprovalPage extends JPanel {
         this.service = service;
         this.ext = ext;
         table = table();
-        add(DormUi.header("待我处理的申请",
-                "住宿、请假、来访三类合并；每类取最近 " + PER_KIND + " 条，按提交时间倒序。",
-                null, false));
+        add(DormUi.header("请假与来访审批",
+                "请假、来访两类合并；每类取最近 " + PER_KIND + " 条，按提交时间倒序。住宿申请在上方单独受理。",
+                null, true));
         add(table);
         add(Box.createVerticalStrut(16));
         add(reviewBar());
@@ -75,7 +76,7 @@ public final class DormManagerApprovalPage extends JPanel {
     private AsyncPagedTable<ApprovalRow> table() {
         AsyncPagedTable<ApprovalRow> value = new AsyncPagedTable<ApprovalRow>("", "",
                 "搜索学生或内容",
-                new String[]{"待审批", "全部状态", "仅住宿", "仅请假", "仅来访"},
+                new String[]{"待审批", "全部状态", "仅请假", "仅来访"},
                 new String[]{"类别", "学生", "位置", "内容", "提交时间", "状态"},
                 new AsyncPagedTable.Loader<ApprovalRow>() {
                     @Override public PageSlice<ApprovalRow> load(int p, String keyword, String filter) throws Exception {
@@ -83,7 +84,7 @@ public final class DormManagerApprovalPage extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<ApprovalRow>() {
                     @Override public Object[] values(ApprovalRow row) {
-                        return new Object[]{row.kind, "申请人", row.where, row.content,
+                        return new Object[]{row.kind, row.student, row.where, row.content,
                                 RealUi.dateTime(row.submittedAt), RealUi.status(row.status)};
                     }
                 }, null);
@@ -115,19 +116,12 @@ public final class DormManagerApprovalPage extends JPanel {
         return box;
     }
 
-    // ---------- 合并三类待办 ----------
+    // ---------- 合并两类待办 ----------
 
     private List<ApprovalRow> collect(String keyword, String filter) throws Exception {
         boolean pendingOnly = !"全部状态".equals(filter);
         String status = pendingOnly ? "PENDING" : null;
         List<ApprovalRow> rows = new ArrayList<ApprovalRow>();
-        if (wants(filter, KIND_ACCOMMODATION)) {
-            DormPage<AccommodationRequestDto> value = service.requests(
-                    new DormPageQuery(1, PER_KIND, keyword, status, null, null), null);
-            if (value != null && value.getItems() != null) {
-                for (AccommodationRequestDto item : value.getItems()) rows.add(from(item));
-            }
-        }
         if (wants(filter, KIND_LEAVE)) {
             DormPage<LeaveRequestDto> value = service.managerLeaves(
                     new LeaveQuery(1, PER_KIND, status, (Long) null, null, null));
@@ -142,7 +136,7 @@ public final class DormManagerApprovalPage extends JPanel {
                 for (VisitorRegistrationDto item : value.getItems()) rows.add(from(item));
             }
         }
-        // 请假接口没有关键字查询，合并后统一在客户端过滤一次，三类的搜索行为才一致。
+        // 请假接口没有关键字查询，合并后统一在客户端过滤一次，两类的搜索行为才一致。
         if (keyword != null && keyword.trim().length() > 0) {
             String needle = keyword.trim();
             List<ApprovalRow> matched = new ArrayList<ApprovalRow>();
@@ -173,23 +167,11 @@ public final class DormManagerApprovalPage extends JPanel {
                 rows.size(), pageNumber, size);
     }
 
-    private static ApprovalRow from(AccommodationRequestDto item) {
-        ApprovalRow row = new ApprovalRow();
-        row.kind = KIND_ACCOMMODATION;
-        row.id = item.getId();
-        row.where = item.getRequestedBedId() == null ? "—" : "床位 " + item.getRequestedBedId();
-        row.content = RealUi.status(item.getRequestType())
-                + (item.getReason() == null || item.getReason().trim().isEmpty()
-                        ? "" : " · " + item.getReason().trim());
-        row.submittedAt = item.getCreatedAt();
-        row.status = item.getStatus();
-        return row;
-    }
-
     private static ApprovalRow from(LeaveRequestDto item) {
         ApprovalRow row = new ApprovalRow();
         row.kind = KIND_LEAVE;
         row.id = item.getId();
+        row.student = item.studentLabel();
         row.where = "—";
         row.content = RealUi.status(item.getLeaveType()) + " " + RealUi.dateTime(item.getStartAt())
                 + " → " + RealUi.dateTime(item.getEndAt());
@@ -202,6 +184,7 @@ public final class DormManagerApprovalPage extends JPanel {
         ApprovalRow row = new ApprovalRow();
         row.kind = KIND_VISITOR;
         row.id = item.getId();
+        row.student = item.studentLabel();
         row.where = RealUi.text(item.getBuildingCode()) + " " + RealUi.text(item.getRoomNo());
         row.content = RealUi.text(item.getVisitorName()) + " · " + RealUi.text(item.getVisitorIdCardMasked())
                 + " · " + RealUi.text(item.getVisitReason());
@@ -220,9 +203,6 @@ public final class DormManagerApprovalPage extends JPanel {
         final String note = RealUi.optional(remark.getText());
         AsyncTask.run(new AsyncTask.Work<Object>() {
             @Override public Object run() throws Exception {
-                if (KIND_ACCOMMODATION.equals(row.kind)) {
-                    return service.approveRequest(new DormApprovalRequest(row.id, approved, note));
-                }
                 if (KIND_LEAVE.equals(row.kind)) {
                     return service.reviewLeave(new LeaveReviewRequest(row.id, approved, note));
                 }
@@ -238,10 +218,11 @@ public final class DormManagerApprovalPage extends JPanel {
         });
     }
 
-    /** 三类申请在这一页里的统一形状；只带表格要显示和审批要用到的字段。 */
+    /** 两类申请在这一页里的统一形状；只带表格要显示和审批要用到的字段。 */
     private static final class ApprovalRow {
         private String kind;
         private long id;
+        private String student;
         private String where;
         private String content;
         private LocalDateTime submittedAt;
@@ -249,6 +230,7 @@ public final class DormManagerApprovalPage extends JPanel {
 
         boolean matches(String needle) {
             return (content != null && content.contains(needle))
+                    || (student != null && student.contains(needle))
                     || (where != null && where.contains(needle));
         }
     }

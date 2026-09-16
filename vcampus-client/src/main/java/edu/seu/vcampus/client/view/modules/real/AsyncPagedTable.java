@@ -44,6 +44,8 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private final SelectionListener<T> selectionListener;
     private List<T> items = Collections.emptyList();
     private java.util.function.Function<T, Object> itemKey;
+    /** {@link #locate(String, Object)} 要在下次加载完成后选中的那一行的键。 */
+    private Object pendingSelectKey;
     private boolean checkboxSelection;
     private int page = 1;
     private int requestSerial;
@@ -56,6 +58,10 @@ public final class AsyncPagedTable<T> extends SectionCard {
     /** 锁定为「按内容定宽、横向滚动」，之后的 {@link #setColumnsFill(boolean)} 一律忽略。 */
     private boolean naturalWidths;
     private int maxColumnWidth = -1;
+    /** 每列写死的像素宽（0 或负数表示这一列吃掉剩余宽度）；非空时列宽不再按内容计算。 */
+    private int[] fixedWidths;
+    /** 行数被 {@link #setPageRows} 锁定后，{@code DormUi.flatten} 统一设的最小行数不再生效。 */
+    private boolean rowsLocked;
     /** 上次按哪个宽度排的列；窗口没变宽就不重排，免得和滚动条显隐来回打架。 */
     private int lastFitWidth = -1;
 
@@ -113,16 +119,36 @@ public final class AsyncPagedTable<T> extends SectionCard {
     private void refitColumns() {
         if (items.isEmpty()) return;
         int available = viewport.tableWidth();
-        if (available <= 0 || available == lastFitWidth) return;
-        lastFitWidth = available;
-        if (columnsFill) DormTables.fitColumnsWithin(table, available);
-        else DormTables.fitColumns(table, available, maxColumnWidth);
+        if (fixedWidths != null) {
+            applyFixedWidths(available);
+        } else {
+            if (available <= 0 || available == lastFitWidth) return;
+            lastFitWidth = available;
+            if (columnsFill) DormTables.fitColumnsWithin(table, available);
+            else DormTables.fitColumns(table, available, maxColumnWidth);
+        }
+        // 列宽变了，表格要不要横向滚动条也跟着变，滚动面板的高度就得重新算。
+        // JScrollPane 自己是 validate root，表格里的 revalidate 到它就停了，
+        // 所以要从它外面这一层再发一次，父容器才会重新问一遍高度。
+        viewport.revalidate();
     }
 
     public void addAction(JButton button) { toolbar.addAction(button); }
 
     /** 表格最少占几行高，数据不足时用空行补足；见 {@link TableViewport#setMinVisibleRows(int)}。 */
-    public void setMinVisibleRows(int rows) { viewport.setMinVisibleRows(rows); }
+    public void setMinVisibleRows(int rows) { if (!rowsLocked) viewport.setMinVisibleRows(rows); }
+
+    /**
+     * 这张表每页几行：表格高度固定成这么多行，装满就翻页。
+     *
+     * <p>各面板的 Loader 里请求的 pageSize 要和这里一致，否则要么一页装不下要么留空行。
+     * 它是锁：{@code DormUi.flatten} 之后统一设的最小行数对这张表不再生效，
+     * 否则「三行一页」的表会被垫成五行高、底下永远两行空白。</p>
+     */
+    public void setPageRows(int rows) {
+        viewport.setMinVisibleRows(rows);
+        rowsLocked = true;
+    }
 
     /**
      * 列宽装不下时按比例压缩，而不是横向滚动。
@@ -154,6 +180,48 @@ public final class AsyncPagedTable<T> extends SectionCard {
         lastFitWidth = -1;
         refitColumns();
     }
+    /**
+     * 每列写死像素宽，不随内容变化；写 0 的列平分剩余宽度，让表格铺满可用宽度。
+     *
+     * <p>公告目录这种「一眼认出是哪条」的表用它：类型、日期两列定宽，标题列吃掉
+     * 剩下的全部宽度，翻页时列宽不会跳，表格右边也不会空出一截白。和
+     * {@link #setNaturalColumnWidths} 一样是锁，{@code DormUi.flatten} 的压缩模式
+     * 对它不再生效。</p>
+     *
+     * @param widths 按列顺序的像素宽，0 或负数表示弹性列；少给的列当弹性列
+     */
+    public void setFixedColumnWidths(int... widths) {
+        fixedWidths = widths == null ? null : widths.clone();
+        naturalWidths = true;
+        columnsFill = false;
+        lastFitWidth = -1;
+        refitColumns();
+    }
+
+    private void applyFixedWidths(int available) {
+        javax.swing.table.TableColumnModel columns = table.getColumnModel();
+        int count = columns.getColumnCount();
+        int fixedTotal = 0;
+        int flexible = 0;
+        for (int i = 0; i < count; i++) {
+            int width = i < fixedWidths.length ? fixedWidths[i] : 0;
+            if (width > 0) fixedTotal += width; else flexible++;
+        }
+        // 还没布局（available 为 0）时弹性列先给个够看的宽度，拿到真实宽度后再重排。
+        int spare = available > 0 ? Math.max(0, available - fixedTotal - 2) : 0;
+        int share = flexible == 0 ? 0 : Math.max(160, spare / flexible);
+        for (int i = 0; i < count; i++) {
+            int width = i < fixedWidths.length ? fixedWidths[i] : 0;
+            if (width <= 0) width = share;
+            javax.swing.table.TableColumn column = columns.getColumn(i);
+            column.setMinWidth(width);
+            column.setMaxWidth(width);
+            column.setPreferredWidth(width);
+            column.setWidth(width);
+            column.setResizable(false);
+        }
+    }
+
     public void setAdditionalFilters(JComponent filters, FilterCondition condition) {
         toolbar.setAdditionalFilters(filters);
         additionalCondition = condition;
@@ -183,6 +251,26 @@ public final class AsyncPagedTable<T> extends SectionCard {
         return result;
     }
     public void reload() { load(1); }
+
+    /**
+     * 把表格定位到某条记录：清掉状态筛选、把关键字填进搜索框再重载。
+     *
+     * <p>新建一条记录后光 {@link #reload()} 不够：表按编码排序、五条一页，新建的 D9 在
+     * 最后一页，第一页看不见它，用户会以为没建成。</p>
+     */
+    public void locate(String keyword) { locate(keyword, null); }
+
+    /** 同 {@link #locate(String)}，加载完成后再选中 {@code key}（按 {@link #setItemKey} 的键）对应的那一行。 */
+    public void locate(String keyword, Object key) {
+        pendingSelectKey = key;
+        toolbar.getSearchField().setText(keyword == null ? "" : keyword.trim());
+        javax.swing.JComboBox<?> filter = toolbar.getFilterBox();
+        if (filter != null && filter.getSelectedIndex() != 0) {
+            filter.setSelectedIndex(0); // 触发一次 load(1)，搜索框已经是新关键字
+        } else {
+            load(1);
+        }
+    }
     public void resetFilters() {
         toolbar.getSearchField().setText("");
         if (toolbar.getFilterBox() != null && toolbar.getFilterBox().getSelectedIndex() != 0) {
@@ -235,6 +323,9 @@ public final class AsyncPagedTable<T> extends SectionCard {
                             values[0] = checkedKeys.contains(itemKey.apply(item));
                         }
                         model.addRow(values);
+                    }
+                    if (pendingSelectKey != null && itemKey != null) {
+                        selectedKeys.clear(); selectedKeys.add(pendingSelectKey); pendingSelectKey = null;
                     }
                     for (int index = 0; index < items.size(); index++) {
                         if (itemKey != null && selectedKeys.contains(itemKey.apply(items.get(index)))) {

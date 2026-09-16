@@ -10,7 +10,7 @@ import java.util.*;
 
 /** MySQL persistence for student visitor registrations. */
 final class MySqlDormVisitorRepository {
-    private static final String COLUMNS = "v.id, v.student_user_id, v.room_id, b.building_code, r.room_no, v.visitor_name, v.visitor_id_card, v.visitor_phone, v.visit_reason, v.start_at, v.end_at, v.submitted_at, v.audit_status, v.auditor_id, v.audited_at, v.audit_remark";
+    private static final String COLUMNS = "v.id, v.student_user_id, v.room_id, b.building_code, r.room_no, v.visitor_name, v.visitor_id_card, v.visitor_phone, v.visit_reason, v.start_at, v.end_at, v.submitted_at, v.audit_status, v.auditor_id, v.audited_at, v.audit_remark, (SELECT u.display_name FROM users u WHERE u.id = v.student_user_id) AS student_name";
     private static final String FROM = " FROM dorm_visitor_registrations v JOIN dorm_rooms r ON r.id = v.room_id JOIN dorm_buildings b ON b.id = r.building_id";
 
     Long activeRoom(Connection c, long student) throws SQLException {

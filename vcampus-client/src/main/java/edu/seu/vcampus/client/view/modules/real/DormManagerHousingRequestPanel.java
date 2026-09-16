@@ -92,23 +92,26 @@ public final class DormManagerHousingRequestPanel extends JPanel {
         column.setOpaque(false);
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
         column.add(DormUi.header("住宿申请",
-                "入住、调宿、退宿。选中一条后往右挑房间、点床位，然后通过。",
+                "入住、调宿、退宿。选中一条，中间看理由和现住，右边挑房间、点床位，然后通过。",
                 null, false));
         column.add(requests);
         return column;
     }
 
+    /**
+     * 左栏的申请表只留四列：学生、类型、状态、提交时间。
+     *
+     * <p>现住宿舍和申请理由都不放进表里：选中一条之后中栏会整段展示，表里再塞一遍
+     * 只会把左栏撑得要左右滚。表格的任务是让宿管认出"哪一条"，不是读内容。</p>
+     */
     private AsyncPagedTable<AccommodationRequestDto> table() {
-        AsyncPagedTable<AccommodationRequestDto> table = requestTable();
-        // 申请理由是这张表的正文，列宽按内容给足、整表左右滚，不跟其他宿舍表一起压缩
-        table.setNaturalColumnWidths(900);
-        return table;
+        return requestTable();
     }
 
     private AsyncPagedTable<AccommodationRequestDto> requestTable() {
         return new AsyncPagedTable<AccommodationRequestDto>("", "", "搜索学生或申请原因",
                 new String[]{"待审批", "全部状态", "已通过", "已驳回", "已取消"},
-                new String[]{"学生", "现住", "类型", "原因", "状态", "提交时间"},
+                new String[]{"学生", "类型", "状态", "提交时间"},
                 new AsyncPagedTable.Loader<AccommodationRequestDto>() {
                     @Override public PageSlice<AccommodationRequestDto> load(int p, String k, String f) throws Exception {
                         return RealUi.page(service.requests(
@@ -116,26 +119,34 @@ public final class DormManagerHousingRequestPanel extends JPanel {
                     }
                 }, new AsyncPagedTable.RowMapper<AccommodationRequestDto>() {
                     @Override public Object[] values(AccommodationRequestDto row) {
-                        return new Object[]{row.studentLabel(), RealUi.text(row.getCurrentLocation()),
-                                RealUi.status(row.getRequestType()),
-                                RealUi.text(row.getReason()), RealUi.status(row.getStatus()),
-                                RealUi.dateTime(row.getCreatedAt())};
+                        return new Object[]{row.studentLabel(), RealUi.status(row.getRequestType()),
+                                RealUi.status(row.getStatus()), RealUi.dateTime(row.getCreatedAt())};
                     }
                 }, new AsyncPagedTable.SelectionListener<AccommodationRequestDto>() {
                     @Override public void onSelected(AccommodationRequestDto row) { select(row); }
                 });
     }
 
-    /** 右栏的房间目录：只留挑房时要看的四列，宽度有限，别的信息在「住宿与空间」里看。 */
+    /** 房间目录每页几条：三条一页，目录矮一点，下面的分配表单不用往下翻。 */
+    private static final int ROOM_PAGE_ROWS = 3;
+
+    /** 中栏的房间目录：只留挑房时要看的四列，宽度有限，别的信息在「住宿与空间」里看。 */
     private AsyncPagedTable<DormRoomDto> roomTable() {
         AsyncPagedTable<DormRoomDto> table = new AsyncPagedTable<DormRoomDto>("", "", "搜索房间号或楼栋",
                 new String[]{"有空床", "全部房间"},
                 new String[]{"楼栋", "房间", "容量", "已住"},
                 new AsyncPagedTable.Loader<DormRoomDto>() {
                     @Override public PageSlice<DormRoomDto> load(int p, String k, String f) throws Exception {
+                        // 「有空床」是在客户端过滤的，三条一页要是直接按页向服务端要，
+                        // 一页里的三间房碰巧都住满了就会显示成空页。所以一次把可用房间
+                        // （服务端上限 100 条）拿回来，过滤完再在客户端切成三条一页。
                         DormPage<DormRoomDto> value = service.rooms(
-                                new DormPageQuery(p, 20, k, "AVAILABLE", null, null));
-                        return RealUi.page(free(value, !"全部房间".equals(f)));
+                                new DormPageQuery(1, 100, k, "AVAILABLE", null, null));
+                        List<DormRoomDto> rows = free(value, !"全部房间".equals(f)).getItems();
+                        return PageSlice.filter(rows, null, p, ROOM_PAGE_ROWS,
+                                new java.util.function.Function<DormRoomDto, String>() {
+                                    @Override public String apply(DormRoomDto room) { return ""; }
+                                });
                     }
                 }, new AsyncPagedTable.RowMapper<DormRoomDto>() {
                     @Override public Object[] values(DormRoomDto row) {
@@ -145,6 +156,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
                 }, new AsyncPagedTable.SelectionListener<DormRoomDto>() {
                     @Override public void onSelected(DormRoomDto row) { loadPlan(row); }
                 });
+        table.setPageRows(ROOM_PAGE_ROWS);
         return table;
     }
 
@@ -165,8 +177,10 @@ public final class DormManagerHousingRequestPanel extends JPanel {
     private void select(AccommodationRequestDto row) {
         selected = row;
         bedId.setText("");
+        // 换一条申请就把上一条留下的图清掉，否则退宿那张只读图会一直挂在右边。
+        plan.showRoom(row == null ? "未选中申请" : "先在中间的房间目录里选一间房", null);
+        planHint.setText("先在中间的房间目录里选一间房。");
         renderSide();
-        if (row == null) plan.showRoom("未选中申请", null);
     }
 
     private void renderSide() {
@@ -185,11 +199,12 @@ public final class DormManagerHousingRequestPanel extends JPanel {
                 RealUi.status(selected.getStatus()) + "　·　" + where + "　·　提交于 "
                         + RealUi.dateTime(selected.getCreatedAt()),
                 null, false));
-        // 申请理由整段展示：表格那一格只够看个开头，而理由是宿管判断批不批的主要依据
+        // 申请理由整段展示：表里已经不放它了，而理由是宿管判断批不批的主要依据，
+        // 所以单独放进一个半透明白底的框里、字号比普通说明大一号，一眼能找到。
         if (selected.getReason() != null && !selected.getReason().trim().isEmpty()) {
             side.add(DormUi.caption("申请理由"));
-            side.add(Box.createVerticalStrut(4));
-            side.add(DormUi.paragraph(selected.getReason().trim()));
+            side.add(Box.createVerticalStrut(6));
+            side.add(DormUi.passage(selected.getReason().trim()));
             side.add(Box.createVerticalStrut(14));
         }
         if (selected.getReviewRemark() != null && !selected.getReviewRemark().trim().isEmpty()) {
@@ -198,6 +213,7 @@ public final class DormManagerHousingRequestPanel extends JPanel {
             side.add(DormUi.paragraph(selected.getReviewRemark().trim()));
             side.add(Box.createVerticalStrut(14));
         }
+        plan.setInteractive(!checkout);
         if (!checkout) {
             side.add(roomPicker);
             side.add(Box.createVerticalStrut(16));
@@ -208,6 +224,14 @@ public final class DormManagerHousingRequestPanel extends JPanel {
             planSide.add(planHint);
         } else {
             side.add(Box.createVerticalStrut(14));
+            // 退宿也把平面图摆出来，但只看不点：宿管批之前想知道的是「这个人睡在哪张床、
+            // 同屋还有谁」，图比「D2 102-1床」这串字直观。床位从在住关系里反查。
+            planSide.add(DormUi.header("房间平面",
+                    "学生现住的房间；金色描边是将被释放的床位，仅供查看。", null, false));
+            planSide.add(plan);
+            planSide.add(Box.createVerticalStrut(6));
+            planSide.add(planHint);
+            loadCurrentBedPlan(selected);
         }
 
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
@@ -275,20 +299,88 @@ public final class DormManagerHousingRequestPanel extends JPanel {
         planHint.setText("容量 " + room.getCapacity() + " 张　已住 " + room.getOccupiedBeds()
                 + " 人　空 " + Math.max(0, room.getCapacity() - room.getOccupiedBeds()) + " 张；点一张空床选中它。");
         AsyncTask.run(new AsyncTask.Work<List<DormBedDto>>() {
-            @Override public List<DormBedDto> run() throws Exception {
-                DormPage<DormBedDto> value = service.beds(
-                        new DormPageQuery(1, 50, room.getRoomNo(), null, null, null));
-                List<DormBedDto> mine = new ArrayList<DormBedDto>();
-                if (value != null && value.getItems() != null) {
-                    for (DormBedDto item : value.getItems()) {
-                        if (item.getRoomId() == room.getId()) mine.add(item);
-                    }
-                }
-                return mine;
-            }
+            @Override public List<DormBedDto> run() throws Exception { return bedsOf(room.getId()); }
         }, new AsyncTask.Callback<List<DormBedDto>>() {
             @Override public void onSuccess(List<DormBedDto> value) { plan.showRoom(caption, value); }
             @Override public void onFailure(Throwable error) { plan.showRoom(caption + "（床位读取失败）", null); }
+        });
+    }
+
+    /**
+     * 这间房的全部床位。
+     *
+     * <p>之前是拿房间号当关键字去搜再按 roomId 过滤，但床位查询根本不认关键字——
+     * 服务端只按 roomId 和状态筛——于是每次拿到的都是全库前 50 张床，排在后面的房间
+     * 一张都分不到，平面图就空着。直接按 roomId 查才是对的。</p>
+     */
+    private List<DormBedDto> bedsOf(long roomId) throws Exception {
+        DormPage<DormBedDto> value = service.beds(
+                new DormPageQuery(1, 50, null, null, null, Long.valueOf(roomId)));
+        List<DormBedDto> mine = new ArrayList<DormBedDto>();
+        if (value != null && value.getItems() != null) {
+            for (DormBedDto item : value.getItems()) {
+                if (item.getRoomId() == roomId) mine.add(item);
+            }
+        }
+        return mine;
+    }
+
+    /**
+     * 退宿受理：反查学生现住的床，把那间房画出来并标出这张床。
+     *
+     * <p>申请记录里只有一串「D2 102-1床」的文字，没有床位编号，所以从已占用的床位里
+     * 按住户找：宿管有 DORM_MANAGE，床位列表会带住户编号。演示库的在住床位只有几十张，
+     * 按 100 一页翻几页就够了；找不到就只留一句提示，不影响审批。</p>
+     */
+    private void loadCurrentBedPlan(final AccommodationRequestDto request) {
+        final long requestId = request.getId();
+        final long studentId = request.getStudentUserId();
+        planHint.setText("正在查找学生现住的床位…");
+        AsyncTask.run(new AsyncTask.Work<Object[]>() {
+            @Override public Object[] run() throws Exception {
+                DormBedDto current = null;
+                for (int p = 1; p <= 20 && current == null; p++) {
+                    DormPage<DormBedDto> value = service.beds(
+                            new DormPageQuery(p, 100, null, "OCCUPIED", null, null));
+                    if (value == null || value.getItems() == null || value.getItems().isEmpty()) break;
+                    for (DormBedDto item : value.getItems()) {
+                        if (item.getOccupantUserId() != null && item.getOccupantUserId().longValue() == studentId) {
+                            current = item;
+                            break;
+                        }
+                    }
+                    if (value.getItems().size() < 100) break;
+                }
+                if (current == null) return null;
+                return new Object[]{current, bedsOf(current.getRoomId())};
+            }
+        }, new AsyncTask.Callback<Object[]>() {
+            @Override public void onSuccess(Object[] value) {
+                // 查的过程中宿管可能已经点了别的申请，那就别把旧结果画上去。
+                if (selected == null || selected.getId() != requestId) return;
+                if (value == null) {
+                    plan.showRoom("未找到该学生的在住床位", null);
+                    planHint.setText("没有查到这名学生的在住床位，可能已经退宿。");
+                    return;
+                }
+                DormBedDto current = (DormBedDto) value[0];
+                @SuppressWarnings("unchecked")
+                List<DormBedDto> beds = (List<DormBedDto>) value[1];
+                String where = request.getCurrentLocation() == null ? "" : request.getCurrentLocation().trim();
+                int cut = where.lastIndexOf('-');
+                String caption = cut > 0 ? where.substring(0, cut)
+                        : RealUi.text(current.getBuildingCode()) + " " + RealUi.text(current.getRoomNo());
+                plan.showRoom(caption, beds, Long.valueOf(current.getId()));
+                int occupied = 0;
+                for (DormBedDto bed : beds) if ("OCCUPIED".equals(bed.getStatus())) occupied++;
+                planHint.setText("学生现住 " + RealUi.text(current.getBedNo()) + " 号床，同屋共 " + occupied
+                        + " 人在住；通过后该床位释放。");
+            }
+            @Override public void onFailure(Throwable error) {
+                if (selected == null || selected.getId() != requestId) return;
+                plan.showRoom("床位读取失败", null);
+                planHint.setText(AsyncTask.message(error));
+            }
         });
     }
 

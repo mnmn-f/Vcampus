@@ -31,8 +31,11 @@ public final class DormExtStayAdminPanel extends JPanel {
 
     public void reload() { stays.reload(); }
 
+    /** 在宿一览每页几条：五条一页，表格高度固定；分页在客户端做。 */
+    private static final int PAGE_ROWS = 5;
+
     private AsyncPagedTable<StayStatusDto> stayTable(final DormExtClientService service) {
-        return new AsyncPagedTable<StayStatusDto>("在宿一览",
+        AsyncPagedTable<StayStatusDto> table = new AsyncPagedTable<StayStatusDto>("在宿一览",
                 "按最近一次进出记录实时判定，不是库里存的状态字段。",
                 "搜索楼栋或房间",
                 new String[]{"全部状态", "在宿", "离宿", "离校登记中"},
@@ -41,7 +44,11 @@ public final class DormExtStayAdminPanel extends JPanel {
                     @Override
                     public PageSlice<StayStatusDto> load(int p, String keyword, String filter)
                             throws Exception {
-                        return RealUi.page(narrow(service.stayStatuses(), keyword, filter));
+                        List<StayStatusDto> rows = narrow(service.stayStatuses(), keyword, filter).getItems();
+                        return PageSlice.filter(rows, null, p, PAGE_ROWS,
+                                new java.util.function.Function<StayStatusDto, String>() {
+                                    @Override public String apply(StayStatusDto item) { return ""; }
+                                });
                     }
                 },
                 new AsyncPagedTable.RowMapper<StayStatusDto>() {
@@ -54,6 +61,8 @@ public final class DormExtStayAdminPanel extends JPanel {
                                 RealUi.dateTime(row.getLastEntryAt())};
                     }
                 }, null);
+        table.setPageRows(PAGE_ROWS);
+        return table;
     }
 
     /**

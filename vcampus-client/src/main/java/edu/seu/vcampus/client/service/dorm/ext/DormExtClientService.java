@@ -53,6 +53,8 @@ public interface DormExtClientService {
     AbsenceWarningDto notifyWarning(WarningHandleRequest request) throws NetworkClientException;
 
     AbsenceWarningDto verifyWarning(WarningHandleRequest request) throws NetworkClientException;
+    /** 可通知的辅导员名单（启用中的教师账号）。 */
+    java.util.List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers() throws NetworkClientException;
 
     WarningConfigDto warningConfig() throws NetworkClientException;
 

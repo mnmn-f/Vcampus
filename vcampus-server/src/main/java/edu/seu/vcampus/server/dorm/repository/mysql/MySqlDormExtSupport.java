@@ -31,7 +31,8 @@ final class MySqlDormExtSupport {
                 r.getString("visit_reason"), JdbcDormSupport.localTimestamp(r, "start_at"),
                 JdbcDormSupport.localTimestamp(r, "end_at"), JdbcDormSupport.localTimestamp(r, "submitted_at"),
                 r.getString("audit_status"), JdbcDormSupport.longOrNull(r, "auditor_id"),
-                JdbcDormSupport.localTimestamp(r, "audited_at"), r.getString("audit_remark"));
+                JdbcDormSupport.localTimestamp(r, "audited_at"), r.getString("audit_remark"),
+                r.getString("student_name"));
     }
 
     static AbsenceWarningDto warning(ResultSet r) throws SQLException {
@@ -39,7 +40,8 @@ final class MySqlDormExtSupport {
                 r.getString("building_code"), r.getString("room_no"), JdbcDormSupport.localDate(r, "scan_date"),
                 JdbcDormSupport.localTimestamp(r, "last_leave_at"), r.getInt("absence_days"), r.getString("warning_level"),
                 r.getString("handle_status"), JdbcDormSupport.longOrNull(r, "notified_teacher_id"),
-                JdbcDormSupport.localTimestamp(r, "notified_at"), r.getString("note"));
+                JdbcDormSupport.localTimestamp(r, "notified_at"), r.getString("note"),
+                r.getString("student_label"), r.getString("teacher_label"));
     }
 
     static RepairEntryPermitDto permit(ResultSet r) throws SQLException {

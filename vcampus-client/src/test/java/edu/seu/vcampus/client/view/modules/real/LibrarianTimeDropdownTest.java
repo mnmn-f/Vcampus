@@ -9,6 +9,13 @@ import static org.junit.Assert.assertNull;
 
 /** 图书管理员的公告时刻和自习室时段均通过下拉组件读写。 */
 public final class LibrarianTimeDropdownTest {
+    @Test public void roomEditorAcceptsNonEditableTimeSelectorsAfterIntegration() throws Exception {
+        javax.swing.SwingUtilities.invokeAndWait(() -> {
+            LibraryRoomEditorPanel panel = new LibraryRoomEditorPanel(null);
+            panel.startNew();
+            assertEquals(false, new TimeDropdown().isEditable());
+        });
+    }
     @Test public void timeDropdownUsesDefaultsAndPreservesExistingMinute() {
         TimeDropdown value = new TimeDropdown();
         value.setTime(LocalTime.of(8, 0));

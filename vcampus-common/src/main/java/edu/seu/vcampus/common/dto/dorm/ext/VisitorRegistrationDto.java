@@ -34,6 +34,8 @@ public final class VisitorRegistrationDto implements Serializable {
     private final Long auditorId;
     private final LocalDateTime auditedAt;
     private final String auditRemark;
+    /** 登记学生的姓名，服务端联用户表填充；旧的构造入口和内存仓储填 null。 */
+    private final String studentName;
 
     public VisitorRegistrationDto(long id, long studentUserId, long roomId, String buildingCode,
                                   String roomNo, String visitorName, String visitorIdCardMasked,
@@ -41,6 +43,18 @@ public final class VisitorRegistrationDto implements Serializable {
                                   LocalDateTime endAt, LocalDateTime submittedAt,
                                   String auditStatus, Long auditorId, LocalDateTime auditedAt,
                                   String auditRemark) {
+        this(id, studentUserId, roomId, buildingCode, roomNo, visitorName, visitorIdCardMasked,
+                visitorPhone, visitReason, startAt, endAt, submittedAt, auditStatus, auditorId,
+                auditedAt, auditRemark, null);
+    }
+
+    public VisitorRegistrationDto(long id, long studentUserId, long roomId, String buildingCode,
+                                  String roomNo, String visitorName, String visitorIdCardMasked,
+                                  String visitorPhone, String visitReason, LocalDateTime startAt,
+                                  LocalDateTime endAt, LocalDateTime submittedAt,
+                                  String auditStatus, Long auditorId, LocalDateTime auditedAt,
+                                  String auditRemark, String studentName) {
+        this.studentName = studentName;
         this.id = id;
         this.studentUserId = studentUserId;
         this.roomId = roomId;
@@ -71,6 +85,11 @@ public final class VisitorRegistrationDto implements Serializable {
 
     public long getId() { return id; }
     public long getStudentUserId() { return studentUserId; }
+    public String getStudentName() { return studentName; }
+    /** 界面用：有姓名显示姓名，没有就退回「用户 N」。 */
+    public String studentLabel() {
+        return studentName == null || studentName.trim().isEmpty() ? "用户 " + studentUserId : studentName.trim();
+    }
     public long getRoomId() { return roomId; }
     public String getBuildingCode() { return buildingCode; }
     public String getRoomNo() { return roomNo; }

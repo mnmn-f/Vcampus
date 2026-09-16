@@ -52,6 +52,8 @@ public final class InMemoryDormExtRepository implements DormExtRepository {
     @Override public synchronized DormPage<AbsenceWarningDto> listWarnings(Connection c, DormPageQuery q) { return warning.list(q); }
     @Override public synchronized AbsenceWarningDto findWarning(Connection c, long id) { return warning.find(id); }
     @Override public synchronized AbsenceWarningDto updateWarningStatus(Connection c, long id, String status, Long teacher, LocalDateTime at, String note) { return warning.update(id, status, teacher, at, note); }
+    @Override public synchronized List<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto> warningTeachers(Connection c) { return new ArrayList<edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto>(state.teachers.values()); }
+    public synchronized void addTeacher(long userId, String displayName, String username) { state.teachers.put(Long.valueOf(userId), new edu.seu.vcampus.common.dto.dorm.ext.DormTeacherDto(userId, displayName, username)); }
     @Override public synchronized WarningConfigDto loadWarningConfig(Connection c) { return warning.config(); }
     @Override public synchronized WarningConfigDto saveWarningConfig(Connection c, WarningConfigRequest r, long actor) { return warning.saveConfig(r); }
 

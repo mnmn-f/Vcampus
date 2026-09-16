@@ -21,6 +21,8 @@ public final class DormExtCommands {
     public static final String WARNING_NOTIFY = "dorm.ext.warning.notify";
     /** 核实完毕，预警转为已核实。 */
     public static final String WARNING_VERIFY = "dorm.ext.warning.verify";
+    /** 宿管查看可通知的辅导员（启用中的教师账号）名单，通知时从中选人。 */
+    public static final String WARNING_TEACHERS = "dorm.ext.warning.teachers";
     /** 读取未归预警阈值。 */
     public static final String WARNING_CONFIG_GET = "dorm.ext.warning.config.get";
     /** 修改未归预警阈值。 */
