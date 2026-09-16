@@ -11,6 +11,7 @@ import edu.seu.vcampus.common.dto.academic.CourseQuery;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.CourseStatus;
 import edu.seu.vcampus.common.dto.academic.EnrollmentStatus;
+import edu.seu.vcampus.common.dto.academic.SchedulingOverviewDto;
 import edu.seu.vcampus.common.security.Role;
 
 import javax.swing.JButton;
@@ -50,8 +51,23 @@ public final class AcademicCoursesPanel extends JPanel {
             scheduleEditor = new CourseScheduleEditorPanel(page, service,
                     new Runnable() { @Override public void run() { courses.refreshCurrentPage(); } });
             add(scheduleEditor);
+            loadSchedulingOptions();
         } else { editor = null; scheduleEditor = null; }
         JPanel info = new JPanel(new BorderLayout()); info.setOpaque(false); info.add(detail, BorderLayout.CENTER); add(info);
+    }
+
+    private void loadSchedulingOptions() {
+        AsyncTask.run(new AsyncTask.Work<SchedulingOverviewDto>() {
+            @Override public SchedulingOverviewDto run() throws Exception { return service.schedulingOverview(); }
+        }, new AsyncTask.Callback<SchedulingOverviewDto>() {
+            @Override public void onSuccess(SchedulingOverviewDto value) {
+                editor.setAvailableTeachers(value.getTeachers());
+                scheduleEditor.setAvailableClassrooms(value.getClassrooms());
+            }
+            @Override public void onFailure(Throwable error) {
+                page.showError("教师和教室选项加载失败：" + AsyncTask.message(error));
+            }
+        });
     }
 
     private AsyncPagedTable<CourseDto> table() {

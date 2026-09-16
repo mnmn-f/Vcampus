@@ -10,12 +10,17 @@ import edu.seu.vcampus.common.dto.academic.CourseDto;
 import edu.seu.vcampus.common.dto.academic.CourseSaveRequest;
 import edu.seu.vcampus.common.dto.academic.CourseStatus;
 import edu.seu.vcampus.common.dto.academic.CourseType;
+import edu.seu.vcampus.common.dto.academic.SchedulingTeacherDto;
 
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.DefaultListModel;
+import javax.swing.ListSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.math.BigDecimal;
@@ -34,28 +39,37 @@ public final class CourseEditorPanel extends SectionCard {
     private final JTextField hours = field();
     private final JTextField capacity = field();
     private final JComboBox<CourseStatus> status = new JComboBox<CourseStatus>(CourseStatus.values());
-    private final JTextField teachers = field();
+    private final DefaultListModel<SchedulingTeacherDto> teacherModel = new DefaultListModel<SchedulingTeacherDto>();
+    private final JList<SchedulingTeacherDto> teachers = new JList<SchedulingTeacherDto>(teacherModel);
     private final JTextArea description = UiFactory.textArea(3, 28);
     private final JLabel error = UiFactory.muted(" ");
     private final Listener listener;
     private long courseId;
     private boolean update;
+    private List<Long> pendingTeacherIds = new ArrayList<Long>();
 
     public CourseEditorPanel(Listener listener) {
         super("课程详情与维护", "维护课程信息和授课教师。");
         this.listener = listener;
         InputLimiter.code(code, 64); InputLimiter.length(name, 160); InputLimiter.code(semester, 32);
         InputLimiter.decimal(credits, 3, 2); InputLimiter.unsignedInteger(hours, 4);
-        InputLimiter.unsignedInteger(capacity, 5); InputLimiter.numericList(teachers, 500);
+        InputLimiter.unsignedInteger(capacity, 5);
         type.setFont(DesignTokens.regular(13)); status.setFont(DesignTokens.regular(13)); RealUi.codeRenderer(type); RealUi.codeRenderer(status);
+        teachers.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        teachers.setVisibleRowCount(4); teachers.setFont(DesignTokens.regular(13));
+        JScrollPane teacherScroll = new JScrollPane(teachers);
+        teacherScroll.setPreferredSize(new java.awt.Dimension(260, 86));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         addField(fields, "课程编号", code); addField(fields, "课程名称", name);
         addField(fields, "学期编号", semester);
         addField(fields, "课程类型", type); addField(fields, "学分", credits);
         addField(fields, "总学时", hours); addField(fields, "容量", capacity);
-        addField(fields, "状态", status); addField(fields, "教师编号（多个请用逗号分隔）", teachers);
+        addField(fields, "状态", status);
         JPanel content = new JPanel(new BorderLayout(0, 10)); content.setOpaque(false);
-        content.add(fields, BorderLayout.NORTH); content.add(UiFactory.labelledField("课程说明", description), BorderLayout.CENTER);
+        JPanel details = new JPanel(new BorderLayout(0, 10)); details.setOpaque(false);
+        details.add(UiFactory.labelledField("授课教师（可多选）", teacherScroll), BorderLayout.NORTH);
+        details.add(UiFactory.labelledField("课程说明", description), BorderLayout.CENTER);
+        content.add(fields, BorderLayout.NORTH); content.add(details, BorderLayout.CENTER);
         JPanel actions = UiFactory.horizontal(8); JButtonPair pair = actions();
         actions.add(pair.clear); actions.add(pair.save); actions.add(error);
         content.add(actions, BorderLayout.SOUTH); setContent(content); startNew();
@@ -74,11 +88,17 @@ public final class CourseEditorPanel extends SectionCard {
         type.setSelectedItem(parseType(value.getCourseType())); credits.setText(RealUi.input(value.getCredits()));
         hours.setText(RealUi.input(value.getTotalHours())); capacity.setText(String.valueOf(value.getCapacity()));
         status.setSelectedItem(parseStatus(value.getStatus())); description.setText(value.getDescription() == null ? "" : value.getDescription());
-        StringBuilder ids = new StringBuilder();
+        pendingTeacherIds = new ArrayList<Long>();
         for (edu.seu.vcampus.common.dto.academic.CourseInstructorDto teacher : value.getInstructors()) {
-            if (ids.length() > 0) ids.append(','); ids.append(teacher.getTeacherUserId());
+            pendingTeacherIds.add(Long.valueOf(teacher.getTeacherUserId()));
         }
-        teachers.setText(ids.toString()); error.setText(" ");
+        applyTeacherSelection(); error.setText(" ");
+    }
+
+    public void setAvailableTeachers(List<SchedulingTeacherDto> values) {
+        teacherModel.clear();
+        if (values != null) for (SchedulingTeacherDto value : values) teacherModel.addElement(value);
+        applyTeacherSelection();
     }
 
     private JButtonPair actions() {
@@ -100,18 +120,25 @@ public final class CourseEditorPanel extends SectionCard {
             String semesterCode = semester.getText().trim();
             if (semesterCode.length() == 0) semesterCode = "UNSPECIFIED";
             List<Long> ids = new ArrayList<Long>();
-            for (String value : teachers.getText().split(",")) if (!value.trim().isEmpty()) ids.add(Long.valueOf(value.trim()));
+            for (SchedulingTeacherDto value : teachers.getSelectedValuesList()) ids.add(Long.valueOf(value.getUserId()));
             CourseSaveRequest request = update ? CourseSaveRequest.update(courseId, courseCode, courseName,
                     (CourseType) type.getSelectedItem(), credit, totalHours, seats, description.getText(),
                     (CourseStatus) status.getSelectedItem(), ids, semesterCode) : CourseSaveRequest.create(courseCode, courseName,
                     (CourseType) type.getSelectedItem(), credit, totalHours, seats, description.getText(),
                     (CourseStatus) status.getSelectedItem(), ids, semesterCode);
             if (listener != null) listener.onSave(request, update); error.setText(" ");
-        } catch (NumberFormatException ex) { error.setText("学分、学时、容量和教师编号必须是数字"); }
+        } catch (NumberFormatException ex) { error.setText("学分、学时和容量必须是数字"); }
         catch (IllegalArgumentException ex) { error.setText(ex.getMessage()); }
     }
 
-    private void clear() { code.setText(""); name.setText(""); semester.setText(""); credits.setText(""); hours.setText(""); capacity.setText(""); teachers.setText(""); description.setText(""); }
+    private void clear() { code.setText(""); name.setText(""); semester.setText(""); credits.setText(""); hours.setText(""); capacity.setText(""); pendingTeacherIds.clear(); teachers.clearSelection(); description.setText(""); }
+    private void applyTeacherSelection() {
+        List<Integer> indices = new ArrayList<Integer>();
+        for (int i=0;i<teacherModel.size();i++)
+            if (pendingTeacherIds.contains(Long.valueOf(teacherModel.get(i).getUserId()))) indices.add(Integer.valueOf(i));
+        int[] selected = new int[indices.size()]; for (int i=0;i<selected.length;i++) selected[i]=indices.get(i).intValue();
+        teachers.setSelectedIndices(selected);
+    }
     private static JTextField field() { return UiFactory.textField(12); }
     private static void addField(JPanel p, String label, java.awt.Component field) { p.add(UiFactory.labelledField(label, field)); }
     private static String required(String value, String label) { if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(label + "不能为空"); return value.trim(); }

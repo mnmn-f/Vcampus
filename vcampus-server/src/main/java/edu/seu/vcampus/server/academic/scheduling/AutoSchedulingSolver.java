@@ -18,20 +18,20 @@ public final class AutoSchedulingSolver {
 
     public AutoSchedulePreviewDto solve(Problem problem, int timeLimitMillis) {
         if (problem == null) throw new IllegalArgumentException("problem is required");
-        if (problem.sessions.isEmpty()) return new AutoSchedulePreviewDto(true, 0,
-                Collections.<AutoScheduleEntryDto>emptyList(),
-                Collections.singletonList("当前没有待排课次。"));
+        if (problem.sessions.isEmpty()) return preview(problem, true, 0,
+                Collections.<AutoScheduleEntryDto>emptyList(), append(problem.diagnostics,
+                        "当前目标学期没有待排课次。"));
         Search search = new Search(problem, Math.max(100, Math.min(15000, timeLimitMillis)));
         List<String> initial = search.initialErrors();
-        if (!initial.isEmpty()) return new AutoSchedulePreviewDto(false, 0,
-                Collections.<AutoScheduleEntryDto>emptyList(), initial);
+        if (!initial.isEmpty()) return preview(problem, false, 0,
+                Collections.<AutoScheduleEntryDto>emptyList(), merge(problem.diagnostics, initial));
         search.backtrack(0, 0);
-        if (search.best == null) return new AutoSchedulePreviewDto(false, 0,
-                Collections.<AutoScheduleEntryDto>emptyList(), asList(
+        if (search.best == null) return preview(problem, false, 0,
+                Collections.<AutoScheduleEntryDto>emptyList(), merge(problem.diagnostics, asList(
                 "自动排课未找到完整可行方案。",
-                "主要限制：教师、教室或学生班级的可用时段组合不足，请调整约束或固定课表后重试。"));
-        return new AutoSchedulePreviewDto(true, search.bestPenalty, toEntries(search.best),
-                Collections.singletonList(search.timedOut
+                "主要限制：教师、教室或学生班级的可用时段组合不足，请调整约束或固定课表后重试。")));
+        return preview(problem, true, search.bestPenalty, toEntries(search.best),
+                append(problem.diagnostics, search.timedOut
                         ? "已在时间限制内返回当前最佳合法方案。" : "已生成完整合法方案。"));
     }
 
@@ -253,10 +253,17 @@ public final class AutoSchedulingSolver {
     public static final class Problem {
         final List<Session> sessions; final List<Room> rooms; final List<Fixed> fixed;
         final List<Preference> preferences; final List<TimeSlot> timeSlots;
+        final List<String> diagnostics;
         public Problem(List<Session> sessions, List<Room> rooms, List<Fixed> fixed,
                 List<Preference> preferences, List<TimeSlot> timeSlots) {
+            this(sessions, rooms, fixed, preferences, timeSlots, null);
+        }
+        public Problem(List<Session> sessions, List<Room> rooms, List<Fixed> fixed,
+                List<Preference> preferences, List<TimeSlot> timeSlots,
+                List<String> diagnostics) {
             this.sessions = copy(sessions); this.rooms = copy(rooms); this.fixed = copy(fixed);
             this.preferences = copy(preferences); this.timeSlots = copy(timeSlots);
+            this.diagnostics = copy(diagnostics);
         }
     }
     public static final class Session {
@@ -322,4 +329,19 @@ public final class AutoSchedulingSolver {
         return result;
     }
     private static List<String> asList(String a, String b) { List<String> r=new ArrayList<String>(); r.add(a); r.add(b); return r; }
+    private static List<String> append(List<String> values, String value) {
+        List<String> result = copy(values); result.add(value); return result;
+    }
+    private static List<String> merge(List<String> first, List<String> second) {
+        List<String> result = copy(first); result.addAll(copy(second)); return result;
+    }
+    private static AutoSchedulePreviewDto preview(Problem problem, boolean success, int penalty,
+            List<AutoScheduleEntryDto> entries, List<String> explanations) {
+        Set<Long> courses = new HashSet<Long>(); Set<Long> teachers = new HashSet<Long>();
+        for (Session session : problem.sessions) {
+            courses.add(Long.valueOf(session.courseId)); teachers.addAll(session.teacherIds);
+        }
+        return new AutoSchedulePreviewDto(success, penalty, entries, explanations,
+                courses.size(), teachers.size(), problem.rooms.size());
+    }
 }

@@ -55,10 +55,11 @@ public final class AutoSchedulingService {
     public AutoSchedulePreviewDto preview(SessionContext session, AutoScheduleRequest request)
             throws AcademicException {
         requireAdmin(session); final int limit = request == null ? 8000 : request.getTimeLimitMillis();
+        final String semesterCode = request == null ? null : optional(request.getSemesterCode());
         if (limit < 100 || limit > 15000) throw failure("搜索时间应在 100 到 15000 毫秒之间");
         return execute(new Work<AutoSchedulePreviewDto>() {
             @Override public AutoSchedulePreviewDto run(Connection c) throws Exception {
-                return solver.solve(repository.loadProblem(c), limit);
+                return solver.solve(repository.loadProblem(c, semesterCode), limit);
             }
         });
     }
@@ -70,7 +71,8 @@ public final class AutoSchedulingService {
         return execute(new Work<AutoScheduleSaveResult>() {
             @Override public AutoScheduleSaveResult run(Connection c) throws Exception {
                 repository.lockSchedules(c);
-                List<String> errors = solver.validatePlan(repository.loadProblem(c), request.getEntries());
+                List<String> errors = solver.validatePlan(
+                        repository.loadProblem(c, optional(request.getSemesterCode())), request.getEntries());
                 if (!errors.isEmpty()) throw new AcademicException(AcademicCommands.SCHEDULING_STALE_PREVIEW, join(errors));
                 int saved = repository.savePlan(c, request.getEntries());
                 if (saved != request.getEntries().size()) throw new AcademicException(ResultCodes.INTERNAL_ERROR, "自动课表未能完整保存");
@@ -100,6 +102,9 @@ public final class AutoSchedulingService {
         catch (Exception ex) { throw failure("偏好类型不正确"); }
     }
     private static AcademicException failure(String message) { return new AcademicException(AcademicCommands.INVALID_SCHEDULE, message); }
+    private static String optional(String value) {
+        return value == null || value.trim().isEmpty() ? null : value.trim();
+    }
     private static String join(List<String> values) { StringBuilder r=new StringBuilder(); for(String v:values){if(r.length()>0)r.append("；");r.append(v);}return r.toString(); }
     private interface Work<T> { T run(Connection connection) throws Exception; }
 }
