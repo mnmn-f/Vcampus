@@ -1,6 +1,7 @@
 package edu.seu.vcampus.server.academic.scheduling;
 
 import edu.seu.vcampus.common.dto.academic.AutoScheduleEntryDto;
+import edu.seu.vcampus.common.dto.academic.ClassroomDto;
 import edu.seu.vcampus.common.dto.academic.SchedulingOverviewDto;
 import edu.seu.vcampus.common.dto.academic.SchedulingTeacherDto;
 import edu.seu.vcampus.common.dto.academic.TeacherTimePreferenceDto;
@@ -19,15 +20,34 @@ import java.util.Map;
 /** MySQL snapshot and atomic-write adapter for the scheduling solver. */
 public final class MySqlSchedulingRepository implements SchedulingRepository {
     @Override public AutoSchedulingSolver.Problem loadProblem(Connection c) throws Exception {
-        Map<Long, CourseSeed> courses = courses(c);
+        return loadProblem(c, null);
+    }
+
+    @Override public AutoSchedulingSolver.Problem loadProblem(Connection c, String requestedSemester)
+            throws Exception {
+        String semester = resolveSemester(c, requestedSemester);
+        Map<Long, CourseSeed> courses = courses(c, semester);
         loadTeachers(c, courses); loadGroups(c, courses);
         List<AutoSchedulingSolver.Room> rooms = rooms(c);
         List<AutoSchedulingSolver.Fixed> fixed = fixed(c, courses);
         List<AutoSchedulingSolver.Preference> preferences = preferenceModels(c);
         List<AutoSchedulingSolver.Session> sessions = new ArrayList<AutoSchedulingSolver.Session>();
+        List<String> diagnostics = missingSemesterDiagnostics(c);
+        if (courses.isEmpty()) diagnostics.add("学期 " + (semester == null ? "（未指定）" : semester)
+                + " 没有可自动排课的 DRAFT/PUBLISHED 课程。");
         for (CourseSeed course : courses.values()) {
+            if (course.teacherIds.isEmpty()) {
+                diagnostics.add("课程 " + course.code + " " + course.name
+                        + " 未进入排课，原因：缺少授课教师。");
+                continue;
+            }
             int desired = Math.max(1, Math.min(3, (course.totalHours + 31) / 32));
             int remaining = Math.max(0, desired - course.fixedCount);
+            if (remaining == 0) {
+                diagnostics.add("课程 " + course.code + " " + course.name
+                        + " 未进入排课，原因：已固定排课且课次数已满足。");
+                continue;
+            }
             String requiredType = requiredRoomType(course.description);
             String teacherNames = join(course.teacherNames);
             for (int i = 0; i < remaining; i++) sessions.add(new AutoSchedulingSolver.Session(
@@ -35,17 +55,20 @@ public final class MySqlSchedulingRepository implements SchedulingRepository {
                     course.name, course.teacherIds, teacherNames, course.groups,
                     course.capacity, requiredType));
         }
-        return new AutoSchedulingSolver.Problem(sessions, rooms, fixed, preferences, slots());
+        return new AutoSchedulingSolver.Problem(sessions, rooms, fixed, preferences, slots(), diagnostics);
     }
 
     @Override public SchedulingOverviewDto overview(Connection c) throws Exception {
         List<SchedulingTeacherDto> teachers = new ArrayList<SchedulingTeacherDto>();
         String sql = "SELECT tp.user_id,u.display_name,tp.employee_no FROM teacher_profiles tp "
-                + "JOIN users u ON u.id=tp.user_id WHERE tp.status='ACTIVE' ORDER BY u.display_name";
+                + "JOIN users u ON u.id=tp.user_id WHERE tp.status='ACTIVE' AND u.status='ACTIVE' "
+                + "AND EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id "
+                + "WHERE ur.user_id=tp.user_id AND r.code='TEACHER' AND r.status='ACTIVE') "
+                + "ORDER BY u.display_name,tp.employee_no";
         try (PreparedStatement statement = c.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
             while (rs.next()) teachers.add(new SchedulingTeacherDto(rs.getLong(1), rs.getString(2), rs.getString(3)));
         }
-        return new SchedulingOverviewDto(teachers, preferences(c));
+        return new SchedulingOverviewDto(teachers, preferences(c), classrooms(c), semesters(c));
     }
 
     @Override public TeacherTimePreferenceDto savePreference(Connection c,
@@ -88,21 +111,56 @@ public final class MySqlSchedulingRepository implements SchedulingRepository {
         }
     }
 
-    private static Map<Long, CourseSeed> courses(Connection c) throws Exception {
+    private static Map<Long, CourseSeed> courses(Connection c, String semester) throws Exception {
         Map<Long, CourseSeed> result = new LinkedHashMap<Long, CourseSeed>();
-        String sql = "SELECT id,course_code,course_name,capacity,COALESCE(total_hours,32),description "
-                + "FROM courses WHERE status IN ('DRAFT','PUBLISHED') ORDER BY id";
-        try (PreparedStatement statement = c.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
+        String sql = "SELECT id,course_code,course_name,capacity,COALESCE(total_hours,32),description,semester_code "
+                + "FROM courses WHERE status IN ('DRAFT','PUBLISHED')"
+                + (semester == null ? "" : " AND semester_code=?") + " ORDER BY id";
+        try (PreparedStatement statement = c.prepareStatement(sql)) {
+            if (semester != null) statement.setString(1, semester);
+            try (ResultSet rs = statement.executeQuery()) {
             while (rs.next()) { CourseSeed seed = new CourseSeed(); seed.id=rs.getLong(1); seed.code=rs.getString(2);
                 seed.name=rs.getString(3); seed.capacity=rs.getInt(4); seed.totalHours=rs.getInt(5);
-                seed.description=rs.getString(6); result.put(Long.valueOf(seed.id), seed); }
+                seed.description=rs.getString(6); seed.semesterCode=rs.getString(7);
+                result.put(Long.valueOf(seed.id), seed); }
+            }
+        }
+        return result;
+    }
+
+    private static String resolveSemester(Connection c, String requested) throws Exception {
+        if (requested != null && !requested.trim().isEmpty()) return requested.trim();
+        List<String> values = semesters(c);
+        return values.isEmpty() ? null : values.get(0);
+    }
+
+    private static List<String> semesters(Connection c) throws Exception {
+        List<String> result = new ArrayList<String>();
+        String sql = "SELECT DISTINCT semester_code FROM courses WHERE status IN ('DRAFT','PUBLISHED') "
+                + "AND semester_code IS NOT NULL AND TRIM(semester_code)<>'' ORDER BY semester_code DESC";
+        try (PreparedStatement statement=c.prepareStatement(sql); ResultSet rs=statement.executeQuery()) {
+            while (rs.next()) result.add(rs.getString(1));
+        }
+        return result;
+    }
+
+    private static List<String> missingSemesterDiagnostics(Connection c) throws Exception {
+        List<String> result = new ArrayList<String>();
+        String sql = "SELECT course_code,course_name FROM courses WHERE status IN ('DRAFT','PUBLISHED') "
+                + "AND (semester_code IS NULL OR TRIM(semester_code)='') ORDER BY id";
+        try (PreparedStatement statement=c.prepareStatement(sql); ResultSet rs=statement.executeQuery()) {
+            while (rs.next()) result.add("课程 " + rs.getString(1) + " " + rs.getString(2)
+                    + " 未进入排课，原因：缺少学期。");
         }
         return result;
     }
 
     private static void loadTeachers(Connection c, Map<Long, CourseSeed> courses) throws Exception {
         String sql = "SELECT ci.course_id,ci.teacher_user_id,u.display_name FROM course_instructors ci "
-                + "JOIN users u ON u.id=ci.teacher_user_id ORDER BY ci.course_id,ci.instructor_role";
+                + "JOIN users u ON u.id=ci.teacher_user_id JOIN teacher_profiles tp ON tp.user_id=u.id "
+                + "WHERE u.status='ACTIVE' AND tp.status='ACTIVE' AND EXISTS (SELECT 1 FROM user_roles ur "
+                + "JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=u.id AND r.code='TEACHER' "
+                + "AND r.status='ACTIVE') ORDER BY ci.course_id,ci.instructor_role";
         try (PreparedStatement statement = c.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
             while (rs.next()) { CourseSeed seed=courses.get(Long.valueOf(rs.getLong(1))); if(seed!=null){seed.teacherIds.add(Long.valueOf(rs.getLong(2)));seed.teacherNames.add(rs.getString(3));} }
         }
@@ -130,6 +188,17 @@ public final class MySqlSchedulingRepository implements SchedulingRepository {
         } return result;
     }
 
+    private static List<ClassroomDto> classrooms(Connection c) throws Exception {
+        List<ClassroomDto> result = new ArrayList<ClassroomDto>();
+        String sql="SELECT id,building_name,room_no,classroom_type,capacity,status FROM classrooms "
+                + "WHERE status='AVAILABLE' ORDER BY building_name,room_no,id";
+        try(PreparedStatement statement=c.prepareStatement(sql);ResultSet rs=statement.executeQuery()){
+            while(rs.next()) result.add(new ClassroomDto(rs.getLong(1),rs.getString(2),rs.getString(3),
+                    rs.getString(4),rs.getInt(5),rs.getString(6)));
+        }
+        return result;
+    }
+
     private static List<AutoSchedulingSolver.Fixed> fixed(Connection c, Map<Long, CourseSeed> courses) throws Exception {
         List<AutoSchedulingSolver.Fixed> result=new ArrayList<AutoSchedulingSolver.Fixed>();
         String sql="SELECT course_id,COALESCE(classroom_id,0),weekday,start_period,end_period FROM course_schedules";
@@ -153,5 +222,5 @@ public final class MySqlSchedulingRepository implements SchedulingRepository {
     private static List<AutoSchedulingSolver.TimeSlot> slots(){List<AutoSchedulingSolver.TimeSlot> r=new ArrayList<AutoSchedulingSolver.TimeSlot>();int[][] blocks={{1,2},{3,4},{5,6},{7,8},{9,10}};for(int d=1;d<=5;d++)for(int[]b:blocks)r.add(new AutoSchedulingSolver.TimeSlot(d,b[0],b[1]));return r;}
     private static String requiredRoomType(String description){if(description==null)return null;if(description.contains("【机房】")||description.contains("实验室"))return "LAB";if(description.contains("【会议室】"))return "MEETING";return null;}
     private static String join(List<String> values){StringBuilder r=new StringBuilder();for(String value:values){if(r.length()>0)r.append("、");r.append(value);}return r.toString();}
-    private static final class CourseSeed{long id;String code,name,description;int capacity,totalHours,fixedCount;final List<Long>teacherIds=new ArrayList<Long>();final List<String>teacherNames=new ArrayList<String>();final List<String>groups=new ArrayList<String>();}
+    private static final class CourseSeed{long id;String code,name,description,semesterCode;int capacity,totalHours,fixedCount;final List<Long>teacherIds=new ArrayList<Long>();final List<String>teacherNames=new ArrayList<String>();final List<String>groups=new ArrayList<String>();}
 }

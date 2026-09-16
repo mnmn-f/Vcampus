@@ -72,6 +72,15 @@ public final class DormDateField extends JPanel {
 
     public void clear() { setDate(null); }
 
+    @Override public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        if (display != null) {
+            display.setEnabled(enabled);
+            display.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                    : Cursor.getDefaultCursor());
+        }
+    }
+
     /** 取值并在为空时报错，错误话术和其他必填项一致。 */
     public LocalDate required(String label) {
         if (value == null) throw new IllegalArgumentException("请选择" + label);
@@ -85,6 +94,7 @@ public final class DormDateField extends JPanel {
     }
 
     private void open() {
+        if (!isEnabled()) return;
         if (popup.isVisible()) { popup.setVisible(false); return; }
         shown = value == null ? YearMonth.now() : YearMonth.of(value.getYear(), value.getMonthValue());
         renderMonth();

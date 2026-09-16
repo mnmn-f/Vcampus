@@ -27,7 +27,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import org.threeten.bp.LocalDate;
-import org.threeten.bp.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +37,9 @@ public final class CourseScheduleEditorPanel extends SectionCard {
     private final BasePage page; private final AcademicClientService service;
     private final Runnable changed;
     private final JLabel course = UiFactory.body("请先选择课程。"), error = UiFactory.muted(" ");
-    private final JTextField scheduleId = UiFactory.textField(10), startDate = UiFactory.textField(10), endDate = UiFactory.textField(10), classroom = UiFactory.textField(10);
+    private final JTextField scheduleId = UiFactory.textField(10);
+    private final DormDateField startDate = new DormDateField(10), endDate = new DormDateField(10);
+    private final JComboBox<ClassroomOption> classroom = new JComboBox<ClassroomOption>();
     private final JComboBox<String> weekday = new JComboBox<String>(WEEKDAYS);
     private final JSpinner startPeriod = spinner(), endPeriod = spinner();
     private final DefaultTableModel model = model(); private final JTable table = new JTable(model);
@@ -52,7 +53,8 @@ public final class CourseScheduleEditorPanel extends SectionCard {
                                      Runnable changed) {
         super("排课维护", "维护当前课程的上课时段；冲突时提示。");
         this.page = page; this.service = service; this.changed = changed; scheduleId.setEditable(false);
-        scheduleId.setToolTipText("上课时段编号由系统生成"); startDate.setToolTipText("格式：yyyy-MM-dd，可留空"); endDate.setToolTipText("格式：yyyy-MM-dd，可留空");
+        scheduleId.setToolTipText("上课时段编号由系统生成");
+        classroom.setFont(DesignTokens.regular(13));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setRowHeight(36); table.setFillsViewportHeight(true); table.setShowGrid(false);
         table.setFont(DesignTokens.regular(13)); table.setForeground(DesignTokens.TEXT_PRIMARY);
         table.setSelectionBackground(DesignTokens.PRIMARY_LIGHT); table.setSelectionForeground(DesignTokens.TEXT_PRIMARY);
@@ -66,7 +68,7 @@ public final class CourseScheduleEditorPanel extends SectionCard {
         table.getTableHeader().setBackground(DesignTokens.PRIMARY_LIGHT); table.getTableHeader().setPreferredSize(new Dimension(0, 36));
         JPanel fields = new JPanel(new GridLayout(0, 2, 12, 8)); fields.setOpaque(false);
         add(fields, "时段编号", scheduleId); add(fields, "星期", weekday); add(fields, "开始节次", startPeriod); add(fields, "结束节次", endPeriod);
-        add(fields, "起始日期（可选）", startDate); add(fields, "结束日期（可选）", endDate); add(fields, "教室 ID（可选）", classroom);
+        add(fields, "起始日期（可选）", startDate); add(fields, "结束日期（可选）", endDate); add(fields, "教室（可选）", classroom);
         JPanel actions = UiFactory.horizontal(8); newButton.addActionListener(new java.awt.event.ActionListener() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { newSchedule(); }
         }); saveButton.addActionListener(new java.awt.event.ActionListener() {
@@ -84,21 +86,30 @@ public final class CourseScheduleEditorPanel extends SectionCard {
         course.setText(value == null ? "请先选择课程。" : "当前课程：" + RealUi.text(value.getCourseCode()) + "　" + RealUi.text(value.getCourseName()) + "（" + schedules.size() + " 条时段）");
         refreshRows(); setEditorEnabled(courseId > 0L); if (courseId > 0L) newSchedule(); else clearForm();
     }
+    public void setAvailableClassrooms(List<ClassroomDto> values) {
+        ClassroomOption selected = (ClassroomOption) classroom.getSelectedItem();
+        Long selectedId = selected == null ? null : selected.id();
+        classroom.removeAllItems(); classroom.addItem(ClassroomOption.none());
+        if (values != null) for (ClassroomDto value : values)
+            if (value != null && "AVAILABLE".equals(value.getStatus())) classroom.addItem(new ClassroomOption(value));
+        selectClassroom(selectedId, selected == null ? null : selected.value);
+    }
     private void refreshRows() {
         model.setRowCount(0); for (CourseScheduleDto value : schedules) model.addRow(new Object[]{value.getId(), day(value.getWeekday()), period(value), dates(value), classroom(value.getClassroom())});
     }
     private void select(int row) {
         if (row < 0 || row >= schedules.size()) return; CourseScheduleDto value = schedules.get(row); selectedId = value.getId(); scheduleId.setText(String.valueOf(selectedId));
         weekday.setSelectedIndex(Math.max(0, Math.min(WEEKDAYS.length - 1, value.getWeekday() - 1))); startPeriod.setValue(Integer.valueOf(value.getStartPeriod())); endPeriod.setValue(Integer.valueOf(value.getEndPeriod()));
-        startDate.setText(RealUi.input(value.getStartDate())); endDate.setText(RealUi.input(value.getEndDate())); ClassroomDto room = value.getClassroom(); classroom.setText(room == null ? "" : String.valueOf(room.getId())); clearError(); updateButtons();
+        startDate.setDate(value.getStartDate()); endDate.setDate(value.getEndDate());
+        ClassroomDto room = value.getClassroom(); selectClassroom(room == null ? null : Long.valueOf(room.getId()), room); clearError(); updateButtons();
     }
     private void newSchedule() {
         if (courseId <= 0L) { setError("请先选择一门课程。"); return; } selectedId = 0L; scheduleId.setText("新建"); weekday.setSelectedIndex(0); startPeriod.setValue(Integer.valueOf(1)); endPeriod.setValue(Integer.valueOf(2));
-        startDate.setText(""); endDate.setText(""); classroom.setText(""); clearError(); updateButtons(); table.clearSelection();
+        startDate.clear(); endDate.clear(); classroom.setSelectedIndex(classroom.getItemCount() == 0 ? -1 : 0); clearError(); updateButtons(); table.clearSelection();
     }
     private void save() {
         try {
-            if (courseId <= 0L) throw new IllegalArgumentException("请先选择一门课程"); LocalDate from = date(startDate.getText()); LocalDate to = date(endDate.getText());
+            if (courseId <= 0L) throw new IllegalArgumentException("请先选择一门课程"); LocalDate from = startDate.getDate(); LocalDate to = endDate.getDate();
             if (from != null && to != null && to.isBefore(from)) throw new IllegalArgumentException("结束日期不能早于起始日期"); Long room = roomId();
             int start = ((Number) startPeriod.getValue()).intValue(), end = ((Number) endPeriod.getValue()).intValue();
             if (end < start) throw new IllegalArgumentException("结束节次不能早于开始节次");
@@ -133,7 +144,7 @@ public final class CourseScheduleEditorPanel extends SectionCard {
     }
     private void setBusy(boolean value) { busy = value; updateButtons(); }
     private void updateButtons() { boolean enabled = courseId > 0L && !busy; newButton.setEnabled(enabled); saveButton.setEnabled(enabled); deleteButton.setEnabled(enabled && selectedId > 0L); }
-    private void clearForm() { selectedId = 0L; scheduleId.setText("--"); weekday.setSelectedIndex(0); startPeriod.setValue(Integer.valueOf(1)); endPeriod.setValue(Integer.valueOf(2)); startDate.setText(""); endDate.setText(""); classroom.setText(""); clearError(); updateButtons(); }
+    private void clearForm() { selectedId = 0L; scheduleId.setText("--"); weekday.setSelectedIndex(0); startPeriod.setValue(Integer.valueOf(1)); endPeriod.setValue(Integer.valueOf(2)); startDate.clear(); endDate.clear(); classroom.setSelectedIndex(classroom.getItemCount() == 0 ? -1 : 0); clearError(); updateButtons(); }
     private void setError(String text) { error.setForeground(DesignTokens.ERROR); error.setText(text == null ? "请求失败，请稍后重试。" : text); }
     private void clearError() { error.setForeground(DesignTokens.TEXT_SECONDARY); error.setText(" "); }
     private static void add(JPanel panel, String label, java.awt.Component field) { panel.add(UiFactory.labelledField(label, field)); }
@@ -143,7 +154,19 @@ public final class CourseScheduleEditorPanel extends SectionCard {
     private static String period(CourseScheduleDto value) { return value.getStartPeriod() + "—" + value.getEndPeriod() + "节"; }
     private static String dates(CourseScheduleDto value) { return RealUi.date(value.getStartDate()) + " 至 " + RealUi.date(value.getEndDate()); }
     private static String classroom(ClassroomDto value) { return value == null ? "--" : "ID " + value.getId() + " " + RealUi.text(value.getBuildingName()) + "-" + RealUi.text(value.getRoomNo()); }
-    private static LocalDate date(String value) { String text = RealUi.optional(value); if (text == null) return null; try { return LocalDate.parse(text); } catch (DateTimeParseException ex) { throw new IllegalArgumentException("日期格式应为 yyyy-MM-dd"); } }
-    private static Long roomId(String value) { String text = RealUi.optional(value); if (text == null) return null; Long id = RealUi.number(text); if (id == null || id.longValue() <= 0L) throw new IllegalArgumentException("教室 ID 必须是正整数"); return id; }
-    private Long roomId() { return roomId(classroom.getText()); }
+    private Long roomId() { ClassroomOption value=(ClassroomOption)classroom.getSelectedItem(); return value==null?null:value.id(); }
+    private void selectClassroom(Long id, ClassroomDto fallback) {
+        if (id == null) { if (classroom.getItemCount() > 0) classroom.setSelectedIndex(0); return; }
+        for (int i=0;i<classroom.getItemCount();i++) if (id.equals(classroom.getItemAt(i).id())) {
+            classroom.setSelectedIndex(i); return;
+        }
+        if (fallback != null) { classroom.addItem(new ClassroomOption(fallback)); classroom.setSelectedIndex(classroom.getItemCount()-1); }
+    }
+    private static final class ClassroomOption {
+        private final ClassroomDto value;
+        private ClassroomOption(ClassroomDto value) { this.value=value; }
+        static ClassroomOption none() { return new ClassroomOption(null); }
+        Long id() { return value==null?null:Long.valueOf(value.getId()); }
+        @Override public String toString() { return value==null?"不指定教室":RealUi.text(value.getBuildingName())+" "+RealUi.text(value.getRoomNo())+"（"+value.getCapacity()+"人）"; }
+    }
 }
