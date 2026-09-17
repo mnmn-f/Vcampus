@@ -1,0 +1,33 @@
+VCampus Windows 启动包
+
+先解压整个 ZIP，再双击 CMD 文件。请保留 JAR、launch.ps1 和 CMD 的相对位置。
+所有电脑需要 Java 17 或更高版本；本包未附带 Java 运行环境。
+
+你的电脑：
+1. 确保 MySQL 已运行，且已有 vcampus 数据库及项目所需数据表。
+2. 双击 start-server.cmd，用户名直接回车使用 root，再输入数据库密码。
+   密码输入不显示，不保存在文件中。保持服务端窗口打开；Ctrl+C 停止服务端。
+   如果提示 8888 端口已占用，可能已有服务端运行，不要重复启动。
+3. 双击 start-local-client.cmd，自动连接本机 127.0.0.1:8888。
+
+同学的电脑：
+1. 只需客户端 ZIP，不需要 MySQL 或服务端。
+2. 连接同一个 Wi-Fi/个人热点。
+3. 双击 start-client.cmd，输入服务端电脑的 IPv4 地址。
+   直接回车连接本机 127.0.0.1；同学的电脑必须填写服务端电脑的地址。
+   更换网络后地址可能变化；使用服务端窗口显示的 Wi-Fi 地址。
+4. 使用服务端数据库里的真实账号密码登录。
+
+首次允许同学连接（只在服务端电脑执行）：
+以管理员身份打开 PowerShell，执行：
+New-NetFirewallRule -DisplayName "VCampus TCP 8888 LAN" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8888 -Profile Public,Private -RemoteAddress LocalSubnet
+本启动包不会自动修改防火墙。
+
+排查连接：
+同学在 PowerShell 执行 Test-NetConnection <服务端IP> -Port 8888（将占位符替换成实际地址）。
+TcpTestSucceeded 应为 True。否则核对 IP、同一热点、服务端运行状态和防火墙。
+
+服务端启动包使用现有本机数据库，不会导入、初始化或覆盖数据。
+不要把数据库密码发给同学；同学只需要应用登录账号。
+服务器电脑需保持开机且不休眠。客户端窗口使用期间请保留其启动终端。
+AI 等可选功能沿用环境变量配置；未设置模型密钥时使用项目既有回退行为。
